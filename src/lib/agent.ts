@@ -6,11 +6,24 @@ import {
   AgentConfig,
   defaultAgentConfig,
   validateFilePaths,
+  AgentPhase,
+  DeploymentInfo,
 } from "./types";
-import { debugFiles } from "./openrouter";
+import { planSpec, buildFromSpec, fixFiles, testFiles } from "./llm";
 import { attachBackend } from "./backend";
 import { applyIntegrations } from "./integrations";
-import { saveProject } from "./memory";
+import { saveProject, loadProject, getAllProjects } from "./memory";
+import { 
+  saveProjectDB, 
+  loadProjectDB, 
+  listProjectsDB, 
+  updateProjectStatus,
+  isDatabaseAvailable 
+} from "./supabase/db";
+import { createVercelDeploy, isVercelAvailable } from "./deploy";
+import { exportToGitHub as exportToGitHubRepo, isGitHubAvailable } from "./github";
+
+export { isDatabaseAvailable, isVercelAvailable, isGitHubAvailable };
 
 export class AgentError extends Error {
   constructor(
@@ -22,6 +35,13 @@ export class AgentError extends Error {
     super(message, { cause });
     this.name = "AgentError";
   }
+}
+
+export interface AgentProgress {
+  phase: AgentPhase;
+  message: string;
+  pass?: number;
+  totalPasses?: number;
 }
 
 interface AIResponse {
@@ -97,9 +117,14 @@ function parseMultiFileResponse(content: string): unknown {
 export class AppBuildAgent {
   private config: AgentConfig;
   private systemPrompt: string;
+  private onProgress?: (progress: AgentProgress) => void;
 
-  constructor(config: Partial<AgentConfig> = {}) {
+  constructor(
+    config: Partial<AgentConfig> = {},
+    onProgress?: (progress: AgentProgress) => void
+  ) {
     this.config = { ...defaultAgentConfig, ...config };
+    this.onProgress = onProgress;
     this.systemPrompt = `You are an AI app builder. Generate a Next.js application with multiple files.
     
 Return a JSON object with this exact structure:
@@ -126,6 +151,126 @@ Rules:
 - Maximum 10 files per app`;
   }
 
+  private reportProgress(progress: AgentProgress) {
+    if (this.onProgress) {
+      this.onProgress(progress);
+    }
+  }
+
+  /**
+   * Advanced agent loop: plan → build → test → fix
+   */
+  async runAdvanced(
+    prompt: string,
+    options: { fixPasses?: number } = {}
+  ): Promise<GenerationResult> {
+    const { fixPasses = 2 } = options;
+    const id = crypto.randomUUID();
+
+    // Phase 1: Planning
+    this.reportProgress({
+      phase: "planning",
+      message: "Analyzing requirements and creating specification...",
+    });
+
+    const spec = await planSpec(prompt);
+    const description = spec.description;
+    const integrations = spec.integrations;
+
+    // Phase 2: Building
+    this.reportProgress({
+      phase: "building",
+      message: `Building ${spec.pages.length} pages and ${spec.components.length} components...`,
+    });
+
+    let files = await buildFromSpec(spec);
+
+    // Phase 3: Apply backend and integrations
+    this.reportProgress({
+      phase: "building",
+      message: "Adding backend services and integrations...",
+    });
+
+    files = attachBackend({ files, description, schema: spec.schema, integrations });
+    files = applyIntegrations(files, integrations);
+
+    // Phase 4: Testing and Fixing (iterative)
+    for (let pass = 1; pass <= fixPasses; pass++) {
+      this.reportProgress({
+        phase: pass === 1 ? "testing" : "fixing",
+        message: pass === 1 ? "Running tests and validation..." : `Fixing issues (pass ${pass}/${fixPasses})...`,
+        pass,
+        totalPasses: fixPasses,
+      });
+
+      // Test the files
+      const testResult = await testFiles(files);
+      
+      if (testResult.success) {
+        this.reportProgress({
+          phase: "complete",
+          message: "All tests passed!",
+          pass,
+          totalPasses: fixPasses,
+        });
+        break;
+      }
+
+      // Fix the files if there are errors
+      if (testResult.errors && pass < fixPasses) {
+        const errorText = testResult.errors.join("\n");
+        files = await fixFiles(files, errorText);
+      } else if (!testResult.success && pass === fixPasses) {
+        // Last pass and still errors - try one more fix
+        const errorText = testResult.errors?.join("\n");
+        files = await fixFiles(files, errorText);
+      }
+    }
+
+    // Path validation
+    const pathValidation = validateFilePaths(files);
+    if (!pathValidation.success) {
+      throw new AgentError(pathValidation.errors.join("; "));
+    }
+
+    const result: GenerationResult = {
+      id,
+      files,
+      description,
+      schema: spec.schema,
+      integrations,
+      timestamp: Date.now(),
+    };
+
+    const project: Project = {
+      ...result,
+      id,
+      createdAt: new Date().toISOString(),
+    };
+
+    // Save to database if available, otherwise use memory
+    if (isDatabaseAvailable()) {
+      try {
+        await saveProjectDB(project);
+      } catch (e) {
+        console.error("Failed to save to database, falling back to memory:", e);
+        saveProject(project);
+      }
+    } else {
+      saveProject(project);
+    }
+
+    this.reportProgress({
+      phase: "complete",
+      message: "Project generated successfully!",
+    });
+
+    return result;
+  }
+
+  /**
+   * Original run method (backward compatible)
+   */
   async run(prompt: string): Promise<GenerationResult> {
     const fullPrompt = `${this.systemPrompt}\n\nUser request: ${prompt}\n\nGenerate a complete multi-file Next.js app now:`;
 
@@ -158,7 +303,7 @@ Rules:
         
         // Debug pass
         try {
-          files = await debugFiles(files);
+          files = await fixFiles(files);
         } catch (e) {
           console.error("Debug pass failed, using original files", e);
         }
@@ -173,8 +318,23 @@ Rules:
           timestamp: Date.now(),
         };
 
-        // Save to memory
-        saveProject(result as Project);
+        const project: Project = {
+          ...result,
+          id,
+          createdAt: new Date().toISOString(),
+        };
+
+        // Save to database if available
+        if (isDatabaseAvailable()) {
+          try {
+            await saveProjectDB(project);
+          } catch (e) {
+            console.error("Failed to save to database, falling back to memory:", e);
+            saveProject(project);
+          }
+        } else {
+          saveProject(project);
+        }
 
         return result;
       } catch (error) {
@@ -305,7 +465,7 @@ Rules:
     
     // Debug pass
     try {
-      files = await debugFiles(files);
+      files = await fixFiles(files);
     } catch (e) {
       console.error("Debug pass failed, using original files", e);
     }
@@ -320,10 +480,118 @@ Rules:
       timestamp: Date.now(),
     };
 
-    // Save to memory
-    saveProject(result as Project);
+    const project: Project = {
+      ...result,
+      id,
+      createdAt: new Date().toISOString(),
+    };
+
+    // Save to database if available
+    if (isDatabaseAvailable()) {
+      try {
+        await saveProjectDB(project);
+      } catch (e) {
+        console.error("Failed to save to database, falling back to memory:", e);
+        saveProject(project);
+      }
+    } else {
+      saveProject(project);
+    }
 
     return result;
+  }
+
+  /**
+   * Deploy project to Vercel
+   */
+  async deployToVercel(projectId: string): Promise<DeploymentInfo | null> {
+    if (!isVercelAvailable()) {
+      throw new AgentError("Vercel integration not configured");
+    }
+
+    // Try database first, then memory
+    let project: Project | null = null;
+    if (isDatabaseAvailable()) {
+      project = await loadProjectDB(projectId);
+    }
+    if (!project) {
+      project = loadProject(projectId) || null;
+    }
+
+    if (!project) {
+      throw new AgentError(`Project ${projectId} not found`);
+    }
+
+    const result = await createVercelDeploy(
+      projectId,
+      project.files,
+      project.description?.slice(0, 50)
+    );
+
+    if (!result.success || !result.deployment) {
+      throw new AgentError(result.error || "Deployment failed");
+    }
+
+    // Update project with deployment info
+    project.deployment = result.deployment;
+    
+    if (isDatabaseAvailable()) {
+      try {
+        await saveProjectDB(project);
+      } catch {
+        saveProject(project);
+      }
+    } else {
+      saveProject(project);
+    }
+
+    return result.deployment;
+  }
+
+  /**
+   * Export project to GitHub
+   */
+  async exportToGitHub(
+    projectId: string,
+    repoName: string
+  ): Promise<{ repoUrl: string }> {
+    if (!isGitHubAvailable()) {
+      throw new AgentError("GitHub integration not configured");
+    }
+
+    // Try database first, then memory
+    let project: Project | null = null;
+    if (isDatabaseAvailable()) {
+      project = await loadProjectDB(projectId);
+    }
+    if (!project) {
+      project = loadProject(projectId) || null;
+    }
+
+    if (!project) {
+      throw new AgentError(`Project ${projectId} not found`);
+    }
+
+    const result = await exportToGitHubRepo(repoName, project.files, project.description);
+
+    if (!result.success) {
+      throw new AgentError(result.error || "GitHub export failed");
+    }
+
+    // Update project with GitHub info
+    project.githubRepo = result.repoUrl;
+    
+    if (isDatabaseAvailable()) {
+      try {
+        await saveProjectDB(project);
+      } catch {
+        saveProject(project);
+      }
+    } else {
+      saveProject(project);
+    }
+
+    return { repoUrl: result.repoUrl };
   }
 }
 
@@ -331,3 +599,33 @@ export function buildAppAgent(prompt: string): Promise<GenerationResult> {
   const agent = new AppBuildAgent();
   return agent.run(prompt);
 }
+
+/**
+ * Load project from database or memory
+ */
+export async function loadProjectFromStorage(id: string): Promise<Project | null> {
+  if (isDatabaseAvailable()) {
+    try {
+      return await loadProjectDB(id);
+    } catch (e) {
+      console.error("Failed to load from database, falling back to memory:", e);
+    }
+  }
+  return loadProject(id) ?? null;
+}
+
+/**
+ * List all projects from database or memory
+ */
+export async function listProjectsFromStorage(): Promise<Project[]> {
+  if (isDatabaseAvailable()) {
+    try {
+      return await listProjectsDB();
+    } catch (e) {
+      console.error("Failed to list from database, falling back to memory:", e);
+    }
+  }
+  return getAllProjects();
+}
+
+export { updateProjectStatus };
