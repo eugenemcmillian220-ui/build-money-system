@@ -1,20 +1,24 @@
 import { z } from "zod";
 
 const serverEnvSchema = z.object({
-  OPENROUTER_API_KEY: z.string().min(1, "OPENROUTER_API_KEY is required"),
+  OPENROUTER_API_KEY: z.string().optional(),
   OPENROUTER_MODEL: z.string().optional().default("openai/gpt-4o-mini"),
   NEXT_PUBLIC_SUPABASE_URL: z
     .string()
-    .url("NEXT_PUBLIC_SUPABASE_URL must be a valid URL"),
+    .url("NEXT_PUBLIC_SUPABASE_URL must be a valid URL")
+    .optional(),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z
     .string()
-    .min(1, "NEXT_PUBLIC_SUPABASE_ANON_KEY is required"),
+    .min(1, "NEXT_PUBLIC_SUPABASE_ANON_KEY is required")
+    .optional(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, "SUPABASE_SERVICE_ROLE_KEY is required").optional(),
   NEXT_PUBLIC_SITE_URL: z.string().url().optional(),
   // Phase 4: GitHub and Vercel tokens (optional for development)
   GITHUB_TOKEN: z.string().optional(),
   VERCEL_TOKEN: z.string().optional(),
   VERCEL_TEAM_ID: z.string().optional(),
+  // Phase 5: Admin API keys for protected endpoints (optional)
+  ADMIN_API_KEYS: z.string().optional(),
 });
 
 const clientEnvSchema = z.object({
@@ -36,12 +40,13 @@ let cachedClientEnv: ClientEnv | undefined;
 function validateServerEnv(): ServerEnv {
   if (cachedServerEnv) return cachedServerEnv;
 
-  // Skip validation during build to avoid errors when environment variables are not set
+  // Skip validation during build or if flag is set
   if (process.env.NEXT_PHASE === 'phase-production-build' || process.env.SKIP_ENV_VALIDATION === 'true') {
     return serverEnvSchema.partial().parse(process.env) as unknown as ServerEnv;
   }
 
-  const result = serverEnvSchema.safeParse(process.env);
+  // Always use partial validation to allow optional fields
+  const result = serverEnvSchema.partial().safeParse(process.env);
   if (!result.success) {
     const formatted = result.error.flatten().fieldErrors;
     console.error("❌ Invalid server environment variables:", formatted);
@@ -49,7 +54,7 @@ function validateServerEnv(): ServerEnv {
       `Invalid server environment variables:\n${JSON.stringify(formatted, null, 2)}`,
     );
   }
-  cachedServerEnv = result.data;
+  cachedServerEnv = result.data as ServerEnv;
   return cachedServerEnv;
 }
 

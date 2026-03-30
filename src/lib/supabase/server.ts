@@ -5,10 +5,16 @@ import { serverEnv } from "@/lib/env";
 
 export async function createClient() {
   const cookieStore = await cookies();
+  const supabaseUrl = serverEnv.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = serverEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error("Supabase environment variables not configured");
+  }
 
   return createServerClient(
-    serverEnv.NEXT_PUBLIC_SUPABASE_URL,
-    serverEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         getAll() {
