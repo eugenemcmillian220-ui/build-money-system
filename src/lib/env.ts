@@ -2,6 +2,7 @@ import { z } from "zod";
 
 const serverEnvSchema = z.object({
   OPENROUTER_API_KEY: z.string().min(1, "OPENROUTER_API_KEY is required"),
+  OPENROUTER_MODEL: z.string().optional().default("openai/gpt-4o-mini"),
   NEXT_PUBLIC_SUPABASE_URL: z
     .string()
     .url("NEXT_PUBLIC_SUPABASE_URL must be a valid URL"),

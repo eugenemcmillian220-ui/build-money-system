@@ -2,12 +2,15 @@
 
 import { useRef, useState, useTransition } from "react";
 import { CodeDisplay } from "@/components/code-display";
+import { MultiFileDisplay } from "@/components/multi-file-display";
+
+type FileMap = Record<string, string>;
 
 type GenerationState =
   | { status: "idle" }
   | { status: "loading" }
-  | { status: "streaming"; code: string }
-  | { status: "done"; code: string }
+  | { status: "streaming"; code: string; files: FileMap }
+  | { status: "done"; code: string; files: FileMap }
   | { status: "error"; message: string };
 
 const EXAMPLE_PROMPTS = [
@@ -18,14 +21,24 @@ const EXAMPLE_PROMPTS = [
   "E-commerce product card grid",
 ];
 
+const MULTI_FILE_EXAMPLES = [
+  "Full landing page with header, hero, features, and footer",
+  "E-commerce product listing with shopping cart",
+  "User dashboard with charts and data tables",
+  "Blog platform with posts and comments",
+  "Todo app with categories and filters",
+];
+
 export function GeneratorForm() {
   const [prompt, setPrompt] = useState("");
   const [state, setState] = useState<GenerationState>({ status: "idle" });
+  const [multiFileMode, setMultiFileMode] = useState(false);
   const [isPending, startTransition] = useTransition();
   const abortRef = useRef<AbortController | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const isWorking = state.status === "loading" || state.status === "streaming" || isPending;
+  const examples = multiFileMode ? MULTI_FILE_EXAMPLES : EXAMPLE_PROMPTS;
 
   function handleExampleClick(example: string) {
     setPrompt(example);
@@ -34,11 +47,12 @@ export function GeneratorForm() {
 
   function handleStop() {
     abortRef.current?.abort();
-    setState((prev) =>
-      prev.status === "streaming"
-        ? { status: "done", code: prev.code }
-        : { status: "idle" },
-    );
+    if (state.status === "streaming") {
+      const emptyFiles: FileMap = {};
+      setState({ status: "done", code: state.code, files: emptyFiles });
+    } else {
+      setState({ status: "idle" });
+    }
   }
 
   async function handleGenerate() {
@@ -49,14 +63,19 @@ export function GeneratorForm() {
     const controller = new AbortController();
     abortRef.current = controller;
 
-    setState({ status: "loading" });
+    const emptyFiles: FileMap = {};
+    setState({ status: "loading", code: "", files: emptyFiles });
 
     startTransition(async () => {
       try {
         const response = await fetch("/api/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt: trimmed, stream: true }),
+          body: JSON.stringify({
+            prompt: trimmed,
+            stream: true,
+            multiFile: multiFileMode,
+          }),
           signal: controller.signal,
         });
 
@@ -71,7 +90,8 @@ export function GeneratorForm() {
           return;
         }
 
-        setState({ status: "streaming", code: "" });
+        const currentFiles: FileMap = {};
+        setState({ status: "streaming", code: "", files: currentFiles });
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
@@ -81,11 +101,31 @@ export function GeneratorForm() {
           const { done, value } = await reader.read();
           if (done) break;
           accumulated += decoder.decode(value, { stream: true });
+
+          // Try to parse JSON for multi-file mode
+          if (multiFileMode) {
+            try {
+              const cleaned = accumulated
+                .replace(/^```json\n?/g, "")
+                .replace(/^```\n?/g, "")
+                .replace(/\n?```$/g, "")
+                .trim();
+              const parsed = JSON.parse(cleaned);
+              if (parsed.files && typeof parsed.files === "object") {
+                Object.assign(currentFiles, parsed.files);
+              }
+            } catch {
+              // Not valid JSON yet
+            }
+          }
+
           const snapshot = accumulated;
-          setState({ status: "streaming", code: snapshot });
+          const filesSnapshot = multiFileMode ? { ...currentFiles } : emptyFiles;
+          setState({ status: "streaming", code: snapshot, files: filesSnapshot });
         }
 
-        setState({ status: "done", code: accumulated });
+        const finalFiles = multiFileMode ? { ...currentFiles } : emptyFiles;
+        setState({ status: "done", code: accumulated, files: finalFiles });
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") return;
         const message =
@@ -104,11 +144,55 @@ export function GeneratorForm() {
 
   const currentCode =
     state.status === "streaming" || state.status === "done" ? state.code : "";
+  const currentFiles = state.status === "streaming" || state.status === "done" ? state.files : {};
+  const hasFiles = currentFiles && Object.keys(currentFiles).length > 0;
 
   return (
     <div className="w-full">
+      {/* Mode Toggle */}
+      <div className="mb-4 flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setMultiFileMode(false)}
+            className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+              !multiFileMode
+                ? "text-white"
+                : "border"
+            }`}
+            style={{
+              background: !multiFileMode ? "var(--ring)" : "transparent",
+              borderColor: "var(--border)",
+              color: multiFileMode ? "var(--muted-foreground)" : "white",
+            }}
+          >
+            Single Component
+          </button>
+          <button
+            onClick={() => setMultiFileMode(true)}
+            className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+              multiFileMode
+                ? "text-white"
+                : "border"
+            }`}
+            style={{
+              background: multiFileMode ? "var(--ring)" : "transparent",
+              borderColor: "var(--border)",
+              color: multiFileMode ? "white" : "var(--muted-foreground)",
+            }}
+          >
+            Full App (Multi-file)
+          </button>
+        </div>
+        <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+          {multiFileMode
+            ? "Generates a complete Next.js app with multiple files"
+            : "Generates a single React component"}
+        </span>
+      </div>
+
+      {/* Example Prompts */}
       <div className="mb-3 flex flex-wrap gap-2">
-        {EXAMPLE_PROMPTS.map((example) => (
+        {examples.map((example) => (
           <button
             key={example}
             onClick={() => handleExampleClick(example)}
@@ -124,6 +208,7 @@ export function GeneratorForm() {
         ))}
       </div>
 
+      {/* Input Area */}
       <div className="relative">
         <textarea
           ref={textareaRef}
@@ -135,12 +220,16 @@ export function GeneratorForm() {
             minHeight: "7rem",
           }}
           rows={4}
-          placeholder="Describe the component you want to build… (⌘ + Enter to generate)"
+          placeholder={
+            multiFileMode
+              ? "Describe the full app you want to build… (⌘ + Enter to generate)"
+              : "Describe the component you want to build… (⌘ + Enter to generate)"
+          }
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={handleKeyDown}
           disabled={isWorking}
-          aria-label="Component description"
+          aria-label={multiFileMode ? "App description" : "Component description"}
           maxLength={2000}
         />
         <span
@@ -151,6 +240,7 @@ export function GeneratorForm() {
         </span>
       </div>
 
+      {/* Action Buttons */}
       <div className="mt-3 flex items-center gap-3">
         <button
           onClick={handleGenerate}
@@ -167,8 +257,12 @@ export function GeneratorForm() {
           {state.status === "loading"
             ? "Connecting…"
             : state.status === "streaming"
-              ? "Generating…"
-              : "Generate Component"}
+              ? multiFileMode
+                ? "Generating App…"
+                : "Generating…"
+              : multiFileMode
+                ? "Generate Full App"
+                : "Generate Component"}
         </button>
 
         {isWorking && (
@@ -192,6 +286,7 @@ export function GeneratorForm() {
         )}
       </div>
 
+      {/* Error Message */}
       {state.status === "error" && (
         <div
           className="mt-4 rounded-lg border px-4 py-3 text-sm"
@@ -207,10 +302,18 @@ export function GeneratorForm() {
         </div>
       )}
 
-      <CodeDisplay
-        code={currentCode}
-        isStreaming={state.status === "streaming"}
-      />
+      {/* Display Results */}
+      {multiFileMode && hasFiles ? (
+        <MultiFileDisplay
+          files={currentFiles}
+          isStreaming={state.status === "streaming"}
+        />
+      ) : (
+        <CodeDisplay
+          code={currentCode}
+          isStreaming={state.status === "streaming"}
+        />
+      )}
     </div>
   );
 }
