@@ -161,7 +161,9 @@ Return a JSON object with this exact structure:
     "components/Hero.tsx": "code here",
     "app/globals.css": "css code here"
   },
-  "description": "Brief description of what this app does"
+  "description": "Brief description of what this app does",
+  "schema": "SQL schema for Supabase if needed (optional)",
+  "integrations": ["stripe", "supabase"] (optional array)
 }
 
 Rules:
@@ -175,22 +177,34 @@ Rules:
 - Do not use path traversal (no ../ in paths)
 - Maximum 10 files per app`;
 
-function parseMultiFileJson(content: string): Record<string, string> {
+export interface MultiFileResponse {
+  files: Record<string, string>;
+  description?: string;
+  schema?: string;
+  integrations?: string[];
+}
+
+function parseMultiFileJson(content: string): MultiFileResponse {
   const cleaned = content
     .replace(/^```json\n?/g, "")
     .replace(/^```\n?/g, "")
     .replace(/\n?```$/g, "")
     .trim();
 
-  const parsed = JSON.parse(cleaned);
-  if (!parsed.files || typeof parsed.files !== "object") {
-    throw new OpenRouterError("Invalid multi-file response: missing files object");
-  }
+  try {
+    const parsed = JSON.parse(cleaned);
+    if (!parsed.files || typeof parsed.files !== "object") {
+      throw new OpenRouterError("Invalid multi-file response: missing files object");
+    }
 
-  return parsed.files as Record<string, string>;
+    return parsed as MultiFileResponse;
+  } catch (e) {
+    if (e instanceof OpenRouterError) throw e;
+    throw new OpenRouterError(`Failed to parse multi-file JSON: ${e instanceof Error ? e.message : String(e)}`);
+  }
 }
 
-export async function generateMultiFileApp(prompt: string): Promise<Record<string, string>> {
+export async function generateMultiFileApp(prompt: string): Promise<MultiFileResponse> {
   const fullPrompt = `${MULTI_FILE_SYSTEM_PROMPT}\n\nUser request: ${prompt}\n\nGenerate a complete multi-file Next.js app now:`;
 
   const body: OpenRouterRequestBody = {
@@ -233,8 +247,8 @@ export async function generateMultiFileApp(prompt: string): Promise<Record<strin
 
 export async function generateMultiFileAppStream(
   prompt: string,
-  onChunk: (content: string, partialFiles?: Record<string, string>) => void,
-): Promise<Record<string, string>> {
+  onChunk: (content: string, partialFiles?: MultiFileResponse) => void,
+): Promise<MultiFileResponse> {
   const fullPrompt = `${MULTI_FILE_SYSTEM_PROMPT}\n\nUser request: ${prompt}\n\nGenerate a complete multi-file Next.js app now:`;
 
   const body: OpenRouterRequestBody = {
@@ -301,7 +315,7 @@ export async function generateMultiFileAppStream(
                 accumulated += delta;
                 controller.enqueue(encoder.encode(delta));
 
-                let partialFiles: Record<string, string> | undefined;
+                let partialFiles: MultiFileResponse | undefined;
                 try {
                   partialFiles = parseMultiFileJson(accumulated);
                 } catch {
@@ -334,3 +348,57 @@ export async function generateMultiFileAppStream(
 
   return parseMultiFileJson(accumulated);
 }
+
+export async function debugFiles(files: Record<string, string>, error?: string): Promise<Record<string, string>> {
+  const prompt = `You are an expert debugger. Fix any syntax or runtime issues in the following Next.js files.
+${error ? `Reported error: ${error}` : "Ensure the code is modern, bug-free, and follows Next.js 15 / React 19 patterns."}
+
+Current files:
+${Object.entries(files).map(([path, content]) => `File: ${path}\n\`\`\`\n${content}\n\`\`\``).join("\n\n")}
+
+Return ONLY the fixed files in the same JSON format:
+{
+  "files": {
+    "path/to/file.tsx": "fixed code here"
+  }
+}`;
+
+  const body: OpenRouterRequestBody = {
+    model: MODEL,
+    messages: [{ role: "user", content: prompt }],
+    temperature: 0.2,
+    max_tokens: 8192,
+  };
+
+  let response: Response;
+  try {
+    response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+      method: "POST",
+      headers: buildHeaders(),
+      body: JSON.stringify(body),
+    });
+  } catch (cause) {
+    throw new OpenRouterError("Failed to reach OpenRouter API", undefined, cause);
+  }
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new OpenRouterError(
+      `OpenRouter returned ${response.status}: ${text}`,
+      response.status,
+    );
+  }
+
+  const json = (await response.json()) as {
+    choices: Array<{ message: { content: string } }>;
+  };
+
+  const content = json.choices[0]?.message?.content;
+  if (!content) {
+    throw new OpenRouterError("OpenRouter returned an empty response during debug");
+  }
+
+  const parsed = parseMultiFileJson(content);
+  return parsed.files;
+}
+

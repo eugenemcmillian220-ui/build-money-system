@@ -6,6 +6,9 @@ export interface GenerationResult {
   files: FileMap;
   description?: string;
   timestamp: number;
+  schema?: string;
+  integrations?: string[];
+  id?: string;
 }
 
 export const fileMapSchema: z.ZodType<FileMap> = z.record(
@@ -17,7 +20,16 @@ export const generationResultSchema: z.ZodType<GenerationResult> = z.object({
   files: fileMapSchema,
   description: z.string().optional(),
   timestamp: z.number(),
+  schema: z.string().optional(),
+  integrations: z.array(z.string()).optional(),
+  id: z.string().optional(),
 });
+
+export interface Project extends GenerationResult {
+  id: string;
+  createdAt: string;
+}
+
 
 export interface ValidationResult<T> {
   success: true;
