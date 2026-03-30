@@ -1,0 +1,114 @@
+// ============================= // PHASE 2: AI APP BUILDER (UPGRADE) // Adds: Live Preview, Multi-file Generation, Basic Agent System // =============================
+
+// INSTALL EXTRA DEPENDENCIES // npm install react-live uuid
+
+// ============================= // 1. UPDATED AI ENGINE (lib/openrouter.ts) // ============================= import axios from "axios";
+
+export async function generateMultiFileApp(prompt: string) { try { const response = await axios.post( "https://openrouter.ai/api/v1/chat/completions", { model: "openai/gpt-4o-mini", messages: [ { role: "user", content: You are an AI app builder. Generate a Next.js app with multiple files. Return JSON in this format: { "files": { "app/page.tsx": "code here", "components/Hero.tsx": "code here" } } App idea: ${prompt}, }, ], }, { headers: { Authorization: Bearer ${process.env.OPENROUTER_API_KEY}, "Content-Type": "application/json", }, } );
+
+const content = response.data.choices[0].message.content;
+return JSON.parse(content);
+
+} catch (error: any) { console.error(error.response?.data || error.message); throw new Error("Multi-file generation failed"); } }
+
+// ============================= // 2. AGENT SYSTEM (lib/agent.ts) // ============================= import { generateMultiFileApp } from "./openrouter";
+
+export async function buildAppAgent(prompt: string) { // Step 1: Generate files const app = await generateMultiFileApp(prompt);
+
+// Step 2: Basic validation if (!app.files) throw new Error("Invalid AI response");
+
+// Step 3: Return structured output return app; }
+
+// ============================= // 3. API ROUTE (app/api/generate/route.ts) // ============================= import { NextRequest, NextResponse } from "next/server"; import { buildAppAgent } from "@/lib/agent";
+
+export async function POST(req: NextRequest) { try { const { prompt } = await req.json();
+
+if (!prompt) {
+  return NextResponse.json({ error: "Prompt required" }, { status: 400 });
+}
+
+const result = await buildAppAgent(prompt);
+
+return NextResponse.json(result);
+
+} catch (error) { return NextResponse.json({ error: "Generation failed" }, { status: 500 }); } }
+
+// ============================= // 4. LIVE PREVIEW COMPONENT (components/Preview.tsx) // ============================= "use client";
+
+import { LiveProvider, LivePreview, LiveError } from "react-live";
+
+export default function Preview({ code }: { code: string }) { return ( <LiveProvider code={code}> <div className="border p-4 rounded"> <LivePreview /> <LiveError /> </div> </LiveProvider> ); }
+
+// ============================= // 5. FRONTEND UI (app/page.tsx) // ============================= "use client";
+
+import { useState } from "react"; import Preview from "@/components/Preview";
+
+export default function Home() { const [prompt, setPrompt] = useState(""); const [files, setFiles] = useState<any>({}); const [selectedFile, setSelectedFile] = useState(""); const [loading, setLoading] = useState(false);
+
+const generateApp = async () => { setLoading(true); try { const res = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt }), });
+
+const data = await res.json();
+  setFiles(data.files);
+  setSelectedFile(Object.keys(data.files)[0]);
+} catch (err) {
+  console.error(err);
+} finally {
+  setLoading(false);
+}
+
+};
+
+return ( <main className="p-6 max-w-6xl mx-auto"> <h1 className="text-2xl font-bold mb-4">AI App Builder Phase 2</h1>
+
+<textarea
+    className="w-full border p-3 rounded mb-4"
+    rows={4}
+    placeholder="Describe your app..."
+    value={prompt}
+    onChange={(e) => setPrompt(e.target.value)}
+  />
+
+  <button
+    onClick={generateApp}
+    className="bg-black text-white px-4 py-2 rounded"
+    disabled={loading}
+  >
+    {loading ? "Generating..." : "Generate Full App"}
+  </button>
+
+  <div className="grid grid-cols-4 gap-4 mt-6">
+    <div className="col-span-1 border p-2">
+      <h2 className="font-bold">Files</h2>
+      {Object.keys(files).map((file) => (
+        <div
+          key={file}
+          className={`cursor-pointer p-1 ${selectedFile === file ? "bg-gray-200" : ""}`}
+          onClick={() => setSelectedFile(file)}
+        >
+          {file}
+        </div>
+      ))}
+    </div>
+
+    <div className="col-span-3">
+      {selectedFile && (
+        <>
+          <h2 className="font-bold mb-2">Preview</h2>
+          <Preview code={files[selectedFile]} />
+
+          <pre className="mt-4 bg-gray-900 text-green-400 p-4 rounded overflow-x-auto">
+            {files[selectedFile]}
+          </pre>
+        </>
+      )}
+    </div>
+  </div>
+</main>
+
+); }
+
+// ============================= // PHASE 2 COMPLETE // =============================
+
+// YOU NOW HAVE: // - Multi-file AI generation // - Basic AI agent system // - File explorer UI // - Live preview (like v0)
+
+// NEXT: // Phase 3 = Debugging AI + Deploy System + Integrations
