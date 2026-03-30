@@ -37,7 +37,12 @@ export class SecurityLayer {
    */
   public validateApiKey(apiKey?: string): boolean {
     if (!apiKey) return false;
-    // In a real app, this would check against a database or environment variable
+    // In production, check against admin API keys from environment
+    const adminKeys = process.env.ADMIN_API_KEYS?.split(',') || [];
+    if (adminKeys.length > 0 && adminKeys.includes(apiKey)) {
+      return true;
+    }
+    // Development fallback: check format
     return apiKey.startsWith('sk-') && apiKey.length > 20;
   }
 

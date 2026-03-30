@@ -28,8 +28,14 @@ interface OpenRouterRequestBody {
 }
 
 function buildHeaders(): Record<string, string> {
+  const apiKey = serverEnv.OPENROUTER_API_KEY;
+
+  if (!apiKey) {
+    throw new OpenRouterError("OPENROUTER_API_KEY not configured. Set environment variable to use AI generation.");
+  }
+
   return {
-    Authorization: `Bearer ${serverEnv.OPENROUTER_API_KEY}`,
+    Authorization: `Bearer ${apiKey}`,
     "Content-Type": "application/json",
     "HTTP-Referer": serverEnv.NEXT_PUBLIC_SITE_URL ?? "https://localhost:3000",
     "X-Title": "AI App Builder",
@@ -37,6 +43,12 @@ function buildHeaders(): Record<string, string> {
 }
 
 export async function generateText(prompt: string): Promise<string> {
+  const apiKey = serverEnv.OPENROUTER_API_KEY;
+
+  if (!apiKey) {
+    throw new OpenRouterError("OPENROUTER_API_KEY not configured. Set environment variable to use AI generation.");
+  }
+
   const body: OpenRouterRequestBody = {
     model: MODEL,
     messages: [{ role: "user", content: prompt }],

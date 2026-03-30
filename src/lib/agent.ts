@@ -54,6 +54,11 @@ async function callAI(
   config: AgentConfig,
 ): Promise<AIResponse> {
   const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
+  const apiKey = process.env.OPENROUTER_API_KEY;
+
+  if (!apiKey) {
+    throw new AgentError("OPENROUTER_API_KEY not configured. Set environment variable to use AI generation.");
+  }
 
   const body = {
     model: config.model,
@@ -70,7 +75,7 @@ async function callAI(
   const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+      Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
       "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL ?? "https://localhost:3000",
       "X-Title": "AI App Builder",
@@ -367,6 +372,11 @@ Rules:
     onChunk: (content: string) => void,
   ): Promise<GenerationResult> {
     const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
+    const apiKey = process.env.OPENROUTER_API_KEY;
+
+    if (!apiKey) {
+      throw new AgentError("OPENROUTER_API_KEY not configured. Set environment variable to use AI generation.");
+    }
 
     const body = {
       model: this.config.model,
@@ -384,7 +394,7 @@ Rules:
     const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
         "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL ?? "https://localhost:3000",
         "X-Title": "AI App Builder",
