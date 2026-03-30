@@ -13,9 +13,10 @@ export const fileMapSchema: z.ZodType<FileMap> = z.record(
   z.string().min(1, "File content cannot be empty"),
 );
 
-export const generationResultSchema: z.ZodType<GenerationResult> = fileMapSchema.extend({
+export const generationResultSchema: z.ZodType<GenerationResult> = z.object({
+  files: fileMapSchema,
   description: z.string().optional(),
-  timestamp: z.number().optional(),
+  timestamp: z.number(),
 });
 
 export interface ValidationResult<T> {
