@@ -388,7 +388,8 @@ CREATE TRIGGER update_learning_store_timestamp
 -- =============================================================================
 
 -- View: Project with latest deployment
-CREATE OR REPLACE VIEW projects_with_deployments AS
+CREATE OR REPLACE VIEW projects_with_deployments 
+WITH (security_invoker = true) AS
 SELECT 
   p.*,
   d.id AS latest_deployment_id,
@@ -405,7 +406,8 @@ SELECT id, url, status, created_at
 ) d ON true;
 
 -- View: Project with feedback summary
-CREATE OR REPLACE VIEW projects_with_feedback_summary AS
+CREATE OR REPLACE VIEW projects_with_feedback_summary 
+WITH (security_invoker = true) AS
 SELECT 
   p.id,
   p.name,
@@ -420,7 +422,8 @@ LEFT JOIN feedback f ON f.project_id = p.id
 GROUP BY p.id, p.name, p.description, p.created_at, p.user_id;
 
 -- View: Learning data ready for application
-CREATE OR REPLACE VIEW pending_learning_data AS
+CREATE OR REPLACE VIEW pending_learning_data 
+WITH (security_invoker = true) AS
 SELECT 
   id,
   source,
@@ -441,7 +444,8 @@ ORDER BY
   created_at DESC;
 
 -- View: Feedback trends analysis
-CREATE OR REPLACE VIEW feedback_trends AS
+CREATE OR REPLACE VIEW feedback_trends 
+WITH (security_invoker = true) AS
 SELECT 
   category,
   COUNT(*) AS total_count,
