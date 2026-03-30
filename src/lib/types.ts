@@ -189,3 +189,122 @@ export function extractMainComponent(files: FileMap): string | null {
   
   return tsxFiles.length > 0 ? files[tsxFiles[0]] : null;
 }
+
+// ─── Phase 6: Autonomous AI Company Builder ──────────────────────────────────
+
+export type IdeaVerdict = 'Promising' | 'Needs Work' | 'Not Viable';
+export type MarketSize = 'small' | 'medium' | 'large';
+export type CompetitionLevel = 'low' | 'medium' | 'high';
+export type TeamRole = 'pm' | 'engineer' | 'designer' | 'marketer' | 'analyst';
+export type BillingCycle = 'monthly' | 'yearly';
+export type SubscriptionStatus = 'active' | 'cancelled' | 'past_due' | 'trialing';
+export type PaymentStatus = 'succeeded' | 'failed' | 'pending';
+export type ListingStatus = 'active' | 'paused' | 'removed';
+
+export interface IdeaValidationResult {
+  idea: string;
+  score: number;
+  verdict: IdeaVerdict;
+  risks: string[];
+  suggestions: string[];
+  marketSize: MarketSize;
+  competitionLevel: CompetitionLevel;
+  timestamp: string;
+}
+
+export interface ProductPlan {
+  idea: string;
+  features: string[];
+  stack: {
+    frontend: string[];
+    backend: string[];
+    database: string[];
+    infrastructure: string[];
+  };
+  timeline: string;
+  mvpFeatures: string[];
+  phases: Array<{ name: string; duration: string; deliverables: string[] }>;
+  timestamp: string;
+}
+
+export interface GrowthStrategy {
+  idea: string;
+  channels: Array<{
+    name: string;
+    type: 'organic' | 'paid' | 'viral' | 'partnership';
+    estimatedReach: string;
+    costLevel: 'free' | 'low' | 'medium' | 'high';
+    timeToResult: string;
+  }>;
+  strategy: string;
+  estimatedReach: string;
+  estimatedReachNumber: number;
+  tactics: string[];
+  kpis: string[];
+  timeline: string;
+  timestamp: string;
+}
+
+export interface MonetizationPlan {
+  idea: string;
+  models: string[];
+  pricingTiers: Array<{
+    name: string;
+    price: string;
+    priceMonthly: number;
+    features: string[];
+    recommended: boolean;
+  }>;
+  pricing: string;
+  upsells: Array<{ name: string; description: string; additionalRevenue: string }>;
+  projectedMRR: string;
+  revenueStreams: string[];
+  timestamp: string;
+}
+
+export interface AITeamResult {
+  role: TeamRole;
+  result: string;
+  artifacts: string[];
+  completedAt: string;
+}
+
+export interface CompanyBuildResult {
+  idea: string;
+  validation: IdeaValidationResult;
+  plan: ProductPlan;
+  teamOutput: AITeamResult[];
+  growth: GrowthStrategy;
+  revenue: MonetizationPlan;
+  buildId: string;
+  completedAt: string;
+  viable: boolean;
+}
+
+export interface MarketplaceListing {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  price: number;
+  sellerId: string;
+  tags?: string[];
+  createdAt: string;
+  updatedAt: string;
+  purchaseCount: number;
+  rating: number;
+  reviewCount: number;
+  status: ListingStatus;
+}
+
+export interface Subscription {
+  id: string;
+  userId: string;
+  plan: { id: string; name: string; priceMonthly: number; priceYearly: number; features: string[] };
+  status: SubscriptionStatus;
+  billingCycle: BillingCycle;
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  createdAt: string;
+  cancelledAt?: string;
+}
