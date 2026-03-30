@@ -64,6 +64,7 @@ async function callAI(
 
   const json = (await response.json()) as {
     choices: Array<{ message: { content: string } }>;
+    model?: string;
   };
 
   const content = json.choices[0]?.message?.content;
@@ -141,7 +142,7 @@ Rules:
         }
 
         return {
-          ...files,
+          files,
           timestamp: Date.now(),
         };
       } catch (error) {
@@ -264,7 +265,7 @@ Rules:
     }
 
     return {
-      ...files,
+      files,
       timestamp: Date.now(),
     };
   }
