@@ -8,7 +8,7 @@ type FileMap = Record<string, string>;
 
 type GenerationState =
   | { status: "idle" }
-  | { status: "loading" }
+  | { status: "loading"; code?: string; files?: FileMap }
   | { status: "streaming"; code: string; files: FileMap }
   | { status: "done"; code: string; files: FileMap }
   | { status: "error"; message: string };
