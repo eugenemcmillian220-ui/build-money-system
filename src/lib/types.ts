@@ -2,6 +2,10 @@ import { z } from "zod";
 
 export type FileMap = Record<string, string>;
 
+export type AgentPhase = 'planning' | 'building' | 'testing' | 'fixing' | 'complete';
+
+export type DeploymentStatus = 'pending' | 'building' | 'ready' | 'error' | 'cancelled';
+
 export interface GenerationResult {
   files: FileMap;
   description?: string;
@@ -25,9 +29,46 @@ export const generationResultSchema: z.ZodType<GenerationResult> = z.object({
   id: z.string().optional(),
 });
 
+export interface ProjectStatus {
+  phase: AgentPhase;
+  currentPass: number;
+  totalPasses: number;
+  message: string;
+}
+
+export interface DeploymentInfo {
+  id: string;
+  url: string;
+  status: DeploymentStatus;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface Project extends GenerationResult {
   id: string;
   createdAt: string;
+  status?: ProjectStatus;
+  deployment?: DeploymentInfo;
+  githubRepo?: string;
+}
+
+export interface AppSpec {
+  name: string;
+  description: string;
+  features: string[];
+  pages: Array<{
+    route: string;
+    description: string;
+    components: string[];
+  }>;
+  components: Array<{
+    name: string;
+    description: string;
+    props?: Record<string, string>;
+  }>;
+  integrations: string[];
+  schema?: string;
+  fileStructure: string[];
 }
 
 
