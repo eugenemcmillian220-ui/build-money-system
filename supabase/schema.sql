@@ -577,13 +577,13 @@ ALTER PUBLICATION supabase_realtime ADD TABLE feedback;
 -- =============================================================================
 
 -- Create storage bucket for project assets
-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_file_types)
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (
   'project-assets',
   'project-assets',
   true,
   10485760, -- 10MB
-  ARRAY['image/*', 'application/json', 'text/*']
+  ARRAY['image/png', 'image/jpeg', 'image/gif', 'application/json', 'text/plain']
 )
 ON CONFLICT (id) DO NOTHING;
 
