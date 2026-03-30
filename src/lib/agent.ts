@@ -1,10 +1,16 @@
+import crypto from "crypto";
 import {
   GenerationResult,
+  Project,
   generationResultSchema,
   AgentConfig,
   defaultAgentConfig,
   validateFilePaths,
 } from "./types";
+import { debugFiles } from "./openrouter";
+import { attachBackend } from "./backend";
+import { applyIntegrations } from "./integrations";
+import { saveProject } from "./memory";
 
 export class AgentError extends Error {
   constructor(
@@ -103,7 +109,9 @@ Return a JSON object with this exact structure:
     "components/Hero.tsx": "code here",
     "app/globals.css": "css code here"
   },
-  "description": "Brief description of what this app does"
+  "description": "Brief description of what this app does",
+  "schema": "SQL schema for Supabase if needed (optional)",
+  "integrations": ["stripe", "supabase"] (optional array)
 }
 
 Rules:
@@ -135,16 +143,40 @@ Rules:
           );
         }
 
-        const files = validation.data.files;
+        const { description, schema, integrations } = validation.data;
+        let files = validation.data.files;
+
+        // Path validation
         const pathValidation = validateFilePaths(files);
         if (!pathValidation.success) {
           throw new AgentError(pathValidation.errors.join("; "));
         }
 
-        return {
+        // Phase 3: Post-processing
+        files = attachBackend({ files, description, schema, integrations });
+        files = applyIntegrations(files, integrations);
+        
+        // Debug pass
+        try {
+          files = await debugFiles(files);
+        } catch (e) {
+          console.error("Debug pass failed, using original files", e);
+        }
+
+        const id = crypto.randomUUID();
+        const result: GenerationResult = {
+          id,
           files,
+          description,
+          schema,
+          integrations,
           timestamp: Date.now(),
         };
+
+        // Save to memory
+        saveProject(result as Project);
+
+        return result;
       } catch (error) {
         if (error instanceof AgentError) {
           lastError = error;
@@ -258,16 +290,40 @@ Rules:
       );
     }
 
-    const files = validation.data.files;
+    const { description, schema, integrations } = validation.data;
+    let files = validation.data.files;
+
+    // Path validation
     const pathValidation = validateFilePaths(files);
     if (!pathValidation.success) {
       throw new AgentError(pathValidation.errors.join("; "));
     }
 
-    return {
+    // Phase 3: Post-processing
+    files = attachBackend({ files, description, schema, integrations });
+    files = applyIntegrations(files, integrations);
+    
+    // Debug pass
+    try {
+      files = await debugFiles(files);
+    } catch (e) {
+      console.error("Debug pass failed, using original files", e);
+    }
+
+    const id = crypto.randomUUID();
+    const result: GenerationResult = {
+      id,
       files,
+      description,
+      schema,
+      integrations,
       timestamp: Date.now(),
     };
+
+    // Save to memory
+    saveProject(result as Project);
+
+    return result;
   }
 }
 
