@@ -396,8 +396,8 @@ SELECT
   d.status AS latest_deployment_status,
   d.created_at AS latest_deployment_created_at
 FROM projects p
-LEFT JOIN LATERIAl (
-  SELECT id, url, status, created_at
+LEFT JOIN LATERAL (
+SELECT id, url, status, created_at
   FROM deployments
   WHERE project_id = p.id
   ORDER BY created_at DESC
