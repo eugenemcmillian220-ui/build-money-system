@@ -156,8 +156,13 @@ export function validateFilePaths(files: FileMap): ValidationResponse<FileMap> {
     if (path.includes("..")) {
       errors.push(`Invalid path: ${path} - path traversal detected`);
     }
-    if (!path.startsWith("app/") && !path.startsWith("components/") && !path.startsWith("lib/")) {
-      errors.push(`Invalid path: ${path} - must start with app/, components/, or lib/`);
+    if (
+      !path.startsWith("app/") &&
+      !path.startsWith("components/") &&
+      !path.startsWith("lib/") &&
+      !path.startsWith("supabase/")
+    ) {
+      errors.push(`Invalid path: ${path} - must start with app/, components/, lib/, or supabase/`);
     }
   }
   

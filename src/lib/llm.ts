@@ -25,24 +25,6 @@ function buildHeaders(): Record<string, string> {
   };
 }
 
-function parseMultiFileJson(content: string): { files: FileMap } {
-  const cleaned = content
-    .replace(/^```json\n?/g, "")
-    .replace(/^```\n?/g, "")
-    .replace(/\n?```$/g, "")
-    .trim();
-
-  try {
-    const parsed = JSON.parse(cleaned);
-    if (!parsed.files || typeof parsed.files !== "object") {
-      throw new Error("Invalid response: missing files object");
-    }
-    return parsed;
-  } catch (e) {
-    throw new Error(`Failed to parse JSON: ${e instanceof Error ? e.message : String(e)}`);
-  }
-}
-
 export class LLMError extends Error {
   constructor(
     message: string,
@@ -54,12 +36,34 @@ export class LLMError extends Error {
   }
 }
 
+export function cleanJson(text: string): string {
+  return text
+    .replace(/^```json\s*/g, "")
+    .replace(/^```\s*/g, "")
+    .replace(/\s*```$/g, "")
+    .trim();
+}
+
+export function parseMultiFileJson(content: string): { files: FileMap } {
+  const cleaned = cleanJson(content);
+
+  try {
+    const parsed = JSON.parse(cleaned);
+    if (!parsed.files || typeof parsed.files !== "object") {
+      throw new Error("Invalid response: missing files object");
+    }
+    return parsed;
+  } catch (e) {
+    throw new LLMError(`Failed to parse JSON: ${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
 async function callLLM(
   messages: ChatMessage[],
   config: Partial<AgentConfig> = {}
 ): Promise<string> {
   const fullConfig = { ...defaultAgentConfig, ...config };
-  
+
   const body: OpenRouterRequestBody = {
     model: fullConfig.model,
     messages,
@@ -96,6 +100,77 @@ async function callLLM(
   }
 
   return content;
+}
+
+export async function* streamLLM(
+  messages: ChatMessage[],
+  config: Partial<AgentConfig> = {}
+): AsyncIterable<string> {
+  const fullConfig = { ...defaultAgentConfig, ...config };
+
+  const body: OpenRouterRequestBody = {
+    model: fullConfig.model,
+    messages,
+    stream: true,
+    temperature: fullConfig.temperature,
+    max_tokens: fullConfig.maxTokens,
+  };
+
+  let response: Response;
+  try {
+    response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+      method: "POST",
+      headers: buildHeaders(),
+      body: JSON.stringify(body),
+    });
+  } catch (cause) {
+    throw new LLMError("Failed to reach LLM API", undefined, cause);
+  }
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new LLMError(
+      `LLM API returned ${response.status}: ${text}`,
+      response.status,
+    );
+  }
+
+  if (!response.body) {
+    throw new LLMError("LLM API returned no response body");
+  }
+
+  const decoder = new TextDecoder();
+  const reader = response.body.getReader();
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split("\n");
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith("data: ")) continue;
+        const data = trimmed.slice(6);
+        if (data === "[DONE]") return;
+        try {
+          const parsed = JSON.parse(data) as {
+            choices: Array<{ delta: { content?: string } }>;
+          };
+          const delta = parsed.choices[0]?.delta?.content;
+          if (delta) {
+            yield delta;
+          }
+        } catch {
+          // skip malformed SSE chunks
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
 }
 
 /**
@@ -140,21 +215,15 @@ Rules:
   ];
 
   const content = await callLLM(messages, { temperature: 0.7, maxTokens: 4096 });
-  
-  const cleaned = content
-    .replace(/^```json\n?/g, "")
-    .replace(/^```\n?/g, "")
-    .replace(/\n?```$/g, "")
-    .trim();
+  const cleaned = cleanJson(content);
 
   try {
     const parsed = JSON.parse(cleaned) as AppSpec;
-    
-    // Validate required fields
+
     if (!parsed.name || !parsed.description || !Array.isArray(parsed.features)) {
       throw new LLMError("Invalid spec: missing required fields");
     }
-    
+
     return parsed;
   } catch (e) {
     if (e instanceof LLMError) throw e;
@@ -215,6 +284,7 @@ Rules:
 - Fix React hooks usage (rules of hooks)
 - Fix Next.js App Router patterns
 - Ensure Tailwind classes are valid
+- Add 'use client' to any component that uses React hooks but is missing it
 - Return ONLY valid JSON, no markdown fences
 - Preserve the original file structure`;
 
@@ -223,7 +293,7 @@ Rules:
     .join("\n\n");
 
   const errorContext = error ? `\n\nReported Error:\n${error}` : "";
-  
+
   const messages: ChatMessage[] = [
     { role: "system", content: systemPrompt },
     { role: "user", content: `Current Files:\n${filesList}${errorContext}\n\nReturn fixed files:` }
@@ -240,34 +310,27 @@ Rules:
 export async function testFiles(files: FileMap): Promise<{ success: boolean; errors?: string[] }> {
   const errors: string[] = [];
 
-  // Basic validation
   for (const [path, content] of Object.entries(files)) {
-    // Check for path traversal
     if (path.includes("..")) {
       errors.push(`Invalid path: ${path} - path traversal detected`);
     }
 
-    // Check file extensions are valid
-    if (!/\.(tsx|ts|css|json|md)$/.test(path)) {
+    if (!/\.(tsx|ts|css|json|md|sql)$/.test(path)) {
       errors.push(`Warning: ${path} has unusual extension`);
     }
 
-    // Basic React component checks for .tsx files
     if (path.endsWith(".tsx")) {
-      // Check for 'use client' in files with hooks
       if (/useState|useEffect|useCallback|useMemo/.test(content)) {
         if (!content.includes('"use client"') && !content.includes("'use client'")) {
           errors.push(`${path}: Uses React hooks but missing 'use client' directive`);
         }
       }
 
-      // Check for default export in page files
       if (path.includes("/page.") && !content.includes("export default")) {
         errors.push(`${path}: Page file missing default export`);
       }
     }
 
-    // Check for unclosed JSX tags (basic check)
     const openTags = (content.match(/<[A-Z][A-Za-z0-9]*[^/>]*>/g) || []).length;
     const closeTags = (content.match(/<\/[A-Z][A-Za-z0-9]*>/g) || []).length;
     const selfClosing = (content.match(/<[A-Z][A-Za-z0-9]*[^>]*\/>/g) || []).length;
