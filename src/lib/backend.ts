@@ -1,9 +1,13 @@
-import { MultiFileResponse } from "./openrouter";
+export interface BackendOptions {
+  files: Record<string, string>;
+  description?: string;
+  schema?: string;
+  integrations?: string[];
+}
 
-export function attachBackend(app: MultiFileResponse): Record<string, string> {
+export function attachBackend(app: BackendOptions): Record<string, string> {
   const files = { ...app.files };
 
-  // 1. Add health check API route
   if (!files["app/api/health/route.ts"]) {
     files["app/api/health/route.ts"] = `import { NextResponse } from "next/server";
 
@@ -17,7 +21,6 @@ export async function GET() {
 `;
   }
 
-  // 2. Add Supabase DB helper if not exists
   if (!files["lib/supabase.ts"] && !files["lib/db.ts"]) {
     files["lib/supabase.ts"] = `import { createClient } from "@supabase/supabase-js";
 
@@ -28,7 +31,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 `;
   }
 
-  // 3. Add SQL schema file if provided
   if (app.schema && !files["supabase/schema.sql"]) {
     files["supabase/schema.sql"] = app.schema;
   }

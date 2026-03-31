@@ -9,16 +9,15 @@ import {
   AgentPhase,
   DeploymentInfo,
 } from "./types";
-import { planSpec, buildFromSpec, fixFiles, testFiles } from "./llm";
-import { attachBackend } from "./backend";
-import { applyIntegrations } from "./integrations";
+import { planSpec, buildFromSpec, fixFiles, testFiles, streamLLM, cleanJson } from "./llm";
+import { postProcessFiles } from "./processor";
 import { saveProject, loadProject, getAllProjects } from "./memory";
-import { 
-  saveProjectDB, 
-  loadProjectDB, 
-  listProjectsDB, 
+import {
+  saveProjectDB,
+  loadProjectDB,
+  listProjectsDB,
   updateProjectStatus,
-  isDatabaseAvailable 
+  isDatabaseAvailable,
 } from "./supabase/db";
 import { createVercelDeploy, isVercelAvailable } from "./deploy";
 import { exportToGitHub as exportToGitHubRepo, isGitHubAvailable } from "./github";
@@ -42,81 +41,6 @@ export interface AgentProgress {
   message: string;
   pass?: number;
   totalPasses?: number;
-}
-
-interface AIResponse {
-  model: string;
-  content: string;
-}
-
-async function callAI(
-  prompt: string,
-  config: AgentConfig,
-): Promise<AIResponse> {
-  const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
-  const apiKey = process.env.OPENROUTER_API_KEY;
-
-  if (!apiKey) {
-    throw new AgentError("OPENROUTER_API_KEY not configured. Set environment variable to use AI generation.");
-  }
-
-  const body = {
-    model: config.model,
-    messages: [
-      {
-        role: "user",
-        content: prompt,
-      },
-    ],
-    temperature: config.temperature,
-    max_tokens: config.maxTokens,
-  };
-
-  const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-      "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL ?? "https://localhost:3000",
-      "X-Title": "AI App Builder",
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    const retryable = response.status === 429 || response.status === 503;
-    throw new AgentError(
-      `AI API returned ${response.status}: ${text}`,
-      response.status,
-      retryable,
-    );
-  }
-
-  const json = (await response.json()) as {
-    choices: Array<{ message: { content: string } }>;
-    model?: string;
-  };
-
-  const content = json.choices[0]?.message?.content;
-  if (!content) {
-    throw new AgentError("AI returned an empty response");
-  }
-
-  return {
-    model: json.model ?? config.model,
-    content,
-  };
-}
-
-function parseMultiFileResponse(content: string): unknown {
-  const cleaned = content
-    .replace(/^```json\n?/g, "")
-    .replace(/^```\n?/g, "")
-    .replace(/\n?```$/g, "")
-    .trim();
-
-  return JSON.parse(cleaned);
 }
 
 export class AppBuildAgent {
@@ -162,6 +86,25 @@ Rules:
     }
   }
 
+  private async persistProject(result: GenerationResult): Promise<void> {
+    const project: Project = {
+      ...result,
+      id: result.id ?? crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+    };
+
+    if (isDatabaseAvailable()) {
+      try {
+        await saveProjectDB(project);
+      } catch (e) {
+        console.error("Failed to save to database, falling back to memory:", e);
+        saveProject(project);
+      }
+    } else {
+      saveProject(project);
+    }
+  }
+
   /**
    * Advanced agent loop: plan → build → test → fix
    */
@@ -172,7 +115,6 @@ Rules:
     const { fixPasses = 2 } = options;
     const id = crypto.randomUUID();
 
-    // Phase 1: Planning
     this.reportProgress({
       phase: "planning",
       message: "Analyzing requirements and creating specification...",
@@ -182,7 +124,6 @@ Rules:
     const description = spec.description;
     const integrations = spec.integrations;
 
-    // Phase 2: Building
     this.reportProgress({
       phase: "building",
       message: `Building ${spec.pages.length} pages and ${spec.components.length} components...`,
@@ -190,16 +131,13 @@ Rules:
 
     let files = await buildFromSpec(spec);
 
-    // Phase 3: Apply backend and integrations
     this.reportProgress({
       phase: "building",
       message: "Adding backend services and integrations...",
     });
 
-    files = attachBackend({ files, description, schema: spec.schema, integrations });
-    files = applyIntegrations(files, integrations);
+    files = postProcessFiles(files, { description, schema: spec.schema, integrations });
 
-    // Phase 4: Testing and Fixing (iterative)
     for (let pass = 1; pass <= fixPasses; pass++) {
       this.reportProgress({
         phase: pass === 1 ? "testing" : "fixing",
@@ -208,9 +146,8 @@ Rules:
         totalPasses: fixPasses,
       });
 
-      // Test the files
       const testResult = await testFiles(files);
-      
+
       if (testResult.success) {
         this.reportProgress({
           phase: "complete",
@@ -221,18 +158,12 @@ Rules:
         break;
       }
 
-      // Fix the files if there are errors
-      if (testResult.errors && pass < fixPasses) {
+      if (testResult.errors) {
         const errorText = testResult.errors.join("\n");
-        files = await fixFiles(files, errorText);
-      } else if (!testResult.success && pass === fixPasses) {
-        // Last pass and still errors - try one more fix
-        const errorText = testResult.errors?.join("\n");
         files = await fixFiles(files, errorText);
       }
     }
 
-    // Path validation
     const pathValidation = validateFilePaths(files);
     if (!pathValidation.success) {
       throw new AgentError(pathValidation.errors.join("; "));
@@ -247,23 +178,7 @@ Rules:
       timestamp: Date.now(),
     };
 
-    const project: Project = {
-      ...result,
-      id,
-      createdAt: new Date().toISOString(),
-    };
-
-    // Save to database if available, otherwise use memory
-    if (isDatabaseAvailable()) {
-      try {
-        await saveProjectDB(project);
-      } catch (e) {
-        console.error("Failed to save to database, falling back to memory:", e);
-        saveProject(project);
-      }
-    } else {
-      saveProject(project);
-    }
+    await this.persistProject(result);
 
     this.reportProgress({
       phase: "complete",
@@ -283,8 +198,14 @@ Rules:
 
     for (let attempt = 1; attempt <= this.config.maxRetries; attempt++) {
       try {
-        const response = await callAI(fullPrompt, this.config);
-        const parsed = parseMultiFileResponse(response.content);
+        const messages = [{ role: "user" as const, content: fullPrompt }];
+        const chunks: string[] = [];
+        for await (const delta of streamLLM(messages, this.config)) {
+          chunks.push(delta);
+        }
+        const rawContent = chunks.join("");
+        const cleaned = cleanJson(rawContent);
+        const parsed = JSON.parse(cleaned);
 
         const validation = generationResultSchema.safeParse(parsed);
         if (!validation.success) {
@@ -296,17 +217,13 @@ Rules:
         const { description, schema, integrations } = validation.data;
         let files = validation.data.files;
 
-        // Path validation
         const pathValidation = validateFilePaths(files);
         if (!pathValidation.success) {
           throw new AgentError(pathValidation.errors.join("; "));
         }
 
-        // Phase 3: Post-processing
-        files = attachBackend({ files, description, schema, integrations });
-        files = applyIntegrations(files, integrations);
-        
-        // Debug pass
+        files = postProcessFiles(files, { description, schema, integrations });
+
         try {
           files = await fixFiles(files);
         } catch (e) {
@@ -323,24 +240,7 @@ Rules:
           timestamp: Date.now(),
         };
 
-        const project: Project = {
-          ...result,
-          id,
-          createdAt: new Date().toISOString(),
-        };
-
-        // Save to database if available
-        if (isDatabaseAvailable()) {
-          try {
-            await saveProjectDB(project);
-          } catch (e) {
-            console.error("Failed to save to database, falling back to memory:", e);
-            saveProject(project);
-          }
-        } else {
-          saveProject(project);
-        }
-
+        await this.persistProject(result);
         return result;
       } catch (error) {
         if (error instanceof AgentError) {
@@ -367,93 +267,33 @@ Rules:
     throw lastError ?? new AgentError("Agent failed after all retries");
   }
 
+  /**
+   * Streaming run: yields only deltas to onChunk, returns post-processed result
+   */
   async runWithStream(
     prompt: string,
-    onChunk: (content: string) => void,
+    onChunk: (delta: string) => void,
   ): Promise<GenerationResult> {
-    const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
-    const apiKey = process.env.OPENROUTER_API_KEY;
+    const fullPrompt = `${this.systemPrompt}\n\nUser request: ${prompt}\n\nGenerate a complete multi-file Next.js app now:`;
+    const messages = [{ role: "user" as const, content: fullPrompt }];
 
-    if (!apiKey) {
-      throw new AgentError("OPENROUTER_API_KEY not configured. Set environment variable to use AI generation.");
+    const chunks: string[] = [];
+    for await (const delta of streamLLM(messages, this.config)) {
+      chunks.push(delta);
+      onChunk(delta);
     }
 
-    const body = {
-      model: this.config.model,
-      messages: [
-        {
-          role: "user",
-          content: `${this.systemPrompt}\n\nUser request: ${prompt}\n\nGenerate a complete multi-file Next.js app now:`,
-        },
-      ],
-      stream: true,
-      temperature: this.config.temperature,
-      max_tokens: this.config.maxTokens,
-    };
+    const rawContent = chunks.join("");
+    const cleaned = cleanJson(rawContent);
 
-    const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL ?? "https://localhost:3000",
-        "X-Title": "AI App Builder",
-      },
-      body: JSON.stringify(body),
-    });
-
-    if (!response.ok) {
-      const text = await response.text().catch(() => "");
-      throw new AgentError(
-        `AI API returned ${response.status}: ${text}`,
-        response.status,
-      );
-    }
-
-    if (!response.body) {
-      throw new AgentError("No response body received");
-    }
-
-    const decoder = new TextDecoder();
-    let accumulated = "";
-
-    const reader = response.body.getReader();
+    let parsed: unknown;
     try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split("\n");
-
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed.startsWith("data: ")) continue;
-          const data = trimmed.slice(6);
-          if (data === "[DONE]") {
-            break;
-          }
-          try {
-            const parsed = JSON.parse(data) as {
-              choices: Array<{ delta: { content?: string } }>;
-            };
-            const delta = parsed.choices[0]?.delta?.content;
-            if (delta) {
-              accumulated += delta;
-              onChunk(accumulated);
-            }
-          } catch {
-            // skip malformed SSE chunks
-          }
-        }
-      }
-    } finally {
-      reader.releaseLock();
+      parsed = JSON.parse(cleaned);
+    } catch (e) {
+      throw new AgentError(`Failed to parse AI response: ${e instanceof Error ? e.message : String(e)}`);
     }
 
-    const parsed = parseMultiFileResponse(accumulated);
     const validation = generationResultSchema.safeParse(parsed);
-
     if (!validation.success) {
       throw new AgentError(
         `Invalid response format: ${validation.error.message}`,
@@ -463,17 +303,13 @@ Rules:
     const { description, schema, integrations } = validation.data;
     let files = validation.data.files;
 
-    // Path validation
     const pathValidation = validateFilePaths(files);
     if (!pathValidation.success) {
       throw new AgentError(pathValidation.errors.join("; "));
     }
 
-    // Phase 3: Post-processing
-    files = attachBackend({ files, description, schema, integrations });
-    files = applyIntegrations(files, integrations);
-    
-    // Debug pass
+    files = postProcessFiles(files, { description, schema, integrations });
+
     try {
       files = await fixFiles(files);
     } catch (e) {
@@ -490,24 +326,7 @@ Rules:
       timestamp: Date.now(),
     };
 
-    const project: Project = {
-      ...result,
-      id,
-      createdAt: new Date().toISOString(),
-    };
-
-    // Save to database if available
-    if (isDatabaseAvailable()) {
-      try {
-        await saveProjectDB(project);
-      } catch (e) {
-        console.error("Failed to save to database, falling back to memory:", e);
-        saveProject(project);
-      }
-    } else {
-      saveProject(project);
-    }
-
+    await this.persistProject(result);
     return result;
   }
 
@@ -519,7 +338,6 @@ Rules:
       throw new AgentError("Vercel integration not configured");
     }
 
-    // Try database first, then memory
     let project: Project | null = null;
     if (isDatabaseAvailable()) {
       project = await loadProjectDB(projectId);
@@ -542,9 +360,8 @@ Rules:
       throw new AgentError(result.error || "Deployment failed");
     }
 
-    // Update project with deployment info
     project.deployment = result.deployment;
-    
+
     if (isDatabaseAvailable()) {
       try {
         await saveProjectDB(project);
@@ -569,7 +386,6 @@ Rules:
       throw new AgentError("GitHub integration not configured");
     }
 
-    // Try database first, then memory
     let project: Project | null = null;
     if (isDatabaseAvailable()) {
       project = await loadProjectDB(projectId);
@@ -588,9 +404,8 @@ Rules:
       throw new AgentError(result.error || "GitHub export failed");
     }
 
-    // Update project with GitHub info
     project.githubRepo = result.repoUrl;
-    
+
     if (isDatabaseAvailable()) {
       try {
         await saveProjectDB(project);

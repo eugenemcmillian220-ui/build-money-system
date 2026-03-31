@@ -1,5 +1,5 @@
 import { generateText, generateTextStream, OpenRouterError } from "@/lib/openrouter";
-import { AppBuildAgent } from "@/lib/agent";
+import { AppBuildAgent, AgentError } from "@/lib/agent";
 import { z } from "zod";
 
 export const runtime = "nodejs";
@@ -35,29 +35,34 @@ export async function POST(request: Request): Promise<Response> {
   try {
     if (multiFile) {
       const agent = new AppBuildAgent();
-      
+
       if (stream) {
         const encoder = new TextEncoder();
-        
+
         const streamResult = new ReadableStream<Uint8Array>({
           async start(controller) {
             try {
-              await agent.runWithStream(prompt, (chunk) => {
-                controller.enqueue(encoder.encode(chunk));
+              const result = await agent.runWithStream(prompt, (delta) => {
+                const event = `data: ${JSON.stringify({ type: "chunk", delta })}\n\n`;
+                controller.enqueue(encoder.encode(event));
               });
+              const event = `data: ${JSON.stringify({ type: "result", result })}\n\n`;
+              controller.enqueue(encoder.encode(event));
               controller.close();
             } catch (error) {
-              console.error("Streaming error:", error);
-              controller.error(error);
+              const message = error instanceof Error ? error.message : "Generation failed";
+              const event = `data: ${JSON.stringify({ type: "error", error: message })}\n\n`;
+              controller.enqueue(encoder.encode(event));
+              controller.close();
             }
           },
         });
 
         return new Response(streamResult, {
           headers: {
-            "Content-Type": "text/plain; charset=utf-8",
-            "Transfer-Encoding": "chunked",
-            "X-Content-Type-Options": "nosniff",
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
           },
         });
       }
@@ -66,15 +71,40 @@ export async function POST(request: Request): Promise<Response> {
       return Response.json(result);
     }
 
-    // Single file generation (existing behavior)
+    // Single file generation
     if (stream) {
-      const fullPrompt = `${SYSTEM_PROMPT}\n\nUser request: ${prompt}\n\nGenerate a complete Next.js component with Tailwind CSS:`;
-      const readable = await generateTextStream(fullPrompt);
-      return new Response(readable, {
+      const encoder = new TextEncoder();
+
+      const streamResult = new ReadableStream<Uint8Array>({
+        async start(controller) {
+          try {
+            const fullPrompt = `${SYSTEM_PROMPT}\n\nUser request: ${prompt}\n\nGenerate a complete Next.js component with Tailwind CSS:`;
+            const readable = await generateTextStream(fullPrompt);
+            const reader = readable.getReader();
+
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              const delta = new TextDecoder().decode(value);
+              const event = `data: ${JSON.stringify({ type: "chunk", delta })}\n\n`;
+              controller.enqueue(encoder.encode(event));
+            }
+
+            controller.close();
+          } catch (error) {
+            const message = error instanceof Error ? error.message : "Generation failed";
+            const event = `data: ${JSON.stringify({ type: "error", error: message })}\n\n`;
+            controller.enqueue(encoder.encode(event));
+            controller.close();
+          }
+        },
+      });
+
+      return new Response(streamResult, {
         headers: {
-          "Content-Type": "text/plain; charset=utf-8",
-          "Transfer-Encoding": "chunked",
-          "X-Content-Type-Options": "nosniff",
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          "Connection": "keep-alive",
         },
       });
     }
@@ -84,7 +114,7 @@ export async function POST(request: Request): Promise<Response> {
     );
     return Response.json({ code });
   } catch (error) {
-    if (error instanceof OpenRouterError) {
+    if (error instanceof OpenRouterError || error instanceof AgentError) {
       const status = error.status === 429 ? 429 : 502;
       return Response.json({ error: error.message }, { status });
     }

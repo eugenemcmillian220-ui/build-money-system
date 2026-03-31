@@ -29,6 +29,68 @@ const MULTI_FILE_EXAMPLES = [
   "Todo app with categories and filters",
 ];
 
+/**
+ * Attempt to extract files from a partial JSON string as the LLM streams it.
+ * Scans for `"filename": "content"` pairs already complete in the buffer.
+ */
+function tryExtractFiles(jsonBuffer: string): FileMap {
+  const files: FileMap = {};
+  const filesStart = jsonBuffer.indexOf('"files"');
+  if (filesStart === -1) return files;
+
+  const objectStart = jsonBuffer.indexOf("{", filesStart + 7);
+  if (objectStart === -1) return files;
+
+  const keyPattern = /"([^"\\](?:[^"\\]|\\.)*)"\s*:\s*"/g;
+  keyPattern.lastIndex = objectStart + 1;
+
+  let match: RegExpExecArray | null;
+  while ((match = keyPattern.exec(jsonBuffer)) !== null) {
+    const key = match[1].replace(/\\n/g, "\n").replace(/\\"/g, '"').replace(/\\\\/g, "\\");
+    const valueStart = keyPattern.lastIndex;
+
+    let valueEnd = -1;
+    let i = valueStart;
+    let escaped = false;
+    while (i < jsonBuffer.length) {
+      const ch = jsonBuffer[i];
+      if (escaped) {
+        escaped = false;
+      } else if (ch === "\\") {
+        escaped = true;
+      } else if (ch === '"') {
+        valueEnd = i;
+        break;
+      }
+      i++;
+    }
+
+    if (valueEnd !== -1) {
+      const rawValue = jsonBuffer.slice(valueStart, valueEnd);
+      const value = rawValue
+        .replace(/\\n/g, "\n")
+        .replace(/\\t/g, "\t")
+        .replace(/\\r/g, "\r")
+        .replace(/\\"/g, '"')
+        .replace(/\\\\/g, "\\");
+
+      if (
+        key &&
+        value.length > 0 &&
+        (key.startsWith("app/") || key.startsWith("components/") || key.startsWith("lib/") || key.startsWith("supabase/"))
+      ) {
+        files[key] = value;
+      }
+
+      keyPattern.lastIndex = valueEnd + 1;
+    } else {
+      break;
+    }
+  }
+
+  return files;
+}
+
 export function GeneratorForm() {
   const [prompt, setPrompt] = useState("");
   const [state, setState] = useState<GenerationState>({ status: "idle" });
@@ -48,8 +110,7 @@ export function GeneratorForm() {
   function handleStop() {
     abortRef.current?.abort();
     if (state.status === "streaming") {
-      const emptyFiles: FileMap = {};
-      setState({ status: "done", code: state.code, files: emptyFiles });
+      setState({ status: "done", code: state.code, files: state.files });
     } else {
       setState({ status: "idle" });
     }
@@ -63,8 +124,7 @@ export function GeneratorForm() {
     const controller = new AbortController();
     abortRef.current = controller;
 
-    const emptyFiles: FileMap = {};
-    setState({ status: "loading", code: "", files: emptyFiles });
+    setState({ status: "loading", code: "", files: {} });
 
     startTransition(async () => {
       try {
@@ -90,42 +150,64 @@ export function GeneratorForm() {
           return;
         }
 
-        const currentFiles: FileMap = {};
-        setState({ status: "streaming", code: "", files: currentFiles });
+        setState({ status: "streaming", code: "", files: {} });
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
-        let accumulated = "";
+
+        let rawCode = "";
+        let currentFiles: FileMap = {};
+        let sseBuffer = "";
 
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          accumulated += decoder.decode(value, { stream: true });
 
-          // Try to parse JSON for multi-file mode
-          if (multiFileMode) {
+          sseBuffer += decoder.decode(value, { stream: true });
+
+          const lines = sseBuffer.split("\n");
+          sseBuffer = lines.pop() ?? "";
+
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            const dataStr = line.slice(6).trim();
+            if (!dataStr) continue;
+
+            let event: { type: string; delta?: string; result?: { files: FileMap; description?: string }; error?: string };
             try {
-              const cleaned = accumulated
-                .replace(/^```json\n?/g, "")
-                .replace(/^```\n?/g, "")
-                .replace(/\n?```$/g, "")
-                .trim();
-              const parsed = JSON.parse(cleaned);
-              if (parsed.files && typeof parsed.files === "object") {
-                Object.assign(currentFiles, parsed.files);
-              }
+              event = JSON.parse(dataStr);
             } catch {
-              // Not valid JSON yet
+              continue;
+            }
+
+            if (event.type === "chunk" && typeof event.delta === "string") {
+              rawCode += event.delta;
+
+              if (multiFileMode) {
+                const partial = tryExtractFiles(rawCode);
+                if (Object.keys(partial).length > 0) {
+                  currentFiles = partial;
+                }
+              }
+
+              setState({ status: "streaming", code: rawCode, files: { ...currentFiles } });
+            } else if (event.type === "result" && event.result) {
+              currentFiles = event.result.files ?? currentFiles;
+              setState({ status: "done", code: rawCode, files: { ...currentFiles } });
+            } else if (event.type === "error") {
+              setState({ status: "error", message: event.error ?? "Generation failed" });
+              return;
             }
           }
-
-          const snapshot = accumulated;
-          const filesSnapshot = multiFileMode ? { ...currentFiles } : emptyFiles;
-          setState({ status: "streaming", code: snapshot, files: filesSnapshot });
         }
 
-        const finalFiles = multiFileMode ? { ...currentFiles } : emptyFiles;
-        setState({ status: "done", code: accumulated, files: finalFiles });
+        if (state.status !== "done" && state.status !== "error") {
+          setState((prev) =>
+            prev.status === "streaming"
+              ? { status: "done", code: prev.code, files: prev.files }
+              : prev
+          );
+        }
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") return;
         const message =
