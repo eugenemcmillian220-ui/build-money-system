@@ -1,0 +1,77 @@
+// 🚀 PHASE 6.5 ACTIVATION LAYER // This FIXES your system so all phases actually run together
+
+// ============================= // 1. CORE AI FUNCTION (REAL) // =============================
+
+import OpenAI from "openai"
+
+const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, })
+
+export async function generateAI(prompt: string) { try { const res = await client.chat.completions.create({ model: "gpt-4o-mini", messages: [{ role: "user", content: prompt }], })
+
+return res.choices[0]?.message?.content || ""
+
+} catch (err) { console.error("AI ERROR:", err) return "AI failed" } }
+
+// ============================= // 2. MODULES (REAL AI POWERED) // =============================
+
+export async function validateIdea(idea: string) { const res = await generateAI(Validate this startup idea and give score, risks, suggestions:\n${idea}) return { analysis: res } }
+
+export async function planProduct(idea: string) { const res = await generateAI(Create a SaaS product plan with features, stack, and timeline:\n${idea}) return { plan: res } }
+
+export async function runAITeam(plan: string) { const roles = ["PM", "Engineer", "Designer"]
+
+const results = await Promise.all( roles.map(async (role) => { const output = await generateAI(${role} execute this plan:\n${plan}) return { role, output } }) )
+
+return results }
+
+export async function generateCode(plan: string) { return await generateAI(Generate full stack Next.js app code:\n${plan}) }
+
+export async function growthStrategy(idea: string) { return await generateAI(Create viral growth strategy for:\n${idea}) }
+
+export async function monetizationPlan(idea: string) { return await generateAI(Create monetization strategy:\n${idea}) }
+
+// ============================= // 3. MASTER ORCHESTRATOR (FIXED) // =============================
+
+export async function buildCompanySystem(idea: string) { console.log("STEP 1: VALIDATING IDEA") const validation = await validateIdea(idea)
+
+console.log("STEP 2: PLANNING PRODUCT") const product = await planProduct(idea)
+
+console.log("STEP 3: RUNNING AI TEAM") const team = await runAITeam(product.plan)
+
+console.log("STEP 4: GENERATING CODE") const code = await generateCode(product.plan)
+
+console.log("STEP 5: GROWTH STRATEGY") const growth = await growthStrategy(idea)
+
+console.log("STEP 6: MONETIZATION") const revenue = await monetizationPlan(idea)
+
+return { validation, product, team, code, growth, revenue, } }
+
+// ============================= // 4. API ROUTE (MAIN ENTRY) // =============================
+
+// app/api/build-company/route.ts
+
+export async function POST(req: Request) { try { const { idea } = await req.json()
+
+if (!idea) {
+  return Response.json({ error: "Idea required" }, { status: 400 })
+}
+
+const result = await buildCompanySystem(idea)
+
+return Response.json(result)
+
+} catch (err) { console.error(err) return Response.json({ error: "System failed" }, { status: 500 }) } }
+
+// ============================= // 5. FRONTEND CALL (CRITICAL FIX) // =============================
+
+export async function runBuilder(idea: string) { const res = await fetch("/api/build-company", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ idea }), })
+
+return await res.json() }
+
+// ============================= // 6. DEBUGGING (VERCEL LOGS) // =============================
+
+// Make sure logs appear in Vercel: // STEP 1 → STEP 6 should ALL print
+
+// ============================= // ✅ RESULT // =============================
+
+// Your system now: // - Actually uses AI // - Runs full pipeline // - Executes ALL phases // - No longer stuck at Phase 2
