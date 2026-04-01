@@ -302,39 +302,39 @@ export default function DashboardPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen" style={{ background: 'var(--background)' }}>
       {/* Header */}
-      <header className="bg-white border-b sticky top-0 z-10">
+      <header className="sticky top-0 z-10 border-b border-border/50 bg-black/60 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/" className="text-blue-600 hover:text-blue-800 font-medium">
-              ← Back to Generator
+            <Link href="/app" className="text-brand-400 hover:text-brand-300 font-bold text-sm transition-colors">
+              ← Generator
             </Link>
-            <h1 className="text-2xl font-bold text-gray-900">AI App Builder Dashboard</h1>
+            <h1 className="text-xl font-black tracking-tight text-white">Dashboard</h1>
           </div>
-          <div className="flex items-center gap-2">
-            <span className={`w-3 h-3 rounded-full ${getStatusColor(health?.status || "unknown")}`} />
-            <span className="text-sm text-gray-600 capitalize">{health?.status || "Unknown"}</span>
+          <div className="flex items-center gap-3">
+            <span className={`w-2.5 h-2.5 rounded-full ${getStatusColor(health?.status || "unknown")}`} />
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{health?.status || "Unknown"}</span>
           </div>
         </div>
       </header>
 
       {/* Navigation Tabs */}
-      <div className="max-w-7xl mx-auto px-4 py-4">
-        <div className="flex gap-2 border-b overflow-x-auto">
+      <div className="max-w-7xl mx-auto px-4 py-5">
+        <div className="flex gap-2 overflow-x-auto">
           {[
             { id: "projects", label: "Projects", icon: "📁" },
             { id: "health", label: "System Health", icon: "🏥" },
             { id: "endpoints", label: "API Endpoints", icon: "🔌" },
-            { id: "ai-tools", label: "AI Company Builder", icon: "🏢" },
+            { id: "ai-tools", label: "AI Tools", icon: "🏢" },
           ].map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as typeof activeTab)}
-              className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors whitespace-nowrap ${
+              className={`rounded-xl px-5 py-2 text-xs font-bold tracking-wide whitespace-nowrap transition-all ${
                 activeTab === tab.id
-                  ? "bg-blue-600 text-white"
-                  : "text-gray-600 hover:bg-gray-100"
+                  ? "bg-brand-500 text-white shadow-lg shadow-brand-500/30"
+                  : "border border-white/10 bg-white/5 text-muted-foreground hover:text-white"
               }`}
             >
               {tab.icon} {tab.label}
@@ -346,8 +346,8 @@ export default function DashboardPage() {
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 py-6">
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+          <div className="flex items-center justify-center py-20">
+            <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand-500 border-t-transparent" />
           </div>
         ) : (
           <>
@@ -355,23 +355,23 @@ export default function DashboardPage() {
             {activeTab === "projects" && (
               <div className="space-y-6">
                 {/* Create Project */}
-                <div className="bg-white rounded-lg shadow p-6">
-                  <h2 className="text-lg font-semibold mb-4">Create New Project</h2>
+                <div className="glass-card rounded-2xl p-6">
+                  <h2 className="text-base font-black mb-4 text-white">Create New Project</h2>
                   <div className="flex gap-3">
                     <input
                       type="text"
                       value={newProjectPrompt}
                       onChange={(e) => setNewProjectPrompt(e.target.value)}
                       placeholder="Describe the app you want to generate..."
-                      className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="flex-1 rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none placeholder:text-muted-foreground/50 focus:border-brand-500/50"
                       disabled={isGenerating}
                     />
                     <button
                       onClick={createProject}
                       disabled={isGenerating || !newProjectPrompt.trim()}
-                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="rounded-xl bg-brand-500 px-6 py-3 text-sm font-black text-white transition-all hover:bg-brand-400 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {isGenerating ? "Generating..." : "Generate"}
+                      {isGenerating ? "Generating…" : "Generate"}
                     </button>
                   </div>
                 </div>
