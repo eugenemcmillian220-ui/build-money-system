@@ -29,6 +29,16 @@ export const generationResultSchema: z.ZodType<GenerationResult> = z.object({
   id: z.string().optional(),
 });
 
+/**
+ * Schema for validating LLM responses - timestamp is omitted as it's added after validation
+ */
+export const llmResponseSchema = z.object({
+  files: fileMapSchema,
+  description: z.string().optional(),
+  schema: z.string().optional(),
+  integrations: z.array(z.string()).optional(),
+});
+
 export interface ProjectStatus {
   phase: AgentPhase;
   currentPass: number;

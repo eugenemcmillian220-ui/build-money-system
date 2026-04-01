@@ -3,6 +3,7 @@ import {
   GenerationResult,
   Project,
   generationResultSchema,
+  llmResponseSchema,
   AgentConfig,
   defaultAgentConfig,
   validateFilePaths,
@@ -207,7 +208,8 @@ Rules:
         const cleaned = cleanJson(rawContent);
         const parsed = JSON.parse(cleaned);
 
-        const validation = generationResultSchema.safeParse(parsed);
+        // Use llmResponseSchema to validate LLM output (without timestamp)
+        const validation = llmResponseSchema.safeParse(parsed);
         if (!validation.success) {
           throw new AgentError(
             `Invalid response format: ${validation.error.message}`,
@@ -293,7 +295,8 @@ Rules:
       throw new AgentError(`Failed to parse AI response: ${e instanceof Error ? e.message : String(e)}`);
     }
 
-    const validation = generationResultSchema.safeParse(parsed);
+    // Use llmResponseSchema to validate LLM output (without timestamp)
+    const validation = llmResponseSchema.safeParse(parsed);
     if (!validation.success) {
       throw new AgentError(
         `Invalid response format: ${validation.error.message}`,

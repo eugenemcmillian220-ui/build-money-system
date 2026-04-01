@@ -53,6 +53,7 @@ export async function GET(): Promise<Response> {
       phase4: "ready", // Deployment & export
       phase5: "ready", // Production systems
       phase6: "ready", // AI company builder
+      phase7: "ready", // Marketplace & billing
     },
   };
 
