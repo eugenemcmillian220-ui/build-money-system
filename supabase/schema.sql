@@ -117,7 +117,7 @@ CREATE POLICY "Users can view own projects" ON projects
 
 -- Policy: Users can insert their own projects
 CREATE POLICY "Users can create own projects" ON projects
-  FOR INSERT WITH CHECK (auth.uid() = user_id OR user_id IS NULL);
+  FOR INSERT WITH CHECK (auth.uid() IS NOT NULL); -- Require authentication to prevent spam
 
 -- Policy: Users can update their own projects
 CREATE POLICY "Users can update own projects" ON projects
@@ -352,13 +352,22 @@ ALTER TABLE learning_store ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Authenticated users can view learning data" ON learning_store
   FOR SELECT USING (auth.uid() IS NOT NULL);
 
--- Policy: System can insert learning data
-CREATE POLICY "System can insert learning data" ON learning_store
-  FOR INSERT WITH CHECK (true);
+-- Policy: Only Admins can insert/update learning data to prevent poisoning
+CREATE POLICY "Admins can insert learning data" ON learning_store
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM auth.users
+      WHERE id = auth.uid() AND raw_user_meta_data->>'role' = 'admin'
+    )
+  );
 
--- Policy: System can update learning data
 CREATE POLICY "System can update learning data" ON learning_store
-  FOR UPDATE USING (true);
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM auth.users
+      WHERE id = auth.uid() AND raw_user_meta_data->>'role' = 'admin'
+    )
+  );
 
 -- Policy: Only admins can delete learning data
 CREATE POLICY "Only admins can delete learning data" ON learning_store

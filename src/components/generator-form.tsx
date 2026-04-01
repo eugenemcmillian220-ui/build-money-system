@@ -14,24 +14,21 @@ type GenerationState =
   | { status: "error"; message: string };
 
 const EXAMPLE_PROMPTS = [
-  "Landing page for a fitness app",
-  "Dashboard with analytics cards and charts",
-  "Pricing table with three tiers",
-  "Contact form with validation",
-  "E-commerce product card grid",
+  "Modern Landing Page for a Fitness SaaS",
+  "Analytics Dashboard with real-time charts",
+  "Advanced E-commerce Checkout with Stripe",
+  "Contact Form with Zod validation",
 ];
 
 const MULTI_FILE_EXAMPLES = [
-  "Full landing page with header, hero, features, and footer",
-  "E-commerce product listing with shopping cart",
-  "User dashboard with charts and data tables",
-  "Blog platform with posts and comments",
-  "Todo app with categories and filters",
+  "Full SaaS platform with Dashboard, Billing, and Landing Page",
+  "Multi-user blog platform with Supabase integration",
+  "AI Chat application with history and search",
+  "Portfolio site with CMS and Project Grid",
 ];
 
 /**
  * Attempt to extract files from a partial JSON string as the LLM streams it.
- * Scans for `"filename": "content"` pairs already complete in the buffer.
  */
 function tryExtractFiles(jsonBuffer: string): FileMap {
   const files: FileMap = {};
@@ -230,140 +227,112 @@ export function GeneratorForm() {
   const hasFiles = currentFiles && Object.keys(currentFiles).length > 0;
 
   return (
-    <div className="w-full">
+    <div className="w-full space-y-8">
       {/* Mode Toggle */}
-      <div className="mb-4 flex items-center gap-4">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
+        <div className="glass-card flex items-center rounded-2xl p-1.5">
           <button
             onClick={() => setMultiFileMode(false)}
-            className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+            className={`rounded-xl px-6 py-2.5 text-sm font-bold tracking-tight transition-all ${
               !multiFileMode
-                ? "text-white"
-                : "border"
+                ? "bg-brand-500 text-white shadow-lg shadow-brand-500/30"
+                : "text-muted-foreground hover:text-white"
             }`}
-            style={{
-              background: !multiFileMode ? "var(--ring)" : "transparent",
-              borderColor: "var(--border)",
-              color: multiFileMode ? "var(--muted-foreground)" : "white",
-            }}
           >
-            Single Component
+            Single Unit
           </button>
           <button
             onClick={() => setMultiFileMode(true)}
-            className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+            className={`rounded-xl px-6 py-2.5 text-sm font-bold tracking-tight transition-all ${
               multiFileMode
-                ? "text-white"
-                : "border"
+                ? "bg-brand-500 text-white shadow-lg shadow-brand-500/30"
+                : "text-muted-foreground hover:text-white"
             }`}
-            style={{
-              background: multiFileMode ? "var(--ring)" : "transparent",
-              borderColor: "var(--border)",
-              color: multiFileMode ? "white" : "var(--muted-foreground)",
-            }}
           >
-            Full App (Multi-file)
+            Multi-file Suite
           </button>
         </div>
-        <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+        <span className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">
           {multiFileMode
-            ? "Generates a complete Next.js app with multiple files"
-            : "Generates a single React component"}
+            ? "Elite Full-Stack Pipeline Active"
+            : "Precision Component Generation Active"}
         </span>
       </div>
 
+      {/* Input Area */}
+      <div className="group relative">
+        <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-brand-500/20 to-accent/20 blur opacity-75 transition-all group-focus-within:opacity-100" />
+        <textarea
+          ref={textareaRef}
+          className="relative w-full resize-none rounded-xl border border-white/10 bg-black/40 px-6 py-5 text-base text-white outline-none backdrop-blur-xl transition-all placeholder:text-muted-foreground/50 focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/50"
+          style={{ minHeight: "10rem" }}
+          rows={5}
+          placeholder={
+            multiFileMode
+              ? "What enterprise application shall we manifest today?"
+              : "Describe the atomic component you require…"
+          }
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          onKeyDown={handleKeyDown}
+          disabled={isWorking}
+          maxLength={2000}
+        />
+        <div className="absolute bottom-4 right-6 text-xs font-bold tracking-widest text-muted-foreground/50">
+          {prompt.length}/2000
+        </div>
+      </div>
+
       {/* Example Prompts */}
-      <div className="mb-3 flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center justify-center gap-3">
         {examples.map((example) => (
           <button
             key={example}
             onClick={() => handleExampleClick(example)}
-            className="rounded-full border px-3 py-1 text-xs transition-colors hover:opacity-80 focus-visible:outline-none focus-visible:ring-2"
-            style={{
-              borderColor: "var(--border)",
-              color: "var(--muted-foreground)",
-              background: "var(--muted)",
-            }}
+            className="rounded-full border border-white/5 bg-white/5 px-4 py-1.5 text-xs font-medium text-muted-foreground transition-all hover:border-brand-500/30 hover:bg-brand-500/10 hover:text-brand-300"
           >
             {example}
           </button>
         ))}
       </div>
 
-      {/* Input Area */}
-      <div className="relative">
-        <textarea
-          ref={textareaRef}
-          className="w-full resize-none rounded-xl border px-4 py-3.5 text-sm outline-none transition-shadow focus:ring-2"
-          style={{
-            borderColor: "var(--border)",
-            background: "var(--muted)",
-            color: "var(--foreground)",
-            minHeight: "7rem",
-          }}
-          rows={4}
-          placeholder={
-            multiFileMode
-              ? "Describe the full app you want to build… (⌘ + Enter to generate)"
-              : "Describe the component you want to build… (⌘ + Enter to generate)"
-          }
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          onKeyDown={handleKeyDown}
-          disabled={isWorking}
-          aria-label={multiFileMode ? "App description" : "Component description"}
-          maxLength={2000}
-        />
-        <span
-          className="absolute bottom-3 right-4 select-none text-xs"
-          style={{ color: "var(--muted-foreground)" }}
-        >
-          {prompt.length}/2000
-        </span>
-      </div>
-
       {/* Action Buttons */}
-      <div className="mt-3 flex items-center gap-3">
+      <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
         <button
           onClick={handleGenerate}
           disabled={isWorking || !prompt.trim()}
-          className="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50"
-          style={{ background: "var(--ring)" }}
+          className="group relative flex w-full items-center justify-center gap-3 overflow-hidden rounded-xl bg-brand-500 px-8 py-4 text-sm font-black text-white shadow-2xl transition-all hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
         >
+          <div className="absolute inset-0 -z-10 bg-gradient-to-r from-brand-400 to-brand-600 opacity-0 transition-opacity group-hover:opacity-100" />
           {state.status === "loading" && (
-            <span
-              className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"
-              aria-hidden
-            />
+            <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
           )}
           {state.status === "loading"
-            ? "Connecting…"
+            ? "Establishing Neural Link…"
             : state.status === "streaming"
               ? multiFileMode
-                ? "Generating App…"
-                : "Generating…"
+                ? "Manifesting Suite…"
+                : "Building Unit…"
               : multiFileMode
-                ? "Generate Full App"
-                : "Generate Component"}
+                ? "GENERATE FULL SUITE"
+                : "GENERATE COMPONENT"}
         </button>
 
         {isWorking && (
           <button
             onClick={handleStop}
-            className="rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors hover:opacity-80 focus-visible:outline-none focus-visible:ring-2"
-            style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}
+            className="rounded-xl border border-white/10 bg-white/5 px-8 py-4 text-sm font-bold text-white transition-all hover:bg-white/10 active:scale-95"
           >
-            Stop
+            TERMINATE
           </button>
         )}
 
         {state.status === "done" && (
           <button
             onClick={() => setState({ status: "idle" })}
-            className="rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors hover:opacity-80 focus-visible:outline-none focus-visible:ring-2"
-            style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}
+            className="rounded-xl border border-white/10 bg-white/5 px-8 py-4 text-sm font-bold text-white transition-all hover:bg-white/10"
           >
-            Clear
+            RESET
           </button>
         )}
       </div>
@@ -371,31 +340,27 @@ export function GeneratorForm() {
       {/* Error Message */}
       {state.status === "error" && (
         <div
-          className="mt-4 rounded-lg border px-4 py-3 text-sm"
-          style={{
-            borderColor: "oklch(0.65 0.15 25 / 0.4)",
-            background: "oklch(0.65 0.15 25 / 0.08)",
-            color: "oklch(0.55 0.18 25)",
-          }}
+          className="rounded-xl border border-red-500/20 bg-red-500/10 px-6 py-4 text-sm font-bold text-red-400 backdrop-blur-xl"
           role="alert"
         >
-          <strong>Error: </strong>
-          {state.message}
+          <span className="mr-2 text-lg">⚠️</span> {state.message}
         </div>
       )}
 
       {/* Display Results */}
-      {multiFileMode && hasFiles ? (
-        <MultiFileDisplay
-          files={currentFiles}
-          isStreaming={state.status === "streaming"}
-        />
-      ) : (
-        <CodeDisplay
-          code={currentCode}
-          isStreaming={state.status === "streaming"}
-        />
-      )}
+      <div className="mt-12 overflow-hidden rounded-2xl border border-white/5 bg-black/20 shadow-inner">
+        {multiFileMode && hasFiles ? (
+          <MultiFileDisplay
+            files={currentFiles}
+            isStreaming={state.status === "streaming"}
+          />
+        ) : (
+          <CodeDisplay
+            code={currentCode}
+            isStreaming={state.status === "streaming"}
+          />
+        )}
+      </div>
     </div>
   );
 }

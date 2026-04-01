@@ -16,31 +16,19 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "AI App Builder",
+    default: "AI App Builder | Elite Production Suite",
     template: "%s | AI App Builder",
   },
   description:
-    "Generate production-ready Next.js components instantly with AI. Describe your idea and get clean, Tailwind-styled code.",
-  keywords: ["AI", "Next.js", "React", "code generation", "Tailwind CSS"],
+    "The world's first autonomous AI platform for building, deploying, and optimizing full-stack applications.",
+  keywords: ["AI", "Next.js", "React", "Autonomous", "SaaS Builder", "Tailwind CSS"],
   authors: [{ name: "AI App Builder" }],
-  openGraph: {
-    title: "AI App Builder",
-    description: "Generate production-ready Next.js components with AI",
-    type: "website",
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#1a1a1a" },
-  ],
+  themeColor: "#0a0a0a",
 };
 
 export default function RootLayout({
@@ -51,10 +39,12 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${jetbrainsMono.variable}`}
+      className={`${inter.variable} ${jetbrainsMono.variable} dark`}
       suppressHydrationWarning
     >
-      <body>{children}</body>
+      <body className="bg-background text-foreground selection:bg-brand-500/30">
+        {children}
+      </body>
     </html>
   );
 }

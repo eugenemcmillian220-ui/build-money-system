@@ -126,8 +126,14 @@ export class AgentSwarm {
 
       const qaAgent = new AppBuildAgent();
       // In a real swarm, the QA agent would analyze existing files and fix them
-      // Here we just simulate it refining the project
-      const finalFiles = await qaAgent.run(`Review and optimize these files: ${Object.keys(combinedFiles).join(', ')} for the project: ${prompt}`);
+      // Now passing actual content for better review
+      const fileContext = Object.entries(combinedFiles)
+        .map(([path, content]) => `File: ${path}\nContent:\n${content.slice(0, 2000)}`) // Truncate very large files
+        .join('\n\n');
+
+      const finalFiles = await qaAgent.run(
+        `You are the QA Lead. Review and fix potential bugs, type errors, and styling inconsistencies in these files:\n\n${fileContext}\n\nProject Goal: ${prompt}`
+      );
       Object.assign(combinedFiles, finalFiles.files);
       qaTask.status = 'completed';
       qaTask.result = finalFiles.files;
