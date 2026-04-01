@@ -7,10 +7,22 @@ export const metadata: Metadata = {
     "Generate production-ready Next.js apps with multi-file support and live preview",
 };
 
+import Link from "next/link";
+
 export default function HomePage() {
   return (
     <main className="mx-auto min-h-dvh max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
       <header className="mb-12 text-center">
+        <div className="flex justify-between items-center mb-4">
+          <div />
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors hover:bg-gray-100"
+            style={{ borderColor: "var(--border)" }}
+          >
+            📊 Dashboard
+          </Link>
+        </div>
         <div
           className="mb-4 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium"
           style={{
@@ -23,7 +35,7 @@ export default function HomePage() {
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" style={{ background: "var(--ring)" }} />
             <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: "var(--ring)" }} />
           </span>
-          Phase 2 - Multi-file Generation + Live Preview
+          Phase 7 - Full Production Suite + Dashboard
         </div>
 
         <h1 className="mb-3 text-4xl font-bold tracking-tight sm:text-5xl">
