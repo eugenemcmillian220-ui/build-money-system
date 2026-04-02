@@ -26,7 +26,12 @@ export async function GET(request: Request): Promise<Response> {
       const health = await autoDeployer.checkHealth(deployment.deploymentId);
 
       if (health.status === "unhealthy" || health.status === "degraded") {
-        const healAction = await autoDeployer.autoHeal(deployment.deploymentId);
+        // Phase 9.2: Autonomous SRE Remediation
+        const healAction = await autoDeployer.remediate(
+          deployment.deploymentId, 
+          deployment.projectId || "unknown", 
+          `Unhealthy state detected: ${health.vercelState || "unknown"}. Response time: ${health.responseTime}ms.`
+        );
         healActions.push({ deploymentId: deployment.deploymentId, action: healAction });
       }
     } catch (e) {

@@ -3,8 +3,11 @@
  * Real deployment monitoring via Vercel API (replaces Math.random() simulation)
  */
 
+import { diagnoseAndHeal } from "./sre";
+
 export interface DeploymentHealth {
   deploymentId: string;
+  projectId?: string;
   status: "healthy" | "degraded" | "unhealthy" | "unknown";
   vercelState?: string;
   url?: string;
@@ -153,6 +156,38 @@ class AutoDeployer {
       return Date.now() - start;
     } catch {
       return -1; // Unreachable
+    }
+  }
+
+  async remediate(deploymentId: string, projectId: string, errorLog: string): Promise<AutoHealAction> {
+    const health = this.deployments.get(deploymentId);
+    if (!health) {
+      throw new Error(`Deployment ${deploymentId} not found`);
+    }
+
+    try {
+      const healedProject = await diagnoseAndHeal(projectId, errorLog);
+      
+      const healAction: AutoHealAction = {
+        action: "redeploy",
+        reason: `Autonomous SRE Remediation for ${projectId}`,
+        executedAt: new Date().toISOString(),
+        result: healedProject ? "success" : "failed",
+        details: `Healed files generated and verified in sandbox. Project updated to ID: ${healedProject?.id}`,
+      };
+
+      this.healHistory.push(healAction);
+      return healAction;
+    } catch (error) {
+      const healAction: AutoHealAction = {
+        action: "alert",
+        reason: `Autonomous SRE Remediation failed for ${projectId}`,
+        executedAt: new Date().toISOString(),
+        result: "failed",
+        details: error instanceof Error ? error.message : "Unknown error",
+      };
+      this.healHistory.push(healAction);
+      return healAction;
     }
   }
 

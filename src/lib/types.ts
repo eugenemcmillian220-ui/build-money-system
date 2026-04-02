@@ -14,6 +14,11 @@ export interface GenerationResult {
   schema?: string;
   integrations?: string[];
   id?: string;
+  abTest?: {
+    name: string;
+    hypothesis: string;
+    variantB: FileMap;
+  };
 }
 
 export const fileMapSchema: z.ZodType<FileMap> = z.record(
@@ -63,6 +68,7 @@ export interface Project extends GenerationResult {
   status?: ProjectStatus;
   deployment?: DeploymentInfo;
   githubRepo?: string;
+  metadata?: Record<string, unknown>;
 }
 
 export interface AppSpec {

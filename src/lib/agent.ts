@@ -25,6 +25,8 @@ import { memoryStore } from "./memory-store";
 import { codeSearch } from "./code-search";
 import { createVercelDeploy, isVercelAvailable } from "./deploy";
 import { exportToGitHub as exportToGitHubRepo, isGitHubAvailable } from "./github";
+import { generateInfrastructure } from "./infra-generator";
+import { productManager } from "./product-manager";
 import { processVisualContext } from "./vision";
 import { security } from "./security";
 
@@ -152,9 +154,9 @@ Rules:
    */
   async runAdvanced(
     prompt: string,
-    options: { fixPasses?: number; initialSpec?: AppSpec } = {}
+    options: { fixPasses?: number; initialSpec?: AppSpec; generateInfra?: boolean; infraProvider?: "aws" | "gcp" | "azure"; abTestGoal?: string } = {}
   ): Promise<GenerationResult> {
-    const { fixPasses = 2, initialSpec } = options;
+    const { fixPasses = 2, initialSpec, generateInfra = false, infraProvider = "aws", abTestGoal } = options;
     const id = crypto.randomUUID();
 
     // Sanitize and check PII
@@ -188,6 +190,17 @@ Rules:
     });
 
     files = postProcessFiles(files, { description, schema: spec.schema, integrations });
+
+    // Phase 9.4: Multi-Cloud IaC Generation
+    if (generateInfra) {
+      this.reportProgress({
+        phase: "building",
+        message: `Generating ${infraProvider.toUpperCase()} Infrastructure-as-Code...`,
+      });
+      const infra = await generateInfrastructure(spec, infraProvider);
+      files = { ...files, ...infra.files };
+      files["DEPLOYMENT_INSTRUCTIONS.md"] = infra.instructions;
+    }
 
     for (let pass = 1; pass <= fixPasses; pass++) {
       this.reportProgress({
@@ -247,6 +260,20 @@ Rules:
       integrations,
       timestamp: Date.now(),
     };
+
+    // Phase 9.3: AI Product Manager & A/B Testing
+    if (abTestGoal) {
+      this.reportProgress({
+        phase: "planning",
+        message: `AI Product Manager generating A/B test variant for goal: ${abTestGoal}...`,
+      });
+      const abTest = await productManager.generateVariant(result as Project, abTestGoal);
+      result.abTest = {
+        name: abTest.testName,
+        hypothesis: abTest.hypothesis,
+        variantB: abTest.variants.B
+      };
+    }
 
     await this.persistProject(result);
 

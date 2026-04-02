@@ -397,11 +397,87 @@
           </div>
         </div>
 
-        <p>Phase 9 introduces the <strong>SRE Agent</strong> that runs on the <code>/api/cron/monitor</code> loop. When health checks fail or errors spikes occur, the agent:</p>
+        <p>Phase 9 introduces the <strong>SRE Agent</strong> that runs on the <code>/api/cron/monitor</code> loop. When health checks fail or performance degrades, the system automatically:</p>
+        
+        <div class="card-grid">
+          <div class="card">
+            <div class="card-icon">🩺</div>
+            <h4>Diagnosis Agent</h4>
+            <p>Uses GPT-4o to analyze logs and identify the technical root cause across your project files.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">🛠️</div>
+            <h4>Auto-Remediation</h4>
+            <p>Automatically generates a fix, verifies it in a secure sandbox, and updates the project state.</p>
+          </div>
+        </div>
+
+        <h3>Remediation Flow</h3>
+        <pre><code><span style="color: #4b5563;">// Triggered autonomously by cron monitor</span>
+<span style="color: #67e8f9;">const</span> healedProject = <span style="color: #67e8f9;">await</span> <span style="color: #93c5fd;">diagnoseAndHeal</span>(projectId, errorLog);
+<span style="color: #67e8f9;">if</span> (healedProject) {
+  <span style="color: #67e8f9;">await</span> <span style="color: #93c5fd;">deploy</span>(healedProject.id); <span style="color: #4b5563;">// Rolling forward fix</span>
+}</code></pre>
+      </section>
+
+      <!-- AI Product Manager -->
+      <section id="ab-test" class="doc-section">
+        <div class="section-header">
+          <div class="feature-number">5</div>
+          <div>
+            <h2>AI Product Manager & A/B Testing</h2>
+            <p>Autonomous growth experiments driven by conversion and engagement goals.</p>
+          </div>
+        </div>
+
+        <div class="card-grid">
+          <div class="card">
+            <div class="card-icon">🎯</div>
+            <h4>Hypothesis Generation</h4>
+            <p>AI PM analyzes your project and generates a "Variant B" designed to optimize for a specific goal (e.g., Conversion, Engagement).</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">🧪</div>
+            <h4>Experimentation API</h4>
+            <p>The system automatically modifies code to create challenger variants for real-world testing.</p>
+          </div>
+        </div>
+
+        <h3>Endpoint: <code>POST /api/ab-test</code></h3>
+        <pre><code>{
+  <span style="color: #86efac;">"projectId"</span>: <span style="color: #86efac;">"uuid"</span>,
+  <span style="color: #86efac;">"goal"</span>: <span style="color: #86efac;">"Higher click-through rate on Hero CTA"</span>
+}</code></pre>
+      </section>
+
+      <!-- Multi-Cloud IaC -->
+      <section id="multi-cloud" class="doc-section">
+        <div class="section-header">
+          <div class="feature-number">6</div>
+          <div>
+            <h2>Multi-Cloud Infrastructure-as-Code</h2>
+            <p>Generate professional infrastructure scripts for AWS, GCP, and Azure alongside your code.</p>
+          </div>
+        </div>
+
+        <div class="card-grid">
+          <div class="card">
+            <div class="card-icon">☁️</div>
+            <h4>Cloud Provisioning</h4>
+            <p>Automatically generates Terraform or Pulumi files tailored to your application's architecture.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">🐳</div>
+            <h4>Containerization</h4>
+            <p>Generates production-ready Dockerfiles and Docker-Compose setups for seamless cloud deployment.</p>
+          </div>
+        </div>
+
+        <h3>Infrastructure Stack</h3>
         <ul>
-          <li><strong>Diagnoses:</strong> Pulls Vercel logs and stack traces.</li>
-          <li><strong>Repairs:</strong> Triggers a surgical fix pass in the E2B Sandbox.</li>
-          <li><strong>Deploys:</strong> Opens a GitHub PR and deploys a patched preview for verification.</li>
+          <li><strong>Terraform:</strong> Provider-specific main.tf generation.</li>
+          <li><strong>Deployment:</strong> Step-by-step instructions in <code>DEPLOYMENT_INSTRUCTIONS.md</code>.</li>
+          <li><strong>Platforms:</strong> Full support for AWS, Google Cloud Platform, and Microsoft Azure.</li>
         </ul>
       </section>
 
