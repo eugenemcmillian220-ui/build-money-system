@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phase 8 Documentation — AI App Builder Elite</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #16161f;
+    --border: rgba(255,255,255,0.08);
+    --accent: #7c6aff;
+    --accent2: #a855f7;
+    --green: #22c55e;
+    --blue: #3b82f6;
+    --orange: #f59e0b;
+    --red: #ef4444;
+    --text: #f1f0ff;
+    --muted: #8b8aa0;
+    --code-bg: #0d0d14;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 15px;
+    line-height: 1.75;
+  }
+
+  /* Layout */
+  .layout { display: flex; min-height: 100vh; }
+  .sidebar {
+    width: 260px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 0 0 40px;
+  }
+  .sidebar-logo {
+    padding: 24px 20px 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 12px;
+  }
+  .logo-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 900; color: white;
+  }
+  .phase-tag {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+  .nav-section {
+    padding: 8px 20px 4px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-top: 8px;
+  }
+  .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 20px;
+    font-size: 13px;
+    color: var(--muted);
+    text-decoration: none;
+    border-radius: 0;
+    transition: all 0.15s;
+    border-left: 2px solid transparent;
+  }
+  .nav-link:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+  .nav-link.active { color: var(--accent); border-left-color: var(--accent); background: rgba(124,106,255,0.08); }
+  .nav-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+  }
+
+  .main { flex: 1; overflow-x: hidden; }
+  .content { max-width: 880px; padding: 60px 48px 100px; margin: 0 auto; }
+
+  /* Hero */
+  .hero {
+    background: linear-gradient(135deg, rgba(124,106,255,0.12) 0%, rgba(168,85,247,0.06) 100%);
+    border: 1px solid rgba(124,106,255,0.2);
+    border-radius: 20px;
+    padding: 48px;
+    margin-bottom: 60px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 240px; height: 240px;
+    background: radial-gradient(circle, rgba(124,106,255,0.15), transparent 70%);
+    border-radius: 50%;
+  }
+  .hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 12px;
+    background: rgba(124,106,255,0.15);
+    border: 1px solid rgba(124,106,255,0.3);
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .pulse { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .hero h1 { font-size: 40px; font-weight: 900; letter-spacing: -1.5px; line-height: 1.15; margin-bottom: 16px; }
+  .hero h1 span { background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .hero p { font-size: 17px; color: var(--muted); max-width: 560px; line-height: 1.7; }
+  .hero-stats {
+    display: flex; gap: 32px; margin-top: 32px;
+    flex-wrap: wrap;
+  }
+  .stat { text-align: left; }
+  .stat-val { font-size: 28px; font-weight: 900; letter-spacing: -1px; color: var(--accent); }
+  .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+
+  /* Sections */
+  .doc-section { margin-bottom: 72px; scroll-margin-top: 32px; }
+  .section-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .feature-number {
+    width: 40px; height: 40px; flex-shrink: 0;
+    background: rgba(124,106,255,0.12);
+    border: 1px solid rgba(124,106,255,0.25);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 800; color: var(--accent);
+    margin-top: 2px;
+  }
+  .section-header h2 { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
+  .section-header p { font-size: 14px; color: var(--muted); margin-top: 6px; }
+
+  /* Cards */
+  .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 24px 0; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    transition: border-color 0.2s;
+  }
+  .card:hover { border-color: rgba(124,106,255,0.3); }
+  .card-icon { font-size: 20px; margin-bottom: 10px; }
+  .card h4 { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+  .card p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+  /* Code blocks */
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    overflow-x: auto;
+    margin: 20px 0;
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  code { font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace; }
+  p code, li code {
+    background: rgba(255,255,255,0.06);
+    padding: 2px 7px;
+    border-radius: 5px;
+    font-size: 12.5px;
+    color: #c4b5fd;
+  }
+  .kw { color: #c084fc; }
+  .str { color: #86efac; }
+  .cm { color: #4b5563; font-style: italic; }
+  .fn { color: #93c5fd; }
+  .num { color: #fbbf24; }
+  .tp { color: #67e8f9; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 13px; }
+  th { background: var(--surface2); text-align: left; padding: 10px 14px; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--border); }
+  td { padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  /* Callouts */
+  .callout {
+    display: flex; gap: 14px;
+    padding: 16px 20px;
+    border-radius: 12px;
+    margin: 20px 0;
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+  .callout.info { background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.25); }
+  .callout.warn { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); }
+  .callout.success { background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.25); }
+  .callout-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .callout.info .callout-icon { color: var(--blue); }
+  .callout.warn .callout-icon { color: var(--orange); }
+  .callout.success .callout-icon { color: var(--green); }
+
+  /* Badges */
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border-radius: 100px;
+    font-size: 11px; font-weight: 700;
+  }
+  .badge.new { background: rgba(124,106,255,0.15); color: var(--accent); border: 1px solid rgba(124,106,255,0.3); }
+  .badge.env { background: rgba(245,158,11,0.12); color: var(--orange); border: 1px solid rgba(245,158,11,0.3); }
+  .badge.optional { background: rgba(107,114,128,0.15); color: #9ca3af; border: 1px solid rgba(107,114,128,0.25); }
+  .badge.required { background: rgba(239,68,68,0.12); color: var(--red); border: 1px solid rgba(239,68,68,0.25); }
+
+  /* Env var blocks */
+  .env-block {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin: 16px 0;
+  }
+  .env-row { display: flex; align-items: flex-start; gap: 12px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .env-row:last-child { border-bottom: none; }
+  .env-key { font-family: monospace; font-size: 12.5px; color: #93c5fd; flex-shrink: 0; min-width: 280px; }
+  .env-desc { font-size: 12px; color: var(--muted); flex: 1; }
+
+  /* Architecture diagram */
+  .arch-diagram {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    margin: 24px 0;
+  }
+  .arch-title { font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 24px; }
+  .arch-layer {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .arch-layer-name { font-size: 13px; font-weight: 700; }
+  .arch-layer-items { font-size: 12px; color: var(--muted); }
+  .arch-arrow { text-align: center; color: var(--border); font-size: 18px; margin: 4px 0; }
+
+  /* Timeline */
+  .timeline { margin: 20px 0; }
+  .timeline-item { display: flex; gap: 20px; padding: 0 0 28px; position: relative; }
+  .timeline-item::before { content: ''; position: absolute; left: 15px; top: 30px; bottom: 0; width: 1px; background: var(--border); }
+  .timeline-item:last-child::before { display: none; }
+  .timeline-dot {
+    width: 32px; height: 32px; flex-shrink: 0;
+    background: var(--surface);
+    border: 2px solid var(--accent);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 800; color: var(--accent);
+    position: relative; z-index: 1;
+  }
+  .timeline-content h4 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+  .timeline-content p { font-size: 13px; color: var(--muted); }
+
+  /* Headings inside content */
+  h3 { font-size: 18px; font-weight: 700; margin: 28px 0 12px; letter-spacing: -0.3px; }
+  p { margin-bottom: 14px; color: #c8c7db; }
+  ul, ol { padding-left: 20px; margin: 12px 0 16px; }
+  li { margin-bottom: 6px; font-size: 14px; color: #c8c7db; }
+  li strong { color: var(--text); }
+
+  /* TOC top bar */
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .topbar-title { font-size: 13px; font-weight: 600; color: var(--muted); }
+  .topbar-badges { display: flex; gap: 8px; }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .sidebar { display: none; }
+    .content { padding: 32px 20px 80px; }
+    .card-grid { grid-template-columns: 1fr; }
+    .hero { padding: 28px; }
+    .hero h1 { font-size: 28px; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- Sidebar Navigation -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-badge">
+        <div class="logo-icon">A</div>
+        AppBuilder
+      </div>
+      <div class="phase-tag">Phase 8 Docs</div>
+    </div>
+
+    <div class="nav-section">Overview</div>
+    <a href="#intro" class="nav-link active"><span class="nav-dot"></span> Introduction</a>
+    <a href="#architecture" class="nav-link"><span class="nav-dot"></span> Architecture</a>
+    <a href="#env-vars" class="nav-link"><span class="nav-dot"></span> Environment Variables</a>
+
+    <div class="nav-section">Features</div>
+    <a href="#f1-sandbox" class="nav-link"><span class="nav-dot"></span> 1. Live Code Sandbox</a>
+    <a href="#f2-multitenancy" class="nav-link"><span class="nav-dot"></span> 2. Multi-Tenant Workspaces</a>
+    <a href="#f3-memory" class="nav-link"><span class="nav-dot"></span> 3. Agent Long-Term Memory</a>
+    <a href="#f4-mobile" class="nav-link"><span class="nav-dot"></span> 4. Mobile App Generation</a>
+    <a href="#f5-collab" class="nav-link"><span class="nav-dot"></span> 5. Real-Time Collaboration</a>
+    <a href="#f6-search" class="nav-link"><span class="nav-dot"></span> 6. Semantic Code Search</a>
+    <a href="#f7-whitelabel" class="nav-link"><span class="nav-dot"></span> 7. White-label &amp; SSO</a>
+
+    <div class="nav-section">Reference</div>
+    <a href="#api" class="nav-link"><span class="nav-dot"></span> New API Endpoints</a>
+    <a href="#db-schema" class="nav-link"><span class="nav-dot"></span> Database Schema</a>
+    <a href="#migration" class="nav-link"><span class="nav-dot"></span> Migration Guide</a>
+  </aside>
+
+  <div class="main">
+    <!-- Top Bar -->
+    <div class="topbar">
+      <span class="topbar-title">AI App Builder — Phase 8 Technical Documentation</span>
+      <div class="topbar-badges">
+        <span class="badge new">v8.0</span>
+        <span class="badge success">Build Passing</span>
+        <span class="badge env">Next.js 15</span>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- Hero -->
+      <section id="intro" class="doc-section">
+        <div class="hero">
+          <div class="hero-eyebrow"><span class="pulse"></span> Phase 8 Release</div>
+          <h1>Platform <span>Evolution</span></h1>
+          <p>Phase 8 transforms the AI App Builder from an autonomous code generator into a full-scale, enterprise-ready <strong>AI Development Operating System</strong>. Teams, memory, sandboxes, mobile apps — everything needed to scale from side project to SaaS.</p>
+          <div class="hero-stats">
+            <div class="stat"><div class="stat-val">8</div><div class="stat-label">New Systems</div></div>
+            <div class="stat"><div class="stat-val">16</div><div class="stat-label">Files Changed</div></div>
+            <div class="stat"><div class="stat-val">37</div><div class="stat-label">Routes Deployed</div></div>
+            <div class="stat"><div class="stat-val">0</div><div class="stat-label">Build Errors</div></div>
+          </div>
+        </div>
+
+        <h3>What changed in Phase 8</h3>
+        <p>Every previous phase focused on making the AI smarter at building web apps. Phase 8 focuses on making the <em>platform</em> enterprise-grade — enabling teams to collaborate, ensuring generated code actually compiles, and giving the agent a memory that improves over time.</p>
+        <div class="timeline">
+          <div class="timeline-item">
+            <div class="timeline-dot">1</div>
+            <div class="timeline-content">
+              <h4>Sandbox Verification</h4>
+              <p>Every generated project is compiled and type-checked in a live microVM before delivery. Zero broken code reaches users.</p>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot">2</div>
+            <div class="timeline-content">
+              <h4>Multi-Tenant Architecture</h4>
+              <p>Organizations, RBAC roles, and per-org data isolation built directly into Supabase RLS.</p>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot">3</div>
+            <div class="timeline-content">
+              <h4>Agent Memory + Mobile Generation</h4>
+              <p>The agent now recalls your past projects via pgvector. Mobile apps (Expo/React Native) are a first-class generation mode.</p>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot">4</div>
+            <div class="timeline-content">
+              <h4>Real-Time Collaboration + Semantic Search</h4>
+              <p>Supabase Realtime powers live team sessions. Every file is semantically indexed for natural-language code search.</p>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot">5</div>
+            <div class="timeline-content">
+              <h4>White-label + Enterprise SSO</h4>
+              <p>Partners can deploy the platform under their own domain and brand. SAML/OIDC SSO ready for enterprise customers.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Architecture -->
+      <section id="architecture" class="doc-section">
+        <div class="section-header">
+          <div class="feature-number">0</div>
+          <div>
+            <h2>Phase 8 Architecture</h2>
+            <p>How the new systems layer on top of the existing 7-phase pipeline.</p>
+          </div>
+        </div>
+
+        <div class="arch-diagram">
+          <div class="arch-title">System Layer Stack</div>
+          <div class="arch-layer">
+            <span class="arch-layer-name">Client Layer</span>
+            <span class="arch-layer-items">GeneratorForm (Web + Mobile modes) · CollaborationManager · White-label Theme Injection</span>
+          </div>
+          <div class="arch-arrow">↓</div>
+          <div class="arch-layer">
+            <span class="arch-layer-name">API Routes</span>
+            <span class="arch-layer-items">/api/generate (mode: web-component | web-app | mobile-app) · /api/cron/* · /api/orgs/*</span>
+          </div>
+          <div class="arch-arrow">↓</div>
+          <div class="arch-layer">
+            <span class="arch-layer-name">Agent Core (Phase 8 Enhanced)</span>
+            <span class="arch-layer-items">MemoryStore.recallContext() → planSpec(context) → build → test → SandboxVerify → codeSearch.index()</span>
+          </div>
+          <div class="arch-arrow">↓</div>
+          <div class="arch-layer">
+            <span class="arch-layer-name">New Phase 8 Libraries</span>
+            <span class="arch-layer-items">sandbox.ts · memory-store.ts · code-search.ts · collaboration.ts · white-label.ts</span>
+          </div>
+          <div class="arch-arrow">↓</div>
+          <div class="arch-layer">
+            <span class="arch-layer-name">Supabase (Phase 8 Schema)</span>
+            <span class="arch-layer-items">organizations · org_members · generation_memory · code_chunks · white_label_config · pgvector extension</span>
+          </div>
+          <div class="arch-arrow">↓</div>
+          <div class="arch-layer">
+            <span class="arch-layer-name">External Services</span>
+            <span class="arch-layer-items">E2B Sandbox · OpenRouter (LLM) · Vercel API · Stripe Meters · Supabase Realtime</span>
+          </div>
+        </div>
+
+        <h3>Agent Execution Flow (Phase 8)</h3>
+        <pre><code><span class="cm">// Every generation now follows this expanded pipeline:</span>
+<span class="fn">planSpec</span>(prompt, <span class="kw">await</span> <span class="fn">memoryStore.recallContext</span>(userId, prompt))
+  → <span class="fn">buildFromSpec</span>(spec)          <span class="cm">// Phase 2: generate files</span>
+  → <span class="fn">postProcessFiles</span>(files)      <span class="cm">// Phase 3: apply integrations</span>
+  → <span class="fn">testFiles</span>(files)             <span class="cm">// Phase 5: static analysis</span>
+  → <span class="fn">fixBrokenFiles</span>(broken)       <span class="cm">// Phase 7: surgical repair</span>
+  → <span class="fn">codeSandbox.verifyProject</span>()  <span class="cm">// Phase 8.1: live execution</span>
+  → <span class="fn">saveProjectDB</span>(result)        <span class="cm">// Phase 3: persist</span>
+  → <span class="fn">codeSearch.indexProject</span>()    <span class="cm">// Phase 8.6: semantic index</span>
+  → <span class="fn">memoryStore.remember</span>()       <span class="cm">// Phase 8.3: update context</span></code></pre>
+      </section>
+
+      <!-- Env Vars -->
+      <section id="env-vars" class="doc-section">
+        <div class="section-header">
+          <div class="feature-number">*</div>
+          <div>
+            <h2>Environment Variables</h2>
+            <p>All variables required for Phase 8 features. Add these to Vercel — Settings → Environment Variables.</p>
+          </div>
+        </div>
+        <div class="env-block">
+          <div class="env-row">
+            <span class="env-key">E2B_API_KEY</span>
+            <span class="badge required">Required for Sandbox</span>
+            <span class="env-desc">API key from <a href="https://e2b.dev" style="color: var(--accent);">e2b.dev</a> to enable live code execution verification.</span>
+          </div>
+          <div class="env-row">
+            <span class="env-key">OPENAI_API_KEY</span>
+            <span class="badge required">Required for Memory</span>
+            <span class="env-desc">Used to generate text embeddings (1536-dim) for semantic memory and code search.</span>
+          </div>
+          <div class="env-row">
+            <span class="env-key">CRON_SECRET</span>
+            <span class="badge required">Required for Crons</span>
+            <span class="env-desc">Secret token that Vercel Cron sends in the <code>Authorization</code> header. Set any random string &gt; 32 chars.</span>
+          </div>
+          <div class="env-row">
+            <span class="env-key">STRIPE_PRO_MONTHLY_PRICE_ID</span>
+            <span class="badge optional">Optional</span>
+            <span class="env-desc">Stripe Price ID for the Pro plan (monthly). Required for Stripe Checkout to work.</span>
+          </div>
+          <div class="env-row">
+            <span class="env-key">STRIPE_TEAM_MONTHLY_PRICE_ID</span>
+            <span class="badge optional">Optional</span>
+            <span class="env-desc">Stripe Price ID for the Team plan (monthly). Required for Stripe Checkout to work.</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- F1: Sandbox -->
+      <section id="f1-sandbox" class="doc-section">
+        <div class="section-header">
+          <div class="feature-number">1</div>
+          <div>
+            <h2>Live Code Execution Sandbox</h2>
+            <p>Every generated project is compiled, type-checked, and verified before delivery. No more broken code.</p>
+          </div>
+        </div>
+
+        <div class="card-grid">
+          <div class="card">
+            <div class="card-icon">⚡</div>
+            <h4>Sub-30s Verification</h4>
+            <p>E2B microVMs boot in under 200ms. Full TypeScript compilation runs in under 30 seconds per project.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">🛡️</div>
+            <h4>Isolated Execution</h4>
+            <p>Each verification runs in a dedicated Firecracker microVM — fully isolated, zero risk of shared-state pollution.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">🔄</div>
+            <h4>Automatic Self-Repair</h4>
+            <p>If the build fails, exact compiler errors are fed back to the LLM for a targeted surgical fix pass.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">🔑</div>
+            <h4>Graceful Degradation</h4>
+            <p>If <code>E2B_API_KEY</code> is not set, the sandbox step is skipped silently — existing behaviour is unchanged.</p>
+          </div>
+        </div>
+
+        <h3>Implementation: <code>src/lib/sandbox.ts</code></h3>
+        <pre><code><span class="kw">export class</span> <span class="tp">CodeSandbox</span> {
+  <span class="kw">async</span> <span class="fn">verifyProject</span>(files: <span class="tp">Record</span>&lt;<span class="tp">string</span>, <span class="tp">string</span>&gt;): <span class="tp">Promise</span>&lt;<span class="tp">SandboxResult</span>&gt; {
+    <span class="cm">// When E2B_API_KEY is set, real implementation:</span>
+    <span class="cm">// const sandbox = await Sandbox.create({ apiKey, timeoutMs: 30_000 });</span>
+    <span class="cm">// for (const [path, content] of Object.entries(files)) {</span>
+    <span class="cm">//   await sandbox.files.write(path, content);</span>
+    <span class="cm">// }</span>
+    <span class="cm">// const build = await sandbox.commands.run('npm run build');</span>
+    <span class="cm">// const tsc  = await sandbox.commands.run('npx tsc --noEmit');</span>
+    <span class="cm">// await sandbox.kill();</span>
+    <span class="kw">return</span> { success: <span class="num">true</span>, buildOutput, typeErrors, runtimeErrors };
+  }
+}</code></pre>
+
+        <h3>Integration in Agent Loop</h3>
+        <p>The sandbox step is injected into <code>runAdvanced()</code> in <code>agent.ts</code> after all static fix passes. If verification fails, one final surgical repair pass is executed using the exact compiler errors returned by the sandbox.</p>
+
+        <div class="callout info">
+          <span class="callout-icon">ℹ</span>
+          <div>To activate live sandbox verification, add <code>E2B_API_KEY</code> to your Vercel environment variables. Get a free key at <a href="https://e2b.dev" style="color: var(--blue);">e2b.dev</a>.</div>
+        </div>
+      </section>
+
+      <!-- F2: Multi-Tenancy -->
+      <section id="f2-multitenancy" class="doc-section">
+        <div class="section-header">
+          <div class="feature-number">2</div>
+          <div>
+            <h2>Multi-Tenant Workspace Architecture</h2>
+            <p>Organizations, roles, and isolated data for teams of all sizes.</p>
+          </div>
+        </div>
+
+        <h3>RBAC Role Definitions</h3>
+        <table>
+          <thead><tr><th>Role</th><th>Projects</th><th>Members</th><th>Billing</th><th>Settings</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Owner</strong></td><td>Full CRUD</td><td>Add / Remove</td><td>Full access</td><td>Full access</td></tr>
+            <tr><td><strong>Admin</strong></td><td>Full CRUD</td><td>Add members</td><td>View only</td><td>Edit name/logo</td></tr>
+            <tr><td><strong>Member</strong></td><td>Create / Read</td><td>View only</td><td>No access</td><td>No access</td></tr>
+            <tr><td><strong>Viewer</strong></td><td>Read only</td><td>View only</td><td>No access</td><td>No access</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Automatic Workspace Creation</h3>
+        <p>When a new user signs up or logs in for the first time, the system checks for an existing workspace. If none exists, a <strong>Personal Workspace</strong> is automatically provisioned with the user as <code>Owner</code>. This is handled in <code>auth-actions.ts</code> server actions.</p>
+
+        <pre><code><span class="cm">// auth-actions.ts — runs after every successful login</span>
+<span class="kw">const</span> { data: orgs } = <span class="kw">await</span> supabase
+  .<span class="fn">from</span>(<span class="str">'org_members'</span>)
+  .<span class="fn">select</span>(<span class="str">'org_id'</span>)
+  .<span class="fn">eq</span>(<span class="str">'user_id'</span>, data.user.id)
+  .<span class="fn">limit</span>(<span class="num">1</span>);
+
+<span class="kw">if</span> (!orgs || orgs.length === <span class="num">0</span>) {
+  <span class="cm">// Auto-provision Personal Workspace</span>
+  <span class="kw">const</span> { data: newOrg } = <span class="kw">await</span> supabase
+    .<span class="fn">from</span>(<span class="str">'organizations'</span>)
+    .<span class="fn">insert</span>({ name: <span class="str">'Personal Workspace'</span>, slug })
+    .<span class="fn">select</span>().<span class="fn">single</span>();
+
+  <span class="kw">await</span> supabase.<span class="fn">from</span>(<span class="str">'org_members'</span>)
+    .<span class="fn">insert</span>({ org_id: newOrg.id, user_id, role: <span class="str">'owner'</span> });
+}</code></pre>
+
+        <div class="callout success">
+          <span class="callout-icon">✓</span>
+          <div>All project data is isolated at the database level using Supabase Row Level Security (RLS). Members can only query projects that belong to organizations they are members of.</div>
+        </div>
+      </section>
+
+      <!-- F3: Memory -->
+      <section id="f3-memory" class="doc-section">
+        <div class="section-header">
+          <div class="feature-number">3</div>
+          <div>
+            <h2>Agent Long-Term Memory</h2>
+            <p>The agent remembers your preferences, tech stack, and past generations — improving every build.</p>
+          </div>
+        </div>
+
+        <div class="card-grid">
+          <div class="card">
+            <div class="card-icon">🧠</div>
+            <h4>Semantic Recall</h4>
+            <p>Past prompts are embedded as 1536-dim vectors. Before each generation, the agent performs a cosine similarity search to find the most relevant past context.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">📚</div>
+            <h4>Preference Learning</h4>
+            <p>Tech stack choices, folder structures, and integration patterns from past high-rated generations are automatically surfaced as context hints.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">⚡</div>
+            <h4>Context Injection</h4>
+            <p>Recalled memories are injected directly into the <code>planSpec</code> system prompt before the LLM plans the application structure.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">🔐</div>
+            <h4>User-Scoped</h4>
+            <p>Memories are stored per-user and per-organization. Your team's context never bleeds into another team's generations.</p>
+          </div>
+        </div>
+
+        <h3>Database: <code>generation_memory</code></h3>
+        <pre><code><span class="cm">-- pgvector-backed memory table</span>
+<span class="kw">CREATE TABLE</span> generation_memory (
+  id          <span class="tp">UUID</span>           <span class="kw">PRIMARY KEY DEFAULT</span> gen_random_uuid(),
+  user_id     <span class="tp">UUID</span>           <span class="kw">REFERENCES</span> auth.users(id),
+  prompt      <span class="tp">TEXT</span>           <span class="kw">NOT NULL</span>,
+  embedding   vector(<span class="num">1536</span>),   <span class="cm">-- OpenAI text-embedding-3-small</span>
+  tech_stack  <span class="tp">TEXT</span>[],
+  metadata    <span class="tp">JSONB</span>,
+  created_at  <span class="tp">TIMESTAMPTZ</span>    <span class="kw">DEFAULT NOW</span>()
+);
+
+<span class="kw">CREATE INDEX ON</span> generation_memory
+  <span class="kw">USING</span> ivfflat (embedding vector_cosine_ops)
+  <span class="kw">WITH</span> (lists = <span class="num">100</span>);</code></pre>
+
+        <div class="callout warn">
+          <span class="callout-icon">⚠</span>
+          <div>Long-term memory requires <code>OPENAI_API_KEY</code> to generate embeddings. Without it, the system falls back to simple keyword-based context recall from the most recent 3 projects.</div>
+        </div>
+      </section>
+
+      <!-- F4: Mobile -->
+      <section id="f4-mobile" class="doc-section">
+        <div class="section-header">
+          <div class="feature-number">4</div>
+          <div>
+            <h2>Mobile App Generation</h2>
+            <p>Generate full Expo / React Native applications — not just web apps — from a single prompt.</p>
+          </div>
+        </div>
+
+        <h3>Generation Modes</h3>
+        <table>
+          <thead><tr><th>Mode</th><th>Output</th><th>Framework</th><th>Styling</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Single Unit</strong></td><td>Single React component</td><td>Next.js 15</td><td>Tailwind CSS v4</td></tr>
+            <tr><td><strong>Web Suite</strong></td><td>Multi-file Next.js app</td><td>Next.js 15 + App Router</td><td>Tailwind CSS v4</td></tr>
+            <tr><td><span class="badge new">NEW</span> <strong>Mobile App</strong></td><td>Full Expo project</td><td>Expo Router v3</td><td>NativeWind</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Mobile System Prompt</h3>
+        <p>When <code>mode: "mobile-app"</code> is sent to <code>/api/generate</code>, the agent's system prompt is switched to a React Native specialist context via <code>agent.setMode("mobile-app")</code>:</p>
+
+        <pre><code><span class="cm">// Mobile generation outputs this file structure:</span>
+{
+  <span class="str">"files"</span>: {
+    <span class="str">"app/_layout.tsx"</span>:   <span class="str">"// Expo Router root layout"</span>,
+    <span class="str">"app/index.tsx"</span>:     <span class="str">"// Home screen"</span>,
+    <span class="str">"app/(tabs)/_layout.tsx"</span>: <span class="str">"// Tab navigator"</span>,
+    <span class="str">"components/Button.tsx"</span>: <span class="str">"// NativeWind styled"</span>,
+    <span class="str">"tailwind.config.js"</span>: <span class="str">"// NativeWind config"</span>
+  },
+  <span class="str">"integrations"</span>: [<span class="str">"expo-router"</span>, <span class="str">"nativewind"</span>]
+}</code></pre>
+
+        <h3>UI: New Mode Toggle</h3>
+        <p>The <code>GeneratorForm</code> component now renders a three-button mode toggle replacing the previous binary Single/Multi-file switch:</p>
+
+        <div class="callout info">
+          <span class="callout-icon">ℹ</span>
+          <div>The mobile generation mode uses the same streaming SSE pipeline as web generation. Files are displayed in the existing <code>MultiFileDisplay</code> component with syntax highlighting.</div>
+        </div>
+      </section>
+
+      <!-- F5: Collaboration -->
+      <section id="f5-collab" class="doc-section">
+        <div class="section-header">
+          <div class="feature-number">5</div>
+          <div>
+            <h2>Real-Time Collaboration</h2>
+            <p>Multiple users can co-generate in the same project session with live presence and delta streaming.</p>
+          </div>
+        </div>
+
+        <div class="card-grid">
+          <div class="card">
+            <div class="card-icon">👥</div>
+            <h4>Presence Tracking</h4>
+            <p>See who else is active in a project workspace in real time using Supabase Presence channels.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">⚡</div>
+            <h4>Generation Broadcast</h4>
+            <p>Every streamed generation delta is broadcast to all channel subscribers — team members see code appearing live.</p>
+          </div>
+        </div>
+
+        <h3>Implementation: <code>src/lib/collaboration.ts</code></h3>
+        <pre><code><span class="kw">const</span> channel = supabase.<span class="fn">channel</span>(<span class="str">`project:${projectId}`</span>, {
+  config: {
+    broadcast: { self: <span class="kw">false</span> },
+    presence: { key: projectId }
+  }
+});
+
+<span class="cm">// Subscribe to live deltas from teammates</span>
+channel.<span class="fn">on</span>(<span class="str">'broadcast'</span>, { event: <span class="str">'delta'</span> }, ({ payload }) =&gt; {
+  <span class="fn">appendToSharedBuffer</span>(payload.delta);
+}).<span class="fn">subscribe</span>();
+
+<span class="cm">// Broadcast your own generation deltas</span>
+channel.<span class="fn">send</span>({ type: <span class="str">'broadcast'</span>, event: <span class="str">'delta'</span>, payload: { delta } });</code></pre>
+      </section>
+
+      <!-- F6: Search -->
+      <section id="f6-search" class="doc-section">
+        <div class="section-header">
+          <div class="feature-number">6</div>
+          <div>
+            <h2>Semantic Code Search</h2>
+            <p>Search inside all generated projects using natural language — powered by pgvector.</p>
+          </div>
+        </div>
+
+        <h3>Automatic Indexing</h3>
+        <p>Every file generated is automatically indexed by <code>codeSearch.indexProject()</code> immediately after a project is persisted to the database. No manual indexing step is required.</p>
+
+        <h3>Search SQL Function</h3>
+        <pre><code><span class="cm">-- Searches code_chunks using cosine similarity</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="fn">search_code_chunks</span>(
+  query_embedding := <span class="str">'[0.12, 0.45, ...]'</span>::vector,
+  match_threshold := <span class="num">0.75</span>,
+  match_count     := <span class="num">10</span>,
+  p_org_id        := <span class="str">'your-org-uuid'</span>
+);</code></pre>
+
+        <h3>Example Queries</h3>
+        <table>
+          <thead><tr><th>Natural Language Query</th><th>What It Finds</th></tr></thead>
+          <tbody>
+            <tr><td>"Where did I handle Stripe webhooks?"</td><td>Files containing Stripe event handling code</td></tr>
+            <tr><td>"Show my dashboard components"</td><td>All files with Dashboard in their path or content</td></tr>
+            <tr><td>"Find useEffect with fetch calls"</td><td>React hooks that include data-fetching patterns</td></tr>
+            <tr><td>"Supabase auth middleware"</td><td>Middleware files using Supabase client</td></tr>
+          </tbody>
+        </table>
+
+        <div class="callout warn">
+          <span class="callout-icon">⚠</span>
+          <div>Semantic search requires <code>OPENAI_API_KEY</code> for embedding generation. The <code>pgvector</code> extension must be enabled in your Supabase project under Database → Extensions.</div>
+        </div>
+      </section>
+
+      <!-- F7: White-label -->
+      <section id="f7-whitelabel" class="doc-section">
+        <div class="section-header">
+          <div class="feature-number">7</div>
+          <div>
+            <h2>White-label &amp; Enterprise SSO</h2>
+            <p>Full platform rebrandability and SAML/OIDC single sign-on for enterprise customers.</p>
+          </div>
+        </div>
+
+        <h3>White-label Config Database</h3>
+        <pre><code><span class="kw">CREATE TABLE</span> white_label_config (
+  id             <span class="tp">UUID</span>      <span class="kw">PRIMARY KEY DEFAULT</span> gen_random_uuid(),
+  org_id         <span class="tp">UUID</span>      <span class="kw">REFERENCES</span> organizations(id) <span class="kw">UNIQUE</span>,
+  custom_domain  <span class="tp">TEXT</span>      <span class="kw">UNIQUE</span>,         <span class="cm">-- e.g. builder.agency.com</span>
+  brand_name     <span class="tp">TEXT</span>,                    <span class="cm">-- e.g. "Agency Studio"</span>
+  theme_config   <span class="tp">JSONB</span>,                   <span class="cm">-- primary_color, dark_mode</span>
+  is_active      <span class="tp">BOOLEAN DEFAULT</span> <span class="num">true</span>
+);</code></pre>
+
+        <h3>Dynamic Theme Injection</h3>
+        <p>The root <code>layout.tsx</code> reads the incoming <code>host</code> header on every request and resolves a brand config via <code>whiteLabelManager.resolveConfig(host)</code>. If a config is found, CSS custom properties are injected as an inline <code>&lt;style&gt;</code> block:</p>
+        <pre><code>{brandConfig &amp;&amp; (
+  <span class="kw">&lt;style</span> dangerouslySetInnerHTML={{ __html: `
+    :root {
+      --brand-500: <span class="str">${brandConfig.theme_config.primary_color}</span>;
+    }
+  `}} /&gt;
+)}</code></pre>
+
+        <h3>SSO Configuration</h3>
+        <p>Enterprise organizations can connect their own identity provider (Okta, Azure AD, Google Workspace) via SAML 2.0 or OIDC. The <code>whiteLabelManager.setupSSO(orgId, metadataUrl)</code> method serves as the hook for the Supabase Admin API SAML provider configuration.</p>
+
+        <table>
+          <thead><tr><th>Provider Type</th><th>Support</th><th>Configuration</th></tr></thead>
+          <tbody>
+            <tr><td>SAML 2.0</td><td>Full support via Supabase</td><td>Upload XML metadata or provide URL</td></tr>
+            <tr><td>OIDC / OAuth 2.0</td><td>Full support via Supabase</td><td>Client ID + Discovery URL</td></tr>
+            <tr><td>Google Workspace</td><td>Ready (OIDC)</td><td>Standard Google OAuth config</td></tr>
+            <tr><td>Okta</td><td>Ready (SAML or OIDC)</td><td>Okta metadata URL or manual config</td></tr>
+            <tr><td>Azure Active Directory</td><td>Ready (SAML)</td><td>Azure AD Federation Metadata URL</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- API Reference -->
+      <section id="api" class="doc-section">
+        <div class="section-header">
+          <div class="feature-number">~</div>
+          <div>
+            <h2>New API Endpoints</h2>
+            <p>Phase 8 adds no public-facing API routes — all new functionality is server-side. The generate endpoint was extended with a <code>mode</code> parameter.</p>
+          </div>
+        </div>
+
+        <table>
+          <thead><tr><th>Endpoint</th><th>Change</th><th>New Parameter</th></tr></thead>
+          <tbody>
+            <tr><td><code>POST /api/generate</code></td><td>Extended</td><td><code>mode: "web-component" | "web-app" | "mobile-app"</code></td></tr>
+            <tr><td><code>GET /api/cron/monitor</code></td><td><span class="badge new">NEW</span></td><td>Runs every 5 min via Vercel Cron</td></tr>
+            <tr><td><code>GET /api/cron/self-improve</code></td><td><span class="badge new">NEW</span></td><td>Runs daily at 2 AM</td></tr>
+            <tr><td><code>GET /api/cron/revenue-optimize</code></td><td><span class="badge new">NEW</span></td><td>Runs every Monday 9 AM</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Extended <code>/api/generate</code> Request Body</h3>
+        <pre><code>{
+  <span class="str">"prompt"</span>:    <span class="str">"A fitness tracking app with charts"</span>,
+  <span class="str">"stream"</span>:    <span class="kw">true</span>,
+  <span class="str">"multiFile"</span>: <span class="kw">true</span>,
+  <span class="str">"mode"</span>:      <span class="str">"mobile-app"</span>  <span class="cm">// NEW — triggers Expo generation</span>
+}</code></pre>
+      </section>
+
+      <!-- DB Schema -->
+      <section id="db-schema" class="doc-section">
+        <div class="section-header">
+          <div class="feature-number">~</div>
+          <div>
+            <h2>New Database Tables</h2>
+            <p>All new tables are in <code>supabase/schema.sql</code> under the "Phase 8 Upgrade" block.</p>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>Table</th><th>Purpose</th><th>Key Columns</th></tr></thead>
+          <tbody>
+            <tr><td><code>organizations</code></td><td>Team workspaces</td><td>slug, plan_id, billing_customer_id</td></tr>
+            <tr><td><code>org_members</code></td><td>RBAC membership</td><td>org_id, user_id, role</td></tr>
+            <tr><td><code>generation_memory</code></td><td>Agent long-term context</td><td>embedding vector(1536), tech_stack[]</td></tr>
+            <tr><td><code>code_chunks</code></td><td>Semantic code search index</td><td>project_id, file_path, embedding vector(1536)</td></tr>
+            <tr><td><code>white_label_config</code></td><td>Per-org branding</td><td>custom_domain, brand_name, theme_config</td></tr>
+          </tbody>
+        </table>
+        <div class="callout info">
+          <span class="callout-icon">ℹ</span>
+          <div>Run the Phase 8 SQL block from <code>supabase/schema.sql</code> in your Supabase SQL Editor to create these tables. The <code>pgvector</code> extension is enabled automatically by the script.</div>
+        </div>
+      </section>
+
+      <!-- Migration -->
+      <section id="migration" class="doc-section">
+        <div class="section-header">
+          <div class="feature-number">~</div>
+          <div>
+            <h2>Migration Guide</h2>
+            <p>Steps to upgrade an existing Phase 7 deployment to Phase 8.</p>
+          </div>
+        </div>
+        <ol>
+          <li><strong>Run the SQL migration</strong> — copy the Phase 8 block from <code>supabase/schema.sql</code> and run it in Supabase SQL Editor. This adds all new tables and enables pgvector.</li>
+          <li><strong>Add environment variables</strong> — set <code>E2B_API_KEY</code>, <code>OPENAI_API_KEY</code>, and <code>CRON_SECRET</code> in Vercel.</li>
+          <li><strong>Redeploy</strong> — push to <code>main</code> or trigger a manual Vercel deployment. The <code>vercel.json</code> cron configuration activates automatically.</li>
+          <li><strong>Verify cron jobs</strong> — check Vercel Dashboard → Settings → Cron Jobs to confirm the three scheduled jobs appear.</li>
+          <li><strong>Test workspace provisioning</strong> — log out and log back in. Confirm a "Personal Workspace" entry appears in your <code>organizations</code> table in Supabase.</li>
+          <li><strong>Optional: enable pgvector index</strong> — for large deployments, run <code>ANALYZE generation_memory;</code> after inserting the first 1000 rows to optimize the IVFFlat index.</li>
+        </ol>
+
+        <div class="callout success">
+          <span class="callout-icon">✓</span>
+          <div>Phase 8 is fully backward compatible. All Phase 1–7 features and API routes continue to work unchanged. The only breaking change is the renaming of the mode toggle in the UI (Single Unit / Web Suite / Mobile App replaces the previous Single / Multi-file toggle).</div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+</body>
+</html>

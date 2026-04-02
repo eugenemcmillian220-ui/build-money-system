@@ -4,7 +4,7 @@ A production-ready autonomous AI platform that builds, deploys, monitors, and op
 
 ## Overview
 
-AI App Builder is a comprehensive platform with 7 production-ready phases:
+AI App Builder is a comprehensive platform with 8 production-ready phases:
 
 - **Phase 1**: Single component generation
 - **Phase 2**: Multi-file app generation with live preview
@@ -13,13 +13,15 @@ AI App Builder is a comprehensive platform with 7 production-ready phases:
 - **Phase 5**: Production systems (security, feedback, self-improvement)
 - **Phase 6**: Autonomous AI company builder
 - **Phase 7**: Autonomous deployment, revenue optimization, and task scheduling
+- **Phase 8**: AI Development Operating System (Sandbox, Multi-Tenancy, Memory, Mobile, Collab, Search, White-label)
 
 ## Tech Stack
 
 - **Frontend**: Next.js 15, React 19, Tailwind CSS v4
 - **Backend**: Next.js API Routes (Node.js runtime)
 - **Database**: Supabase (PostgreSQL with Row Level Security)
-- **AI/LLM**: OpenRouter API (supports models like GPT-4o-mini)
+- **AI/LLM**: OpenRouter API (supports models like GPT-4o-mini), OpenAI Embeddings (v3-small)
+- **Sandbox**: E2B Firecracker microVMs for live code execution
 - **Deployment**: Vercel (one-click deploy), GitHub (export)
 - **Language**: TypeScript with Zod validation
 - **Preview**: react-live for real-time component preview
@@ -83,6 +85,11 @@ ADMIN_API_KEYS=sk-admin-key-1,sk-admin-key-2
 
 # Stripe Payments (for Phase 6 billing)
 STRIPE_SECRET_KEY=sk_test_...
+
+# Phase 8 Features
+E2B_API_KEY=e2b_...              # Required for Sandbox
+OPENAI_API_KEY=sk-proj-...        # Required for Memory & Search
+CRON_SECRET=your_cron_secret      # Required for Cron loops
 ```
 
 ### Development
@@ -274,11 +281,13 @@ docker run -p 3000:3000 --env-file .env ai-app-builder
 - Phase 5: ✅ Production systems
 - Phase 6: ✅ AI company builder
 - Phase 7: ✅ Autonomous deployment & revenue optimization
+- Phase 8: ✅ AI Development Operating System
 
 ## Documentation
 
 - **[PHASES.md](PHASES.md)** - Complete phase-by-phase breakdown with status checks
 - **[PHASE7.md](PHASE7.md)** - Detailed Phase 7 features and API reference
+- **[Phase 8 Documentation](public/docs/phase8.html)** - Comprehensive guide for Phase 8 features
 - **[README_PRODUCTION.md](README_PRODUCTION.md)** - Full production deployment guide
 - **[PRODUCTION_READINESS.md](PRODUCTION_READINESS.md)** - Production readiness summary
 
