@@ -41,6 +41,7 @@ class RevenueOptimizer {
   private pricingHistory: Array<{ date: string; tiers: PricingTier[] }> = [];
   private revenueHistory: Array<{ date: string; revenue: number }> = [];
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   optimizePricing(currentPricing: PricingTier[], _currentMRR?: number): PricingTier[] {
     const optimized = currentPricing.map((tier) => {
       let newPrice = tier.price;

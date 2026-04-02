@@ -23,6 +23,8 @@ export interface DatabaseProject {
   id: string;
   name: string;
   description: string;
+  prompt?: string;
+  org_id?: string;
   files: FileMap;
   schema?: string;
   integrations?: string[];
@@ -59,6 +61,8 @@ function toDatabaseProject(project: Project): DatabaseProject {
     id: project.id,
     name: project.description?.split("\n")[0].slice(0, 100) || "Untitled Project",
     description: project.description || "",
+    prompt: project.prompt,
+    org_id: project.id, // Placeholder or proper typed orgId if available
     files: project.files,
     schema: project.schema,
     integrations: project.integrations,
@@ -78,6 +82,8 @@ function fromDatabaseProject(dbProject: DatabaseProject): Project {
     id: dbProject.id,
     files: dbProject.files,
     description: dbProject.description,
+    prompt: dbProject.prompt,
+    orgId: dbProject.org_id,
     timestamp: new Date(dbProject.created_at).getTime(),
     schema: dbProject.schema,
     integrations: dbProject.integrations,

@@ -9,6 +9,7 @@ export type DeploymentStatus = 'pending' | 'building' | 'ready' | 'error' | 'can
 export interface GenerationResult {
   files: FileMap;
   description?: string;
+  prompt?: string;
   timestamp?: number;
   schema?: string;
   integrations?: string[];
@@ -23,6 +24,7 @@ export const fileMapSchema: z.ZodType<FileMap> = z.record(
 export const generationResultSchema: z.ZodType<GenerationResult> = z.object({
   files: fileMapSchema,
   description: z.string().optional(),
+  prompt: z.string().optional(),
   timestamp: z.number().optional(),
   schema: z.string().optional(),
   integrations: z.array(z.string()).optional(),
@@ -57,6 +59,7 @@ export interface DeploymentInfo {
 export interface Project extends GenerationResult {
   id: string;
   createdAt: string;
+  orgId?: string;
   status?: ProjectStatus;
   deployment?: DeploymentInfo;
   githubRepo?: string;

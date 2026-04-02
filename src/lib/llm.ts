@@ -1,5 +1,6 @@
 import { serverEnv } from "@/lib/env";
 import { FileMap, AppSpec, AgentConfig, defaultAgentConfig } from "./types";
+import { MemoryContext } from "./memory-store";
 
 const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
 
@@ -176,8 +177,12 @@ export async function* streamLLM(
 /**
  * Plan phase: Generate a structured spec from user prompt
  */
-export async function planSpec(prompt: string): Promise<AppSpec> {
-  const systemPrompt = `You are an expert software architect. Given a user request, create a detailed specification for a Next.js application.
+export async function planSpec(prompt: string, context: MemoryContext[] = []): Promise<AppSpec> {
+  const contextText = context.length > 0 
+    ? `\n\nRelevant context from previous projects:\n${JSON.stringify(context, null, 2)}`
+    : "";
+
+  const systemPrompt = `You are an expert software architect. Given a user request, create a detailed specification for a Next.js application.${contextText}
 
 Return a JSON object with this exact structure:
 {

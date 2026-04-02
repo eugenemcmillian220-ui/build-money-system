@@ -288,6 +288,7 @@ export default function DashboardPage() {
       } else {
         setFeedbackMessage("Failed to submit feedback");
       }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       setFeedbackMessage("Error submitting feedback");
     } finally {

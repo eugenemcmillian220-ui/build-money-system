@@ -1,5 +1,7 @@
 import { generateText, generateTextStream, OpenRouterError } from "@/lib/openrouter";
 import { AppBuildAgent, AgentError } from "@/lib/agent";
+import { createClient } from "@/lib/supabase/server";
+import { serverEnv } from "@/lib/env";
 import { z } from "zod";
 
 export const runtime = "nodejs";
@@ -9,6 +11,7 @@ const requestSchema = z.object({
   prompt: z.string().min(1, "Prompt is required").max(2000, "Prompt is too long"),
   stream: z.boolean().optional().default(false),
   multiFile: z.boolean().optional().default(false),
+  mode: z.enum(["web-component", "web-app", "mobile-app"]).optional().default("web-app"),
 });
 
 const SYSTEM_PROMPT =
@@ -30,11 +33,18 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
-  const { prompt, stream, multiFile } = parsed.data;
+  const { prompt, stream, multiFile, mode } = parsed.data;
 
   try {
-    if (multiFile) {
-      const agent = new AppBuildAgent();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (multiFile || mode === "mobile-app") {
+      const agent = new AppBuildAgent({ model: serverEnv.OPENROUTER_MODEL }, undefined, user?.id);
+      
+      if (mode === "mobile-app") {
+        agent.setMode("mobile-app");
+      }
 
       if (stream) {
         const encoder = new TextEncoder();

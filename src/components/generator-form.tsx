@@ -91,13 +91,13 @@ function tryExtractFiles(jsonBuffer: string): FileMap {
 export function GeneratorForm() {
   const [prompt, setPrompt] = useState("");
   const [state, setState] = useState<GenerationState>({ status: "idle" });
-  const [multiFileMode, setMultiFileMode] = useState(false);
+  const [mode, setMode] = useState<"web-component" | "web-app" | "mobile-app">("web-app");
   const [isPending, startTransition] = useTransition();
   const abortRef = useRef<AbortController | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const isWorking = state.status === "loading" || state.status === "streaming" || isPending;
-  const examples = multiFileMode ? MULTI_FILE_EXAMPLES : EXAMPLE_PROMPTS;
+  const examples = mode === "web-app" ? MULTI_FILE_EXAMPLES : EXAMPLE_PROMPTS;
 
   function handleExampleClick(example: string) {
     setPrompt(example);
@@ -131,7 +131,8 @@ export function GeneratorForm() {
           body: JSON.stringify({
             prompt: trimmed,
             stream: true,
-            multiFile: multiFileMode,
+            multiFile: mode !== "web-component",
+            mode: mode,
           }),
           signal: controller.signal,
         });
@@ -180,7 +181,7 @@ export function GeneratorForm() {
             if (event.type === "chunk" && typeof event.delta === "string") {
               rawCode += event.delta;
 
-              if (multiFileMode) {
+              if (mode !== "web-component") {
                 const partial = tryExtractFiles(rawCode);
                 if (Object.keys(partial).length > 0) {
                   currentFiles = partial;
@@ -231,30 +232,29 @@ export function GeneratorForm() {
       {/* Mode Toggle */}
       <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
         <div className="glass-card flex items-center rounded-2xl p-1.5">
-          <button
-            onClick={() => setMultiFileMode(false)}
-            className={`rounded-xl px-6 py-2.5 text-sm font-bold tracking-tight transition-all ${
-              !multiFileMode
-                ? "bg-brand-500 text-white shadow-lg shadow-brand-500/30"
-                : "text-muted-foreground hover:text-white"
-            }`}
-          >
-            Single Unit
-          </button>
-          <button
-            onClick={() => setMultiFileMode(true)}
-            className={`rounded-xl px-6 py-2.5 text-sm font-bold tracking-tight transition-all ${
-              multiFileMode
-                ? "bg-brand-500 text-white shadow-lg shadow-brand-500/30"
-                : "text-muted-foreground hover:text-white"
-            }`}
-          >
-            Multi-file Suite
-          </button>
+          {[
+            { id: "web-component", label: "Single Unit" },
+            { id: "web-app", label: "Web Suite" },
+            { id: "mobile-app", label: "Mobile App" }
+          ].map((m) => (
+            <button
+              key={m.id}
+              onClick={() => setMode(m.id as "web-component" | "web-app" | "mobile-app")}
+              className={`rounded-xl px-4 py-2.5 text-xs font-bold tracking-tight transition-all ${
+                mode === m.id
+                  ? "bg-brand-500 text-white shadow-lg shadow-brand-500/30"
+                  : "text-muted-foreground hover:text-white"
+              }`}
+            >
+              {m.label}
+            </button>
+          ))}
         </div>
         <span className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">
-          {multiFileMode
-            ? "Elite Full-Stack Pipeline Active"
+          {mode === "mobile-app" 
+            ? "Elite Expo/React Native Pipeline" 
+            : mode === "web-app" 
+            ? "Elite Full-Stack Pipeline Active" 
             : "Precision Component Generation Active"}
         </span>
       </div>
@@ -268,8 +268,10 @@ export function GeneratorForm() {
           style={{ minHeight: "10rem" }}
           rows={5}
           placeholder={
-            multiFileMode
+            mode === "web-app"
               ? "What enterprise application shall we manifest today?"
+              : mode === "mobile-app"
+              ? "Describe the mobile application to build with Expo..."
               : "Describe the atomic component you require…"
           }
           value={prompt}
@@ -310,11 +312,13 @@ export function GeneratorForm() {
           {state.status === "loading"
             ? "Establishing Neural Link…"
             : state.status === "streaming"
-              ? multiFileMode
-                ? "Manifesting Suite…"
-                : "Building Unit…"
-              : multiFileMode
+              ? mode === "mobile-app"
+                ? "Manifesting Mobile Suite…"
+                : "Manifesting Suite…"
+              : mode === "web-app"
                 ? "GENERATE FULL SUITE"
+                : mode === "mobile-app"
+                ? "GENERATE MOBILE APP"
                 : "GENERATE COMPONENT"}
         </button>
 
@@ -349,7 +353,7 @@ export function GeneratorForm() {
 
       {/* Display Results */}
       <div className="mt-12 overflow-hidden rounded-2xl border border-white/5 bg-black/20 shadow-inner">
-        {multiFileMode && hasFiles ? (
+        {mode !== "web-component" && hasFiles ? (
           <MultiFileDisplay
             files={currentFiles}
             isStreaming={state.status === "streaming"}

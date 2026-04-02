@@ -705,5 +705,118 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- =============================================================================
+-- =============================================================================
+-- PHASE 8 UPGRADE: Multi-Tenancy, Memory, Semantic Search
+-- =============================================================================
+
+-- Enable pgvector extension
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- Organizations table
+CREATE TABLE IF NOT EXISTS organizations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(255) NOT NULL,
+  slug VARCHAR(100) UNIQUE NOT NULL,
+  logo_url TEXT,
+  primary_color VARCHAR(20),
+  plan_id VARCHAR(50) DEFAULT 'free',
+  billing_customer_id TEXT,
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Org Members table (RBAC)
+CREATE TABLE IF NOT EXISTS org_members (
+  org_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  role VARCHAR(20) DEFAULT 'member', -- owner, admin, member, viewer
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (org_id, user_id)
+);
+
+-- Add org_id to projects
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS org_id UUID REFERENCES organizations(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_projects_org_id ON projects(org_id);
+
+-- Update project policies for multi-tenancy
+DROP POLICY IF EXISTS "Users can view own projects" ON projects;
+CREATE POLICY "Users can view org projects" ON projects
+  FOR SELECT USING (
+    is_public = true OR 
+    (org_id IS NOT NULL AND EXISTS (SELECT 1 FROM org_members WHERE org_id = projects.org_id AND user_id = auth.uid())) OR
+    (org_id IS NULL AND user_id = auth.uid())
+  );
+
+-- Generation Memory (pgvector)
+CREATE TABLE IF NOT EXISTS generation_memory (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id),
+  org_id UUID REFERENCES organizations(id),
+  prompt TEXT NOT NULL,
+  embedding vector(1536), -- OpenAI standard
+  tech_stack TEXT[],
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_memory_embedding ON generation_memory USING ivfflat (embedding vector_cosine_ops);
+
+-- Code Chunks for Semantic Search
+CREATE TABLE IF NOT EXISTS code_chunks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  file_path TEXT NOT NULL,
+  content TEXT NOT NULL,
+  embedding vector(1536),
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_code_chunks_embedding ON code_chunks USING ivfflat (embedding vector_cosine_ops);
+
+-- White-label Configuration
+CREATE TABLE IF NOT EXISTS white_label_config (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id UUID REFERENCES organizations(id) ON DELETE CASCADE UNIQUE,
+  custom_domain TEXT UNIQUE,
+  brand_name TEXT,
+  theme_config JSONB DEFAULT '{}',
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Function: Search code chunks semantically
+CREATE OR REPLACE FUNCTION search_code_chunks(
+  query_embedding vector(1536),
+  match_threshold float,
+  match_count int,
+  p_org_id UUID
+)
+RETURNS TABLE (
+  id UUID,
+  project_id UUID,
+  file_path TEXT,
+  content TEXT,
+  similarity float
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    cc.id,
+    cc.project_id,
+    cc.file_path,
+    cc.content,
+    1 - (cc.embedding <=> query_embedding) AS similarity
+  FROM code_chunks cc
+  JOIN projects p ON cc.project_id = p.id
+  WHERE p.org_id = p_org_id
+    AND 1 - (cc.embedding <=> query_embedding) > match_threshold
+  ORDER BY similarity DESC
+  LIMIT match_count;
+END;
+$$;
+
 -- END OF SCHEMA
 -- =============================================================================

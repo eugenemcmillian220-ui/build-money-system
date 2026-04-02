@@ -12,6 +12,7 @@ import {
 import { planSpec, buildFromSpec, fixFiles, fixBrokenFiles, testFiles, streamLLM, cleanJson } from "./llm";
 import { postProcessFiles } from "./processor";
 import { saveProject, loadProject, getAllProjects } from "./memory";
+import { codeSandbox } from "./sandbox";
 import {
   saveProjectDB,
   loadProjectDB,
@@ -19,6 +20,8 @@ import {
   updateProjectStatus,
   isDatabaseAvailable,
 } from "./supabase/db";
+import { memoryStore } from "./memory-store";
+import { codeSearch } from "./code-search";
 import { createVercelDeploy, isVercelAvailable } from "./deploy";
 import { exportToGitHub as exportToGitHubRepo, isGitHubAvailable } from "./github";
 
@@ -47,13 +50,16 @@ export class AppBuildAgent {
   private config: AgentConfig;
   private systemPrompt: string;
   private onProgress?: (progress: AgentProgress) => void;
+  private userId?: string;
 
   constructor(
     config: Partial<AgentConfig> = {},
-    onProgress?: (progress: AgentProgress) => void
+    onProgress?: (progress: AgentProgress) => void,
+    userId?: string
   ) {
     this.config = { ...defaultAgentConfig, ...config };
     this.onProgress = onProgress;
+    this.userId = userId;
     this.systemPrompt = `You are an AI app builder. Generate a Next.js application with multiple files.
     
 Return a JSON object with this exact structure:
@@ -80,6 +86,31 @@ Rules:
 - Maximum 10 files per app`;
   }
 
+  public setMode(mode: "web-app" | "mobile-app") {
+    if (mode === "mobile-app") {
+      this.systemPrompt = `You are a React Native and Expo expert. Generate a production-ready Expo app with multiple files.
+    
+Return a JSON object with this exact structure:
+{
+  "files": {
+    "app/_layout.tsx": "root layout code",
+    "app/index.tsx": "home screen code",
+    "components/Button.tsx": "component code"
+  },
+  "description": "Brief description of the mobile app",
+  "integrations": ["expo-router", "nativewind"]
+}
+
+Rules:
+- Use Expo Router v3 for file-based navigation
+- Use NativeWind (Tailwind for React Native) for styling
+- Include proper TypeScript types
+- Keep components modular
+- Return ONLY valid JSON, no markdown fences or explanations
+- Maximum 10 files per app`;
+    }
+  }
+
   private reportProgress(progress: AgentProgress) {
     if (this.onProgress) {
       this.onProgress(progress);
@@ -96,6 +127,14 @@ Rules:
     if (isDatabaseAvailable()) {
       try {
         await saveProjectDB(project);
+        // Phase 8.6: Semantic Code Indexing
+        await codeSearch.indexProject(project.id, project.files);
+        if (this.userId) {
+          await memoryStore.remember(this.userId, project.prompt || "", project.integrations || [], {
+            description: project.description,
+            project_id: project.id
+          });
+        }
       } catch (e) {
         console.error("Failed to save to database, falling back to memory:", e);
         saveProject(project);
@@ -117,10 +156,11 @@ Rules:
 
     this.reportProgress({
       phase: "planning",
-      message: "Analyzing requirements and creating specification...",
+      message: "Analyzing requirements and recalling context...",
     });
 
-    const spec = await planSpec(prompt);
+    const context = this.userId ? await memoryStore.recallContext(this.userId, prompt) : [];
+    const spec = await planSpec(prompt, context);
     const description = spec.description;
     const integrations = spec.integrations;
 
@@ -141,7 +181,7 @@ Rules:
     for (let pass = 1; pass <= fixPasses; pass++) {
       this.reportProgress({
         phase: pass === 1 ? "testing" : "fixing",
-        message: pass === 1 ? "Running tests and validation..." : `Fixing issues (pass ${pass}/${fixPasses})...`,
+        message: pass === 1 ? "Running static tests and validation..." : `Fixing issues (pass ${pass}/${fixPasses})...`,
         pass,
         totalPasses: fixPasses,
       });
@@ -149,18 +189,11 @@ Rules:
       const testResult = await testFiles(files);
 
       if (testResult.success) {
-        this.reportProgress({
-          phase: "complete",
-          message: "All tests passed!",
-          pass,
-          totalPasses: fixPasses,
-        });
         break;
       }
 
       if (testResult.errors) {
         const errorText = testResult.errors.join("\n");
-        // Surgical fix: only send broken files, not the whole project
         const brokenPaths = testResult.errors
           .map(e => e.split(":")[0].trim())
           .filter(p => p.endsWith(".tsx") || p.endsWith(".ts"));
@@ -172,6 +205,23 @@ Rules:
       }
     }
 
+    // Phase 8.1: Sandbox Verification Pass
+    this.reportProgress({
+      phase: "testing",
+      message: "Verifying code in live sandbox environment...",
+    });
+
+    const sandboxResult = await codeSandbox.verifyProject(files);
+    if (!sandboxResult.success) {
+      this.reportProgress({
+        phase: "fixing",
+        message: "Sandbox found errors. Performing final surgical repair...",
+      });
+      const errors = [...sandboxResult.typeErrors, ...sandboxResult.runtimeErrors];
+      const brokenPaths = errors.map(e => e.split(":")[0].trim()).filter(p => !!p);
+      files = await fixBrokenFiles(files, brokenPaths.length > 0 ? brokenPaths : Object.keys(files), errors);
+    }
+
     const pathValidation = validateFilePaths(files);
     if (!pathValidation.success) {
       throw new AgentError(pathValidation.errors.join("; "));
@@ -181,6 +231,7 @@ Rules:
       id,
       files,
       description,
+      prompt,
       schema: spec.schema,
       integrations,
       timestamp: Date.now(),
@@ -244,6 +295,7 @@ Rules:
           id,
           files,
           description,
+          prompt,
           schema,
           integrations,
           timestamp: Date.now(),
@@ -331,6 +383,7 @@ Rules:
       id,
       files,
       description,
+      prompt,
       schema,
       integrations,
       timestamp: Date.now(),

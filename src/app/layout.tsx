@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import { headers } from "next/headers";
+import { whiteLabelManager } from "@/lib/white-label";
 import "./globals.css";
 
 const inter = Inter({
@@ -31,11 +33,15 @@ export const viewport: Viewport = {
   themeColor: "#0a0a0a",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const head = await headers();
+  const host = head.get("host") || "";
+  const brandConfig = await whiteLabelManager.resolveConfig(host);
+
   return (
     <html
       lang="en"
@@ -43,6 +49,13 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="bg-background text-foreground selection:bg-brand-500/30">
+        {brandConfig && (
+          <style dangerouslySetInnerHTML={{ __html: `
+            :root {
+              --brand-500: ${brandConfig.theme_config.primary_color || 'oklch(0.6 0.2 260)'};
+            }
+          `}} />
+        )}
         {children}
       </body>
     </html>
