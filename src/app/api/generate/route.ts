@@ -8,10 +8,11 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const requestSchema = z.object({
-  prompt: z.string().min(1, "Prompt is required").max(2000, "Prompt is too long"),
+  prompt: z.string().min(1, "Prompt is required").max(2000, "Prompt is too long").optional(),
+  imageUrl: z.string().optional(),
   stream: z.boolean().optional().default(false),
   multiFile: z.boolean().optional().default(false),
-  mode: z.enum(["web-component", "web-app", "mobile-app"]).optional().default("web-app"),
+  mode: z.enum(["web-component", "web-app", "mobile-app", "vision"]).optional().default("web-app"),
 });
 
 const SYSTEM_PROMPT =
@@ -33,15 +34,15 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
-  const { prompt, stream, multiFile, mode } = parsed.data;
+  const { prompt, imageUrl, stream, multiFile, mode } = parsed.data;
 
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    if (multiFile || mode === "mobile-app") {
+    if (multiFile || mode === "mobile-app" || mode === "vision") {
       const agent = new AppBuildAgent({ model: serverEnv.OPENROUTER_MODEL }, undefined, user?.id);
-      
+
       if (mode === "mobile-app") {
         agent.setMode("mobile-app");
       }
@@ -52,10 +53,10 @@ export async function POST(request: Request): Promise<Response> {
         const streamResult = new ReadableStream<Uint8Array>({
           async start(controller) {
             try {
-              const result = await agent.runWithStream(prompt, (delta) => {
+              const result = await agent.runWithStream(prompt || "", (delta) => {
                 const event = `data: ${JSON.stringify({ type: "chunk", delta })}\n\n`;
                 controller.enqueue(encoder.encode(event));
-              });
+              }, { imageUrl });
               const event = `data: ${JSON.stringify({ type: "result", result })}\n\n`;
               controller.enqueue(encoder.encode(event));
               controller.close();
@@ -77,9 +78,15 @@ export async function POST(request: Request): Promise<Response> {
         });
       }
 
-      const result = await agent.run(prompt);
+      if (mode === "vision" && imageUrl) {
+        const result = await agent.runVisual(imageUrl, prompt);
+        return Response.json(result);
+      }
+
+      const result = await agent.run(prompt || "");
       return Response.json(result);
     }
+
 
     // Single file generation
     if (stream) {

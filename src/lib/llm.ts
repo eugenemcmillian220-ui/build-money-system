@@ -4,10 +4,14 @@ import { MemoryContext } from "./memory-store";
 
 const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
 
-interface ChatMessage {
+export interface ChatMessage {
   role: "system" | "user" | "assistant";
-  content: string;
+  content: string | Array<MessageContent>;
 }
+
+export type MessageContent = 
+  | { type: "text"; text: string }
+  | { type: "image_url"; image_url: { url: string } };
 
 interface OpenRouterRequestBody {
   model: string;
@@ -59,7 +63,7 @@ export function parseMultiFileJson(content: string): { files: FileMap } {
   }
 }
 
-async function callLLM(
+export async function callLLM(
   messages: ChatMessage[],
   config: Partial<AgentConfig> = {}
 ): Promise<string> {

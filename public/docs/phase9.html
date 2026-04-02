@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phase 9 Documentation — AI App Builder Elite</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #16161f;
+    --border: rgba(255,255,255,0.08);
+    --accent: #f59e0b;
+    --accent2: #fbbf24;
+    --green: #22c55e;
+    --blue: #3b82f6;
+    --orange: #f59e0b;
+    --red: #ef4444;
+    --text: #f1f0ff;
+    --muted: #8b8aa0;
+    --code-bg: #0d0d14;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 15px;
+    line-height: 1.75;
+  }
+
+  /* Layout */
+  .layout { display: flex; min-height: 100vh; }
+  .sidebar {
+    width: 260px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 0 0 40px;
+  }
+  .sidebar-logo {
+    padding: 24px 20px 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 12px;
+  }
+  .logo-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 900; color: white;
+  }
+  .phase-tag {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+  .nav-section {
+    padding: 8px 20px 4px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-top: 8px;
+  }
+  .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 20px;
+    font-size: 13px;
+    color: var(--muted);
+    text-decoration: none;
+    border-radius: 0;
+    transition: all 0.15s;
+    border-left: 2px solid transparent;
+  }
+  .nav-link:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+  .nav-link.active { color: var(--accent); border-left-color: var(--accent); background: rgba(245,158,11,0.08); }
+  .nav-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+  }
+
+  .main { flex: 1; overflow-x: hidden; }
+  .content { max-width: 880px; padding: 60px 48px 100px; margin: 0 auto; }
+
+  /* Hero */
+  .hero {
+    background: linear-gradient(135deg, rgba(245,158,11,0.12) 0%, rgba(251,191,36,0.06) 100%);
+    border: 1px solid rgba(245,158,11,0.2);
+    border-radius: 20px;
+    padding: 48px;
+    margin-bottom: 60px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 240px; height: 240px;
+    background: radial-gradient(circle, rgba(245,158,11,0.15), transparent 70%);
+    border-radius: 50%;
+  }
+  .hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 12px;
+    background: rgba(245,158,11,0.15);
+    border: 1px solid rgba(245,158,11,0.3);
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .pulse { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .hero h1 { font-size: 40px; font-weight: 900; letter-spacing: -1.5px; line-height: 1.15; margin-bottom: 16px; }
+  .hero h1 span { background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .hero p { font-size: 17px; color: var(--muted); max-width: 560px; line-height: 1.7; }
+  .hero-stats {
+    display: flex; gap: 32px; margin-top: 32px;
+    flex-wrap: wrap;
+  }
+  .stat { text-align: left; }
+  .stat-val { font-size: 28px; font-weight: 900; letter-spacing: -1px; color: var(--accent); }
+  .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+
+  /* Sections */
+  .doc-section { margin-bottom: 72px; scroll-margin-top: 32px; }
+  .section-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .feature-number {
+    width: 40px; height: 40px; flex-shrink: 0;
+    background: rgba(245,158,11,0.12);
+    border: 1px solid rgba(245,158,11,0.25);
+    border-radius: 100px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 800; color: var(--accent);
+    margin-top: 2px;
+  }
+  .section-header h2 { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
+  .section-header p { font-size: 14px; color: var(--muted); margin-top: 6px; }
+
+  /* Cards */
+  .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 24px 0; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    transition: border-color 0.2s;
+  }
+  .card:hover { border-color: rgba(245,158,11,0.3); }
+  .card-icon { font-size: 20px; margin-bottom: 10px; }
+  .card h4 { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+  .card p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+  /* Code blocks */
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    overflow-x: auto;
+    margin: 20px 0;
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  code { font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace; }
+  p code, li code {
+    background: rgba(255,255,255,0.06);
+    padding: 2px 7px;
+    border-radius: 5px;
+    font-size: 12.5px;
+    color: #fcd34d;
+  }
+
+  /* Callouts */
+  .callout {
+    display: flex; gap: 14px;
+    padding: 16px 20px;
+    border-radius: 12px;
+    margin: 20px 0;
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+  .callout.info { background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.25); }
+  .callout.warn { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); }
+  .callout.success { background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.25); }
+  .callout-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+  /* Headings inside content */
+  h3 { font-size: 18px; font-weight: 700; margin: 28px 0 12px; letter-spacing: -0.3px; }
+  p { margin-bottom: 14px; color: #c8c7db; }
+  ul, ol { padding-left: 20px; margin: 12px 0 16px; }
+  li { margin-bottom: 6px; font-size: 14px; color: #c8c7db; }
+
+  /* TOC top bar */
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .topbar-title { font-size: 13px; font-weight: 600; color: var(--muted); }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .sidebar { display: none; }
+    .content { padding: 32px 20px 80px; }
+    .card-grid { grid-template-columns: 1fr; }
+    .hero { padding: 28px; }
+    .hero h1 { font-size: 28px; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- Sidebar Navigation -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-badge">
+        <div class="logo-icon">E</div>
+        Enterprise
+      </div>
+      <div class="phase-tag">Phase 9 Docs</div>
+    </div>
+
+    <div class="nav-section">Overview</div>
+    <a href="#intro" class="nav-link active"><span class="nav-dot"></span> Introduction</a>
+    <a href="#vision" class="nav-link"><span class="nav-dot"></span> 1. Vision-to-Code</a>
+    <a href="#compliance" class="nav-link"><span class="nav-dot"></span> 2. Compliance Vault</a>
+    <a href="#pii" class="nav-link"><span class="nav-dot"></span> 3. PII Scanning</a>
+    <a href="#sre" class="nav-link"><span class="nav-dot"></span> 4. Autonomous SRE</a>
+
+  </aside>
+
+  <div class="main">
+    <!-- Top Bar -->
+    <div class="topbar">
+      <span class="topbar-title">AI App Builder — Phase 9 Technical Documentation</span>
+    </div>
+
+    <div class="content">
+
+      <!-- Hero -->
+      <section id="intro" class="doc-section">
+        <div class="hero">
+          <div class="hero-eyebrow"><span class="pulse"></span> Phase 9 Release</div>
+          <h1>Autonomous <span>Enterprise</span></h1>
+          <p>Phase 9 transforms the AI App Builder into an <strong>Autonomous Engineering & Growth Organization (AEGO)</strong>. It brings vision-based generation, automated compliance, and self-healing infrastructure to the platform.</p>
+          <div class="hero-stats">
+            <div class="stat"><div class="stat-val">9</div><div class="stat-label">Core Systems</div></div>
+            <div class="stat"><div class="stat-val">Vision</div><div class="stat-label">New Generation</div></div>
+            <div class="stat"><div class="stat-val">SOC2</div><div class="stat-label">Compliance Ready</div></div>
+          </div>
+        </div>
+
+        <h3>The Outcome-Driven Era</h3>
+        <p>While Phase 8 built the OS, Phase 9 builds the <strong>Organization</strong>. The AI now understands visual designs, ensures data privacy, and manages its own production health.</p>
+      </section>
+
+      <!-- Vision-to-Code -->
+      <section id="vision" class="doc-section">
+        <div class="section-header">
+          <div class="feature-number">1</div>
+          <div>
+            <h2>Vision-to-Code Bridge</h2>
+            <p>Generate full-stack applications directly from screenshots, Figma designs, or UI mockups.</p>
+          </div>
+        </div>
+
+        <div class="card-grid">
+          <div class="card">
+            <div class="card-icon">📸</div>
+            <h4>Visual Context Parsing</h4>
+            <p>Using GPT-4o Vision, the system extracts colors, typography, layout hierarchies, and brand identity from any image.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">🏗️</div>
+            <h4>Design-to-Spec</h4>
+            <p>Converts visual elements into structured Next.js 15 specifications (MDX + Tailwind CSS v4) automatically.</p>
+          </div>
+        </div>
+
+        <h3>Implementation: <code>src/lib/vision.ts</code></h3>
+        <pre><code><span style="color: #67e8f9;">export async function</span> <span style="color: #93c5fd;">processVisualContext</span>(imageUrl: string, prompt?: string) {
+  <span style="color: #4b5563;">// Call GPT-4o with image content</span>
+  <span style="color: #67e8f9;">const</span> messages = [
+    { role: <span style="color: #86efac;">"system"</span>, content: systemPrompt },
+    { role: <span style="color: #86efac;">"user"</span>, content: [
+      { type: <span style="color: #86efac;">"text"</span>, text: prompt },
+      { type: <span style="color: #86efac;">"image_url"</span>, image_url: { url: imageUrl } }
+    ]}
+  ];
+  <span style="color: #4b5563;">// Return AppSpec for build pipeline</span>
+}</code></pre>
+      </section>
+
+      <!-- Compliance Vault -->
+      <section id="compliance" class="doc-section">
+        <div class="section-header">
+          <div class="feature-number">2</div>
+          <div>
+            <h2>Compliance Vault (SOC2/GDPR)</h2>
+            <p>Automated auditing and evidence collection for enterprise-grade SaaS compliance.</p>
+          </div>
+        </div>
+
+        <div class="card-grid">
+          <div class="card">
+            <div class="card-icon">🛡️</div>
+            <h4>Continuous Auditing</h4>
+            <p>The system audits every project for encryption, access controls (RLS), and audit logging patterns.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">📜</div>
+            <h4>Regulatory Readiness</h4>
+            <p>Automated checks for GDPR (Privacy Policy, Data Deletion) and SOC2 (Evidence Mapping).</p>
+          </div>
+        </div>
+
+        <h3>Endpoint: <code>POST /api/compliance</code></h3>
+        <p>Trigger a full compliance report for any generated project. Returns a score and specific gaps to fix.</p>
+      </section>
+
+      <!-- PII Scanning -->
+      <section id="pii" class="doc-section">
+        <div class="section-header">
+          <div class="feature-number">3</div>
+          <div>
+            <h2>PII Scanning & Redaction</h2>
+            <p>Automatic detection of sensitive information (Emails, SSNs, Credit Cards) in the generation pipeline.</p>
+          </div>
+        </div>
+
+        <div class="callout info">
+          <span class="callout-icon">ℹ</span>
+          <div>PII scanning is enabled by default in Phase 9. It protects both the user prompt and the generated code from containing sensitive data.</div>
+        </div>
+
+        <h3>Security Layer Integration</h3>
+        <pre><code><span style="color: #4b5563;">// src/lib/security.ts</span>
+<span style="color: #67e8f9;">public</span> <span style="color: #93c5fd;">checkPII</span>(content: string) {
+  <span style="color: #67e8f9;">if</span> (PII_PATTERNS.email.<span style="color: #93c5fd;">test</span>(content)) {
+    <span style="color: #67e8f9;">throw new</span> <span style="color: #fcd34d;">SecurityError</span>(<span style="color: #86efac;">"Sensitive info detected"</span>);
+  }
+}</code></pre>
+      </section>
+
+      <!-- Autonomous SRE -->
+      <section id="sre" class="doc-section">
+        <div class="section-header">
+          <div class="feature-number">4</div>
+          <div>
+            <h2>Autonomous SRE (Self-Healing)</h2>
+            <p>Real-time monitoring and autonomous remediation of production infrastructure.</p>
+          </div>
+        </div>
+
+        <p>Phase 9 introduces the <strong>SRE Agent</strong> that runs on the <code>/api/cron/monitor</code> loop. When health checks fail or errors spikes occur, the agent:</p>
+        <ul>
+          <li><strong>Diagnoses:</strong> Pulls Vercel logs and stack traces.</li>
+          <li><strong>Repairs:</strong> Triggers a surgical fix pass in the E2B Sandbox.</li>
+          <li><strong>Deploys:</strong> Opens a GitHub PR and deploys a patched preview for verification.</li>
+        </ul>
+      </section>
+
+    </div>
+  </div>
+</div>
+</body>
+</html>

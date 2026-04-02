@@ -8,6 +8,7 @@ import {
   validateFilePaths,
   AgentPhase,
   DeploymentInfo,
+  AppSpec,
 } from "./types";
 import { planSpec, buildFromSpec, fixFiles, fixBrokenFiles, testFiles, streamLLM, cleanJson } from "./llm";
 import { postProcessFiles } from "./processor";
@@ -24,6 +25,8 @@ import { memoryStore } from "./memory-store";
 import { codeSearch } from "./code-search";
 import { createVercelDeploy, isVercelAvailable } from "./deploy";
 import { exportToGitHub as exportToGitHubRepo, isGitHubAvailable } from "./github";
+import { processVisualContext } from "./vision";
+import { security } from "./security";
 
 export { isDatabaseAvailable, isVercelAvailable, isGitHubAvailable };
 
@@ -149,18 +152,26 @@ Rules:
    */
   async runAdvanced(
     prompt: string,
-    options: { fixPasses?: number } = {}
+    options: { fixPasses?: number; initialSpec?: AppSpec } = {}
   ): Promise<GenerationResult> {
-    const { fixPasses = 2 } = options;
+    const { fixPasses = 2, initialSpec } = options;
     const id = crypto.randomUUID();
 
-    this.reportProgress({
-      phase: "planning",
-      message: "Analyzing requirements and recalling context...",
-    });
+    // Sanitize and check PII
+    const sanitizedPrompt = security.sanitizeInput(prompt);
+    security.checkPII(sanitizedPrompt);
 
-    const context = this.userId ? await memoryStore.recallContext(this.userId, prompt) : [];
-    const spec = await planSpec(prompt, context);
+    let spec: AppSpec | null = initialSpec ?? null;
+    if (!spec) {
+      this.reportProgress({
+        phase: "planning",
+        message: "Analyzing requirements and recalling context...",
+      });
+
+      const context = this.userId ? await memoryStore.recallContext(this.userId, prompt) : [];
+      spec = await planSpec(prompt, context);
+    }
+    
     const description = spec.description;
     const integrations = spec.integrations;
 
@@ -245,6 +256,27 @@ Rules:
     });
 
     return result;
+  }
+
+  /**
+   * Visual generation: analyze image → plan → build → test → fix
+   */
+  async runVisual(
+    imageUrl: string,
+    prompt?: string,
+    options: { fixPasses?: number } = {}
+  ): Promise<GenerationResult> {
+    this.reportProgress({
+      phase: "vision",
+      message: "Analyzing UI design and architectural patterns...",
+    });
+
+    const visionResult = await processVisualContext(imageUrl, prompt);
+
+    return this.runAdvanced(prompt || visionResult.description, {
+      ...options,
+      initialSpec: visionResult.spec,
+    });
   }
 
   /**
@@ -334,9 +366,63 @@ Rules:
   async runWithStream(
     prompt: string,
     onChunk: (delta: string) => void,
+    options: { imageUrl?: string } = {}
   ): Promise<GenerationResult> {
-    const fullPrompt = `${this.systemPrompt}\n\nUser request: ${prompt}\n\nGenerate a complete multi-file Next.js app now:`;
-    const messages = [{ role: "user" as const, content: fullPrompt }];
+    const { imageUrl } = options;
+    let spec: AppSpec | null = null;
+    let finalPrompt = prompt;
+
+    if (imageUrl) {
+      this.reportProgress({
+        phase: "vision",
+        message: "Analyzing UI design and architectural patterns...",
+      });
+      const visionResult = await processVisualContext(imageUrl, prompt);
+      spec = visionResult.spec;
+      finalPrompt = prompt || visionResult.description;
+    }
+
+    if (!spec) {
+      this.reportProgress({
+        phase: "planning",
+        message: "Analyzing requirements and recalling context...",
+      });
+      const context = this.userId ? await memoryStore.recallContext(this.userId, prompt) : [];
+      spec = await planSpec(finalPrompt, context);
+    }
+
+    const description = spec.description;
+    const integrations = spec.integrations;
+
+    this.reportProgress({
+      phase: "building",
+      message: `Building ${spec.pages.length} pages and ${spec.components.length} components...`,
+    });
+
+    const systemPrompt = `You are an expert React/Next.js developer. Generate complete, production-ready code based on the app specification.
+
+Return a JSON object with this structure:
+{
+  "files": {
+    "app/page.tsx": "complete code here",
+    "components/Hero.tsx": "complete code here"
+  }
+}
+
+Rules:
+- Use Next.js 15 with App Router and React 19 patterns
+- Use Tailwind CSS for all styling (already configured)
+- Include 'use client' directive for interactive components
+- Use TypeScript with proper types
+- Make components fully functional and complete
+- Return ONLY valid JSON, no markdown fences
+- File paths must start with app/, components/, or lib/`;
+
+    const specJson = JSON.stringify(spec, null, 2);
+    const messages = [
+      { role: "system" as const, content: systemPrompt },
+      { role: "user" as const, content: `App Specification:\n${specJson}\n\nGenerate all files:` }
+    ];
 
     const chunks: string[] = [];
     for await (const delta of streamLLM(messages, this.config)) {
@@ -347,35 +433,26 @@ Rules:
     const rawContent = chunks.join("");
     const cleaned = cleanJson(rawContent);
 
-    let parsed: unknown;
+    let parsed: { files: Record<string, string> };
     try {
       parsed = JSON.parse(cleaned);
     } catch (e) {
       throw new AgentError(`Failed to parse AI response: ${e instanceof Error ? e.message : String(e)}`);
     }
 
-    // Use llmResponseSchema to validate LLM output (without timestamp)
-    const validation = llmResponseSchema.safeParse(parsed);
-    if (!validation.success) {
-      throw new AgentError(
-        `Invalid response format: ${validation.error.message}`,
-      );
-    }
-
-    const { description, schema, integrations } = validation.data;
-    let files = validation.data.files;
-
+    let files = parsed.files;
     const pathValidation = validateFilePaths(files);
     if (!pathValidation.success) {
       throw new AgentError(pathValidation.errors.join("; "));
     }
 
-    files = postProcessFiles(files, { description, schema, integrations });
+    files = postProcessFiles(files, { description, schema: spec.schema, integrations });
 
+    // Perform one fix pass automatically
     try {
       files = await fixFiles(files);
     } catch (e) {
-      console.error("Debug pass failed, using original files", e);
+      console.error("Debug pass failed", e);
     }
 
     const id = crypto.randomUUID();
@@ -383,8 +460,8 @@ Rules:
       id,
       files,
       description,
-      prompt,
-      schema,
+      prompt: finalPrompt,
+      schema: spec.schema,
       integrations,
       timestamp: Date.now(),
     };

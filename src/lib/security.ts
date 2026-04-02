@@ -14,12 +14,20 @@ export interface SecurityConfig {
   enableRateLimiting: boolean;
   maxRequestsPerMinute: number;
   blockedKeywords: string[];
+  enablePIIScanning: boolean;
 }
+
+const PII_PATTERNS = {
+  email: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
+  ssn: /\b\d{3}-\d{2}-\d{4}\b/g,
+  creditCard: /\b(?:\d[ -]*?){13,16}\b/g,
+};
 
 const defaultConfig: SecurityConfig = {
   enableRateLimiting: true,
   maxRequestsPerMinute: 60,
   blockedKeywords: ['system-prompt-leak', 'exec(', 'eval(', 'process.env'],
+  enablePIIScanning: true,
 };
 
 export class SecurityLayer {
@@ -65,6 +73,20 @@ export class SecurityLayer {
     }
 
     return sanitized;
+  }
+
+  /**
+   * Scans content for PII and blocks it if scanning is enabled
+   * @param content The content to scan
+   */
+  public checkPII(content: string): void {
+    if (!this.config.enablePIIScanning) return;
+
+    for (const [type, pattern] of Object.entries(PII_PATTERNS)) {
+      if (pattern.test(content)) {
+        throw new SecurityError(`Input contains sensitive information: ${type}`, 'PII_DETECTED');
+      }
+    }
   }
 
   /**

@@ -91,9 +91,11 @@ function tryExtractFiles(jsonBuffer: string): FileMap {
 export function GeneratorForm() {
   const [prompt, setPrompt] = useState("");
   const [state, setState] = useState<GenerationState>({ status: "idle" });
-  const [mode, setMode] = useState<"web-component" | "web-app" | "mobile-app">("web-app");
+  const [mode, setMode] = useState<"web-component" | "web-app" | "mobile-app" | "vision">("web-app");
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const abortRef = useRef<AbortController | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const isWorking = state.status === "loading" || state.status === "streaming" || isPending;
@@ -113,9 +115,21 @@ export function GeneratorForm() {
     }
   }
 
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setImageUrl(event.target?.result as string);
+      setMode("vision");
+    };
+    reader.readAsDataURL(file);
+  }
+
   async function handleGenerate() {
     const trimmed = prompt.trim();
-    if (!trimmed || isWorking) return;
+    if ((!trimmed && !imageUrl) || isWorking) return;
 
     abortRef.current?.abort();
     const controller = new AbortController();
@@ -130,6 +144,7 @@ export function GeneratorForm() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             prompt: trimmed,
+            imageUrl: mode === "vision" ? imageUrl : undefined,
             stream: true,
             multiFile: mode !== "web-component",
             mode: mode,
@@ -235,11 +250,12 @@ export function GeneratorForm() {
           {[
             { id: "web-component", label: "Single Unit" },
             { id: "web-app", label: "Web Suite" },
-            { id: "mobile-app", label: "Mobile App" }
+            { id: "mobile-app", label: "Mobile App" },
+            { id: "vision", label: "Vision-to-Code" }
           ].map((m) => (
             <button
               key={m.id}
-              onClick={() => setMode(m.id as "web-component" | "web-app" | "mobile-app")}
+              onClick={() => setMode(m.id as "web-component" | "web-app" | "mobile-app" | "vision")}
               className={`rounded-xl px-4 py-2.5 text-xs font-bold tracking-tight transition-all ${
                 mode === m.id
                   ? "bg-brand-500 text-white shadow-lg shadow-brand-500/30"
@@ -251,13 +267,50 @@ export function GeneratorForm() {
           ))}
         </div>
         <span className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">
-          {mode === "mobile-app" 
-            ? "Elite Expo/React Native Pipeline" 
-            : mode === "web-app" 
-            ? "Elite Full-Stack Pipeline Active" 
+          {mode === "vision"
+            ? "Autonomous Vision-to-Code Pipeline"
+            : mode === "mobile-app"
+            ? "Elite Expo/React Native Pipeline"
+            : mode === "web-app"
+            ? "Elite Full-Stack Pipeline Active"
             : "Precision Component Generation Active"}
         </span>
       </div>
+
+      {/* Vision Upload Area */}
+      {mode === "vision" && (
+        <div className="flex flex-col items-center gap-4">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            accept="image/*"
+            className="hidden"
+          />
+          {!imageUrl ? (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex h-48 w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-white/10 bg-white/5 transition-all hover:border-brand-500/50 hover:bg-white/10"
+            >
+              <span className="text-3xl mb-2">📸</span>
+              <span className="text-sm font-bold text-muted-foreground">Upload Screenshot or Design</span>
+            </button>
+          ) : (
+            <div className="group relative h-48 w-full overflow-hidden rounded-2xl border border-white/10">
+              <img src={imageUrl} alt="Design reference" className="h-full w-full object-cover" />
+              <div className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 transition-opacity group-hover:opacity-100">
+                <button
+                  onClick={() => setImageUrl(null)}
+                  className="rounded-lg bg-red-500 px-4 py-2 text-xs font-bold text-white"
+                >
+                  REMOVE IMAGE
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
 
       {/* Input Area */}
       <div className="group relative">

@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export type FileMap = Record<string, string>;
 
-export type AgentPhase = 'planning' | 'building' | 'testing' | 'fixing' | 'complete';
+export type AgentPhase = 'planning' | 'vision' | 'building' | 'testing' | 'fixing' | 'complete';
 
 export type DeploymentStatus = 'pending' | 'building' | 'ready' | 'error' | 'cancelled';
 
@@ -129,6 +129,7 @@ export interface AgentConfig {
   model: string;
   temperature: number;
   maxTokens: number;
+  enablePIIScanning: boolean;
 }
 
 export const defaultAgentConfig: AgentConfig = {
@@ -137,6 +138,7 @@ export const defaultAgentConfig: AgentConfig = {
   model: "openai/gpt-4o-mini",
   temperature: 0.7,
   maxTokens: 16384,
+  enablePIIScanning: true,
 };
 
 export function detectFileType(filename: string): FileType {
