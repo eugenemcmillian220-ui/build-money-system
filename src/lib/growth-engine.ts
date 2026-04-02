@@ -1,107 +1,123 @@
 /**
- * Growth Engine Module for Phase 6 - Autonomous AI Company Builder
- * Generates growth strategies, channel recommendations, and reach estimates
+ * Growth Engine Module - Phase 6 Upgrade
+ * Real LLM-powered growth strategy generation (replaces hardcoded channel lists)
  */
+
+import { generateText } from "./openrouter";
 
 export interface Channel {
   name: string;
-  type: 'organic' | 'paid' | 'viral' | 'partnership';
-  estimatedReach: string;
-  costLevel: 'free' | 'low' | 'medium' | 'high';
-  timeToResult: string;
+  type: "organic" | "paid" | "partnership" | "product-led";
+  estimatedCAC: string;
+  timeToFirstResult: string;
+  effort: "low" | "medium" | "high";
+  tactics: string[];
 }
 
 export interface GrowthStrategy {
   idea: string;
   channels: Channel[];
-  strategy: string;
-  estimatedReach: string;
-  estimatedReachNumber: number;
-  tactics: string[];
-  kpis: string[];
-  timeline: string;
-  timestamp: string;
+  contentCalendar: ContentItem[];
+  viralMechanics: string[];
+  milestones: Milestone[];
+  partnerships: string[];
+  generatedAt: string;
 }
 
-const CHANNEL_LIBRARY: Channel[] = [
-  { name: 'TikTok', type: 'viral', estimatedReach: '10k-1M', costLevel: 'free', timeToResult: '2-4 weeks' },
-  { name: 'YouTube', type: 'organic', estimatedReach: '1k-100k', costLevel: 'free', timeToResult: '1-3 months' },
-  { name: 'SEO / Content', type: 'organic', estimatedReach: '5k-500k', costLevel: 'low', timeToResult: '3-6 months' },
-  { name: 'Product Hunt', type: 'viral', estimatedReach: '1k-20k', costLevel: 'free', timeToResult: '1-3 days' },
-  { name: 'Twitter/X', type: 'viral', estimatedReach: '500-50k', costLevel: 'free', timeToResult: '1-2 weeks' },
-  { name: 'LinkedIn', type: 'organic', estimatedReach: '500-10k', costLevel: 'free', timeToResult: '2-4 weeks' },
-  { name: 'Google Ads', type: 'paid', estimatedReach: '10k-500k', costLevel: 'high', timeToResult: '1-7 days' },
-  { name: 'Affiliate Program', type: 'partnership', estimatedReach: '1k-100k', costLevel: 'low', timeToResult: '1-3 months' },
-  { name: 'API / Developer Community', type: 'organic', estimatedReach: '500-20k', costLevel: 'free', timeToResult: '1-2 months' },
-];
-
-const B2B_CHANNELS = ['LinkedIn', 'SEO / Content', 'Google Ads', 'Affiliate Program'];
-const B2C_CHANNELS = ['TikTok', 'YouTube', 'Twitter/X', 'Product Hunt'];
-const DEVELOPER_CHANNELS = ['API / Developer Community', 'Twitter/X', 'Product Hunt', 'SEO / Content'];
-
-function selectChannels(idea: string): Channel[] {
-  const lower = idea.toLowerCase();
-  let channelNames: string[] = [];
-
-  if (lower.includes('developer') || lower.includes('api') || lower.includes('engineer')) {
-    channelNames = DEVELOPER_CHANNELS;
-  } else if (lower.includes('business') || lower.includes('enterprise') || lower.includes('b2b')) {
-    channelNames = B2B_CHANNELS;
-  } else {
-    channelNames = B2C_CHANNELS;
-  }
-
-  return CHANNEL_LIBRARY.filter(c => channelNames.includes(c.name));
+export interface ContentItem {
+  week: number;
+  platform: string;
+  type: string;
+  topic: string;
 }
 
-function buildTactics(idea: string): string[] {
-  const lower = idea.toLowerCase();
-  const tactics = [
-    'Launch on Product Hunt with a compelling story',
-    'Create short-form video demos showing core value',
-    'Publish weekly SEO content targeting problem keywords',
-  ];
-
-  if (lower.includes('ai')) tactics.push('Showcase AI capabilities with live demos and case studies');
-  if (lower.includes('api')) tactics.push('Publish open-source tools and SDKs to attract developers');
-  if (lower.includes('saas') || lower.includes('platform')) {
-    tactics.push('Implement a referral program with mutual incentives');
-  }
-
-  return tactics;
+export interface Milestone {
+  day: number;
+  goal: string;
+  metric: string;
+  target: string;
 }
 
 export class GrowthEngine {
-  launchGrowth(idea: string): GrowthStrategy {
-    const channels = selectChannels(idea);
-    const tactics = buildTactics(idea);
-    const reach = this.estimateReach(channels);
+  async launchGrowth(idea: string): Promise<GrowthStrategy> {
+    const prompt = `You are a Head of Growth at a top-tier B2B SaaS company. Create a comprehensive 90-day growth strategy for this product idea.
 
+Product Idea: "${idea}"
+
+Return ONLY a JSON object (no markdown):
+{
+  "channels": [
+    {
+      "name": "<channel name>",
+      "type": "<organic|paid|partnership|product-led>",
+      "estimatedCAC": "<e.g. $45>",
+      "timeToFirstResult": "<e.g. 2-4 weeks>",
+      "effort": "<low|medium|high>",
+      "tactics": ["<specific tactic 1>", "<specific tactic 2>", "<specific tactic 3>"]
+    }
+  ],
+  "contentCalendar": [
+    { "week": 1, "platform": "<LinkedIn|Twitter|HackerNews|Reddit>", "type": "<post|thread|article>", "topic": "<specific topic>" }
+  ],
+  "viralMechanics": ["<built-in viral mechanic 1>", "<viral mechanic 2>"],
+  "milestones": [
+    { "day": 30, "goal": "<specific goal>", "metric": "<metric name>", "target": "<target value>" },
+    { "day": 60, "goal": "<specific goal>", "metric": "<metric name>", "target": "<target value>" },
+    { "day": 90, "goal": "<specific goal>", "metric": "<metric name>", "target": "<target value>" }
+  ],
+  "partnerships": ["<specific partnership opportunity 1>", "<specific partnership 2>", "<specific partnership 3>"]
+}
+
+Include 3-5 channels, 8 content calendar items (week 1-4, 2 per week), 3 viral mechanics, 3 milestones, 3 partnerships.`;
+
+    try {
+      const response = await generateText(prompt);
+      const cleaned = response.replace(/^```json\n?/g, "").replace(/\n?```$/g, "").trim();
+      const parsed = JSON.parse(cleaned) as Omit<GrowthStrategy, "idea" | "generatedAt">;
+      return { idea, ...parsed, generatedAt: new Date().toISOString() };
+    } catch {
+      return this.fallbackStrategy(idea);
+    }
+  }
+
+  async generateGrowthStrategy(idea: string): Promise<GrowthStrategy> {
+    return this.launchGrowth(idea);
+  }
+
+  private fallbackStrategy(idea: string): GrowthStrategy {
     return {
       idea,
-      channels,
-      strategy: 'Short-form viral content + SEO-driven organic growth + community building',
-      estimatedReach: `${(reach / 1000).toFixed(0)}k users in 90 days`,
-      estimatedReachNumber: reach,
-      tactics,
-      kpis: ['Monthly Active Users', 'Conversion Rate', 'Customer Acquisition Cost', 'Churn Rate', 'NPS'],
-      timeline: '30-90 days to first 1,000 users',
-      timestamp: new Date().toISOString(),
+      channels: [
+        {
+          name: "Content Marketing (SEO)",
+          type: "organic",
+          estimatedCAC: "$20-50",
+          timeToFirstResult: "6-8 weeks",
+          effort: "medium",
+          tactics: ["Weekly blog posts targeting long-tail keywords", "SEO-optimized landing pages", "Developer tutorials"],
+        },
+        {
+          name: "Product Hunt Launch",
+          type: "product-led",
+          estimatedCAC: "$5-15",
+          timeToFirstResult: "1 day",
+          effort: "medium",
+          tactics: ["Build launch anticipation with teaser posts", "Prepare hunter outreach", "Day-of community engagement"],
+        },
+      ],
+      contentCalendar: [
+        { week: 1, platform: "LinkedIn", type: "post", topic: "Problem we are solving" },
+        { week: 1, platform: "Twitter", type: "thread", topic: "Behind the build" },
+      ],
+      viralMechanics: ["Shareable output artifacts", "Team invite system", "Public project gallery"],
+      milestones: [
+        { day: 30, goal: "First 100 signups", metric: "registered_users", target: "100" },
+        { day: 60, goal: "First 10 paying customers", metric: "mrr", target: "$500" },
+        { day: 90, goal: "Product-market fit signal", metric: "nps", target: "40+" },
+      ],
+      partnerships: ["Vercel ecosystem", "Supabase community", "Y Combinator Startup School"],
+      generatedAt: new Date().toISOString(),
     };
-  }
-
-  identifyChannels(idea: string): Channel[] {
-    return selectChannels(idea);
-  }
-
-  estimateReach(channels: Channel[]): number {
-    const estimates: Record<string, number> = {
-      viral: 50000,
-      organic: 20000,
-      paid: 100000,
-      partnership: 15000,
-    };
-    return channels.reduce((sum, c) => sum + (estimates[c.type] ?? 10000), 0);
   }
 }
 

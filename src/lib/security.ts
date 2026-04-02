@@ -68,28 +68,40 @@ export class SecurityLayer {
   }
 
   /**
-   * Simple rate limiting simulation
-   * @param identifier User ID or IP address
-   * @throws SecurityError if rate limit is exceeded
+   * Sliding-window rate limit using request headers as identifier.
+   * Uses in-process Map as best-effort limiter (upgrade to Upstash Redis for production multi-instance).
+   * Cleans up stale entries to prevent memory growth.
    */
   public checkRateLimit(identifier: string): void {
     if (!this.config.enableRateLimiting) return;
 
     const now = Date.now();
-    const windowMs = 60000; // 1 minute
-    const userStats = this.requestCounts.get(identifier) || { count: 0, lastReset: now };
+    const windowMs = 60_000; // 1 minute sliding window
 
-    if (now - userStats.lastReset > windowMs) {
-      userStats.count = 1;
-      userStats.lastReset = now;
-    } else {
-      userStats.count++;
+    // Clean up entries older than the window to prevent memory growth
+    for (const [key, stats] of this.requestCounts.entries()) {
+      if (now - stats.lastReset > windowMs * 2) {
+        this.requestCounts.delete(key);
+      }
     }
 
-    this.requestCounts.set(identifier, userStats);
+    const stats = this.requestCounts.get(identifier) ?? { count: 0, lastReset: now };
 
-    if (userStats.count > this.config.maxRequestsPerMinute) {
-      throw new SecurityError('Rate limit exceeded', 'RATE_LIMIT_EXCEEDED');
+    if (now - stats.lastReset > windowMs) {
+      // Window expired — reset
+      this.requestCounts.set(identifier, { count: 1, lastReset: now });
+      return;
+    }
+
+    stats.count++;
+    this.requestCounts.set(identifier, stats);
+
+    if (stats.count > this.config.maxRequestsPerMinute) {
+      const retryAfterSeconds = Math.ceil((windowMs - (now - stats.lastReset)) / 1000);
+      throw new SecurityError(
+        `Rate limit exceeded. Try again in ${retryAfterSeconds}s.`,
+        "RATE_LIMIT_EXCEEDED"
+      );
     }
   }
 

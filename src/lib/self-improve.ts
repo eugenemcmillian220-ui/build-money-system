@@ -1,10 +1,10 @@
 import { FeedbackLoop, feedbackLoop } from "./feedback-loop";
 import { LearningStore, learningStore } from "./learning-store";
-import { AppBuildAgent } from "./agent";
+import { generateText } from "./openrouter";
 
 /**
- * Self-Improvement Engine for AI App Builder
- * Analyzes user feedback and learning data to automatically improve the AI model's performance
+ * Self-Improvement Engine - Phase 5 Upgrade
+ * Uses LLM to analyze feedback patterns and generate real improvement recommendations
  */
 
 export interface ImprovementResult {
@@ -12,33 +12,29 @@ export interface ImprovementResult {
   changesApplied: number;
   newKnowledgeBase: string[];
   recommendations: string[];
+  promptImprovements?: string[];
+  systemAnalysis?: string;
 }
 
 export class SelfImprovementEngine {
-  private agent: AppBuildAgent;
   private feedbackLoop: FeedbackLoop;
   private learningStore: LearningStore;
 
   constructor() {
-    this.agent = new AppBuildAgent();
     this.feedbackLoop = feedbackLoop;
     this.learningStore = learningStore;
   }
 
-  /**
-   * Run the self-improvement process
-   * @returns ImprovementResult
-   */
   public async runSelfImprovement(): Promise<ImprovementResult> {
-    const feedback = this.feedbackLoop.getAllFeedback().filter(f => !f.isAnalyzed);
+    const feedback = this.feedbackLoop.getAllFeedback().filter((f) => !f.isAnalyzed);
     const pendingLearning = this.learningStore.getPendingLearningData();
-    
+
     if (feedback.length === 0 && pendingLearning.length === 0) {
       return {
         improved: false,
         changesApplied: 0,
         newKnowledgeBase: [],
-        recommendations: ["No new data available for improvement."]
+        recommendations: ["No new data available for improvement."],
       };
     }
 
@@ -46,64 +42,93 @@ export class SelfImprovementEngine {
       improved: true,
       changesApplied: 0,
       newKnowledgeBase: [],
-      recommendations: []
+      recommendations: [],
+      promptImprovements: [],
     };
 
-    // 1. Analyze Feedback to extract learning patterns
+    // 1. Analyze feedback and build learning entries
     for (const f of feedback) {
       if (f.rating <= 2) {
-        // High impact issue detected
         await this.learningStore.addLearningData({
-          source: 'feedback',
-          type: 'error-fix',
-          content: `User feedback: ${f.comment}. Rating: ${f.rating}/5. Category: ${f.category}`,
-          impact: 'high'
+          source: "feedback",
+          type: "error-fix",
+          content: `Low rating (${f.rating}/5) on ${f.category}: ${f.comment ?? "no comment"}`,
+          impact: "high",
         });
-        result.recommendations.push(`Urgent fix for ${f.category} issues suggested by feedback.`);
       } else if (f.rating >= 4) {
-        // Positive feedback, learn from it
         await this.learningStore.addLearningData({
-          source: 'feedback',
-          type: 'pattern',
-          content: `User liked: ${f.comment}. Rating: ${f.rating}/5. Category: ${f.category}`,
-          impact: 'medium'
+          source: "feedback",
+          type: "pattern",
+          content: `High rating (${f.rating}/5) on ${f.category}: ${f.comment ?? "no comment"}`,
+          impact: "medium",
         });
-        result.recommendations.push(`New pattern learned for ${f.category} from positive feedback.`);
       }
       this.feedbackLoop.markAsAnalyzed(f.id);
       result.changesApplied++;
     }
 
-    // 2. Process all pending learning data
+    // 2. Process pending learning data
     const allPending = this.learningStore.getPendingLearningData();
     for (const data of allPending) {
-      // Simulate applying changes to the knowledge base
-      result.newKnowledgeBase.push(`Applied learning from ${data.source}: ${data.type}`);
+      result.newKnowledgeBase.push(`[${data.source}/${data.type}] ${data.content.slice(0, 80)}`);
       this.learningStore.markAsApplied(data.id);
       result.changesApplied++;
     }
 
-    // 3. Generate summary recommendation from AI
-    // In a real system, we'd use the AI agent to analyze this data:
-    // const analysisPrompt = `...`;
-    
-    // For now, we simulate a recommendation
-    result.recommendations.push(`System optimized based on ${result.changesApplied} new data points.`);
+    // 3. Use LLM to synthesize actionable improvements
+    if (result.changesApplied > 0) {
+      try {
+        const analysisPrompt = `You are an AI system optimizer. Analyze this feedback data from an AI code generation platform and provide specific, actionable improvements.
+
+Feedback Summary:
+${feedback
+  .map(
+    (f) =>
+      `- Rating: ${f.rating}/5 | Category: ${f.category} | Comment: "${f.comment ?? "none"}"`
+  )
+  .join("\n")}
+
+Learning Data Applied:
+${result.newKnowledgeBase.join("\n")}
+
+Return JSON:
+{
+  "systemAnalysis": "<2-3 sentence diagnosis of the main quality issues>",
+  "recommendations": ["<specific action 1>", "<specific action 2>", "<specific action 3>"],
+  "promptImprovements": [
+    "<specific prompt engineering improvement to make code generation better>",
+    "<another prompt improvement>"
+  ]
+}`;
+
+        const aiAnalysis = await generateText(analysisPrompt);
+        const cleaned = aiAnalysis.replace(/^```json\n?/g, "").replace(/\n?```$/g, "").trim();
+        const parsed = JSON.parse(cleaned) as {
+          systemAnalysis: string;
+          recommendations: string[];
+          promptImprovements: string[];
+        };
+
+        result.systemAnalysis = parsed.systemAnalysis;
+        result.recommendations = parsed.recommendations;
+        result.promptImprovements = parsed.promptImprovements;
+      } catch {
+        result.recommendations.push(
+          `System processed ${result.changesApplied} data points. AI analysis temporarily unavailable.`
+        );
+      }
+    }
 
     return result;
   }
 
-  /**
-   * Retrieves the current performance report
-   * @returns Performance summary
-   */
-  public async getPerformanceReport(): Promise<{ 
-    feedbackTrend: ReturnType<FeedbackLoop['analyzeFeedbackTrends']>; 
-    learningSummary: ReturnType<LearningStore['summarizeLearning']>; 
+  public async getPerformanceReport(): Promise<{
+    feedbackTrend: ReturnType<FeedbackLoop["analyzeFeedbackTrends"]>;
+    learningSummary: ReturnType<LearningStore["summarizeLearning"]>;
   }> {
     return {
       feedbackTrend: this.feedbackLoop.analyzeFeedbackTrends(),
-      learningSummary: this.learningStore.summarizeLearning()
+      learningSummary: this.learningStore.summarizeLearning(),
     };
   }
 }

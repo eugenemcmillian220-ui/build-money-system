@@ -625,5 +625,85 @@ VALUES
 ON CONFLICT DO NOTHING;
 
 -- =============================================================================
+-- PHASE 3 UPGRADE: Full-Text Search, Project Versioning, Size Guard
+-- =============================================================================
+
+-- Full-text search vector on projects
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS search_vector tsvector
+  GENERATED ALWAYS AS (
+    to_tsvector('english',
+      coalesce(name, '') || ' ' ||
+      coalesce(description, '') || ' ' ||
+      coalesce(prompt, '')
+    )
+  ) STORED;
+
+CREATE INDEX IF NOT EXISTS idx_projects_search ON projects USING GIN(search_vector);
+
+-- Project versioning: snapshot every generation
+CREATE TABLE IF NOT EXISTS project_versions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  version_number INTEGER NOT NULL DEFAULT 1,
+  files JSONB NOT NULL,
+  description TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_project_versions_project_id ON project_versions(project_id);
+CREATE INDEX IF NOT EXISTS idx_project_versions_created_at ON project_versions(created_at DESC);
+
+-- RLS for project_versions
+ALTER TABLE project_versions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own project versions" ON project_versions
+  FOR SELECT USING (
+    EXISTS (SELECT 1 FROM projects WHERE id = project_id AND (auth.uid() = user_id OR is_public = true))
+  );
+
+CREATE POLICY "Users can create project versions" ON project_versions
+  FOR INSERT WITH CHECK (
+    EXISTS (SELECT 1 FROM projects WHERE id = project_id AND auth.uid() = user_id)
+  );
+
+-- Function: save a version snapshot when a project is updated
+CREATE OR REPLACE FUNCTION snapshot_project_version()
+RETURNS TRIGGER AS $$
+DECLARE
+  next_version INTEGER;
+BEGIN
+  SELECT COALESCE(MAX(version_number), 0) + 1
+  INTO next_version
+  FROM project_versions
+  WHERE project_id = NEW.id;
+
+  INSERT INTO project_versions (project_id, version_number, files, description)
+  VALUES (NEW.id, next_version, NEW.files, NEW.description);
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER project_version_snapshot
+  AFTER UPDATE OF files ON projects
+  FOR EACH ROW
+  WHEN (OLD.files IS DISTINCT FROM NEW.files)
+  EXECUTE FUNCTION snapshot_project_version();
+
+-- Search function for projects
+CREATE OR REPLACE FUNCTION search_projects(query TEXT, limit_val INTEGER DEFAULT 20)
+RETURNS SETOF projects AS $$
+BEGIN
+  RETURN QUERY
+  SELECT * FROM projects
+  WHERE search_vector @@ plainto_tsquery('english', query)
+     OR name ILIKE '%' || query || '%'
+  ORDER BY ts_rank(search_vector, plainto_tsquery('english', query)) DESC
+  LIMIT limit_val;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- =============================================================================
 -- END OF SCHEMA
 -- =============================================================================

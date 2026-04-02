@@ -1,16 +1,21 @@
 /**
- * Idea Validator Module for Phase 6 - Autonomous AI Company Builder
- * Validates business ideas by scoring viability, identifying risks, and providing suggestions
+ * Idea Validator Module - Phase 5/6 Upgrade
+ * Real LLM-powered business idea validation (replaces string-length heuristics)
  */
+
+import { generateText } from "./openrouter";
 
 export interface IdeaValidationResult {
   idea: string;
   score: number;
-  verdict: 'Promising' | 'Needs Work' | 'Not Viable';
+  verdict: "Promising" | "Needs Work" | "Not Viable";
   risks: string[];
   suggestions: string[];
-  marketSize: 'small' | 'medium' | 'large';
-  competitionLevel: 'low' | 'medium' | 'high';
+  marketSize: "small" | "medium" | "large";
+  competitionLevel: "low" | "medium" | "high";
+  reasoning: string;
+  targetAudience: string;
+  uniqueValueProp: string;
   timestamp: string;
 }
 
@@ -23,108 +28,114 @@ export interface MarketAnalysis {
 
 export interface Risk {
   type: string;
-  severity: 'low' | 'medium' | 'high';
+  severity: "low" | "medium" | "high";
   mitigation: string;
 }
 
-const RISK_PATTERNS: Record<string, string[]> = {
-  competition: ['market', 'saas', 'app', 'platform', 'tool'],
-  distribution: ['b2c', 'consumer', 'social', 'marketplace'],
-  regulation: ['finance', 'health', 'legal', 'medical', 'insurance'],
-  technology: ['ai', 'blockchain', 'ml', 'hardware', 'iot'],
-};
-
-const SUGGESTIONS: string[] = [
-  'Niche down to a specific target audience',
-  'Add an AI-powered core feature',
-  'Build a freemium tier to drive adoption',
-  'Focus on a single killer feature first',
-  'Partner with complementary platforms',
-  'Establish thought leadership content early',
-];
-
 export class IdeaValidator {
-  validateIdea(idea: string): IdeaValidationResult {
-    const lower = idea.toLowerCase();
-    const score = this.computeScore(lower);
-    const risks = this.assessRisks(lower);
-    const suggestions = this.generateSuggestions(score);
+  async validateIdea(idea: string): Promise<IdeaValidationResult> {
+    const prompt = `You are an expert venture capitalist and startup analyst. Critically analyze this business idea and return a JSON evaluation.
 
-    let verdict: IdeaValidationResult['verdict'];
-    if (score >= 70) verdict = 'Promising';
-    else if (score >= 40) verdict = 'Needs Work';
-    else verdict = 'Not Viable';
+Business Idea: "${idea}"
 
-    const competitionLevel = lower.length > 50 ? 'high' : lower.length > 25 ? 'medium' : 'low';
-    const marketSize = score >= 70 ? 'large' : score >= 40 ? 'medium' : 'small';
+Return ONLY a JSON object with this exact structure (no markdown, no explanation):
+{
+  "score": <integer 0-100>,
+  "verdict": "<Promising|Needs Work|Not Viable>",
+  "risks": ["<specific risk 1>", "<specific risk 2>", "<specific risk 3>"],
+  "suggestions": ["<actionable suggestion 1>", "<actionable suggestion 2>", "<actionable suggestion 3>"],
+  "marketSize": "<small|medium|large>",
+  "competitionLevel": "<low|medium|high>",
+  "reasoning": "<2-3 sentence honest assessment of why this idea has the score it does>",
+  "targetAudience": "<specific description of the ideal customer>",
+  "uniqueValueProp": "<what genuinely differentiates this from existing solutions>"
+}
 
-    return {
-      idea,
-      score,
-      verdict,
-      risks: risks.map(r => r.type),
-      suggestions,
-      marketSize,
-      competitionLevel,
-      timestamp: new Date().toISOString(),
-    };
-  }
+Scoring guide:
+- 80-100: Strong PMF signal, clear market, differentiated
+- 60-79: Good idea, needs refinement or validation
+- 40-59: Interesting but major challenges to address
+- 20-39: Significant structural problems
+- 0-19: Not viable as described`;
 
-  analyzeMarket(idea: string): MarketAnalysis {
-    const lower = idea.toLowerCase();
-    const segments = ['Early adopters', 'SMBs', 'Enterprise'];
-    const targetAudience = lower.includes('developer') || lower.includes('engineer')
-      ? 'Software developers and technical teams'
-      : lower.includes('business') || lower.includes('saas')
-      ? 'Business owners and startups'
-      : 'General consumers and professionals';
+    try {
+      const response = await generateText(prompt);
+      const cleaned = response.replace(/^```json\n?/g, "").replace(/\n?```$/g, "").trim();
+      const parsed = JSON.parse(cleaned) as Omit<IdeaValidationResult, "idea" | "timestamp">;
 
-    return {
-      segments,
-      targetAudience,
-      estimatedMarketSize: '$1B - $10B TAM',
-      growthRate: '15-25% YoY',
-    };
-  }
-
-  assessRisks(idea: string): Risk[] {
-    const lower = idea.toLowerCase();
-    const risks: Risk[] = [];
-
-    for (const [riskType, keywords] of Object.entries(RISK_PATTERNS)) {
-      if (keywords.some(kw => lower.includes(kw))) {
-        risks.push({
-          type: riskType,
-          severity: riskType === 'regulation' ? 'high' : 'medium',
-          mitigation: `Develop a strategy to address ${riskType} challenges early`,
-        });
-      }
+      return {
+        idea,
+        ...parsed,
+        timestamp: new Date().toISOString(),
+      };
+    } catch {
+      // Graceful fallback if LLM unavailable
+      return {
+        idea,
+        score: 50,
+        verdict: "Needs Work",
+        risks: ["Unable to perform full analysis — LLM unavailable"],
+        suggestions: ["Retry validation when AI service is available"],
+        marketSize: "medium",
+        competitionLevel: "medium",
+        reasoning: "Analysis could not be completed due to AI service unavailability.",
+        targetAudience: "Unknown — analysis failed",
+        uniqueValueProp: "Unknown — analysis failed",
+        timestamp: new Date().toISOString(),
+      };
     }
+  }
 
-    if (risks.length === 0) {
-      risks.push({
-        type: 'market-fit',
-        severity: 'medium',
-        mitigation: 'Validate with at least 10 paying customers before scaling',
-      });
+  async analyzeMarket(idea: string): Promise<MarketAnalysis> {
+    const prompt = `Analyze the market for this business idea: "${idea}"
+
+Return ONLY JSON (no markdown):
+{
+  "segments": ["<segment 1>", "<segment 2>", "<segment 3>"],
+  "targetAudience": "<primary ICP description>",
+  "estimatedMarketSize": "<TAM estimate with reasoning, e.g. $2.5B TAM>",
+  "growthRate": "<realistic YoY growth estimate with basis>"
+}`;
+
+    try {
+      const response = await generateText(prompt);
+      const cleaned = response.replace(/^```json\n?/g, "").replace(/\n?```$/g, "").trim();
+      return JSON.parse(cleaned) as MarketAnalysis;
+    } catch {
+      return {
+        segments: ["Early adopters", "SMBs", "Enterprise"],
+        targetAudience: "Technical professionals and business owners",
+        estimatedMarketSize: "Analysis unavailable",
+        growthRate: "Analysis unavailable",
+      };
     }
-
-    return risks;
   }
 
-  private computeScore(idea: string): number {
-    let score = 50;
-    if (idea.length > 10) score += 10;
-    if (idea.includes('ai') || idea.includes('automation')) score += 15;
-    if (idea.includes('saas') || idea.includes('platform')) score += 10;
-    if (idea.includes('marketplace') || idea.includes('api')) score += 5;
-    if (idea.length > 100) score -= 10;
-    return Math.min(100, Math.max(0, score));
-  }
+  async assessRisks(idea: string): Promise<Risk[]> {
+    const prompt = `Identify the top 3-5 risks for this business idea: "${idea}"
 
-  private generateSuggestions(score: number): string[] {
-    const count = score >= 70 ? 2 : score >= 40 ? 3 : 4;
-    return SUGGESTIONS.slice(0, count);
+Return ONLY a JSON array (no markdown):
+[
+  {
+    "type": "<risk category>",
+    "severity": "<low|medium|high>",
+    "mitigation": "<specific, actionable mitigation strategy>"
+  }
+]`;
+
+    try {
+      const response = await generateText(prompt);
+      const cleaned = response.replace(/^```json\n?/g, "").replace(/\n?```$/g, "").trim();
+      return JSON.parse(cleaned) as Risk[];
+    } catch {
+      return [
+        {
+          type: "market-fit",
+          severity: "medium",
+          mitigation: "Validate with at least 10 paying customers before scaling",
+        },
+      ];
+    }
   }
 }
 

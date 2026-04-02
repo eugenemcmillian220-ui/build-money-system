@@ -9,10 +9,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized access' }, { status: 401 });
     }
 
-    const model = req.nextUrl.searchParams.get('model') ?? 'saas';
-    const tiers = monetizationEngine.determinePricing(model);
+    const idea = req.nextUrl.searchParams.get('idea') ?? req.nextUrl.searchParams.get('model') ?? 'saas product';
+    const plan = await monetizationEngine.startMonetization(idea);
 
-    return NextResponse.json({ success: true, data: { tiers } });
+    return NextResponse.json({ success: true, data: { tiers: plan.tiers } });
   } catch (error) {
     console.error('Monetization GET Error:', error);
     return NextResponse.json({ error: 'Failed to retrieve pricing tiers' }, { status: 500 });
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     }
 
     const sanitizedIdea = security.sanitizeInput(idea);
-    const plan = monetizationEngine.startMonetization(sanitizedIdea);
+    const plan = await monetizationEngine.startMonetization(sanitizedIdea);
 
     return NextResponse.json({ success: true, data: plan });
   } catch (error) {

@@ -9,7 +9,7 @@ import {
   AgentPhase,
   DeploymentInfo,
 } from "./types";
-import { planSpec, buildFromSpec, fixFiles, testFiles, streamLLM, cleanJson } from "./llm";
+import { planSpec, buildFromSpec, fixFiles, fixBrokenFiles, testFiles, streamLLM, cleanJson } from "./llm";
 import { postProcessFiles } from "./processor";
 import { saveProject, loadProject, getAllProjects } from "./memory";
 import {
@@ -160,7 +160,15 @@ Rules:
 
       if (testResult.errors) {
         const errorText = testResult.errors.join("\n");
-        files = await fixFiles(files, errorText);
+        // Surgical fix: only send broken files, not the whole project
+        const brokenPaths = testResult.errors
+          .map(e => e.split(":")[0].trim())
+          .filter(p => p.endsWith(".tsx") || p.endsWith(".ts"));
+        if (brokenPaths.length > 0) {
+          files = await fixBrokenFiles(files, brokenPaths, testResult.errors);
+        } else {
+          files = await fixFiles(files, errorText);
+        }
       }
     }
 

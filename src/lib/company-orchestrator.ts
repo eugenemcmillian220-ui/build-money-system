@@ -42,7 +42,7 @@ export class CompanyOrchestrator {
 
     analyticsEngine.trackMetric({ name: 'company_build_started', value: 1, metadata: { idea, buildId } });
 
-    const validation = this.ideaValidator.validateIdea(idea);
+    const validation = await this.ideaValidator.validateIdea(idea);
 
     const plan = this.productPlanner.planProduct(idea);
 
@@ -54,9 +54,9 @@ export class CompanyOrchestrator {
       { role: 'analyst', input: idea },
     ]);
 
-    const growth = this.growthEngine.launchGrowth(idea);
+    const growth = await this.growthEngine.launchGrowth(idea);
 
-    const revenue = this.monetizationEngine.startMonetization(idea);
+    const revenue = await this.monetizationEngine.startMonetization(idea);
 
     analyticsEngine.trackMetric({
       name: 'company_build_completed',

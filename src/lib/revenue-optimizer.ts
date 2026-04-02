@@ -77,7 +77,7 @@ class RevenueOptimizer {
     let mrr = currentMRR;
 
     for (let i = 1; i <= months; i++) {
-      const monthlyGrowth = growthRate / 12 + (Math.random() - 0.5) * 0.02;
+      const monthlyGrowth = growthRate / 12;  // Deterministic: no random noise
       mrr = mrr * (1 + monthlyGrowth);
       const arr = mrr * 12;
       const growth = ((mrr - currentMRR) / currentMRR) * 100;

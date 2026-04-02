@@ -15,9 +15,9 @@ export async function GET(req: NextRequest) {
     }
 
     const sanitizedIdea = security.sanitizeInput(idea);
-    const channels = growthEngine.identifyChannels(sanitizedIdea);
+    const strategy = await growthEngine.launchGrowth(sanitizedIdea);
 
-    return NextResponse.json({ success: true, data: { channels } });
+    return NextResponse.json({ success: true, data: { channels: strategy.channels } });
   } catch (error) {
     console.error('Growth GET Error:', error);
     return NextResponse.json({ error: 'Failed to retrieve growth channels' }, { status: 500 });

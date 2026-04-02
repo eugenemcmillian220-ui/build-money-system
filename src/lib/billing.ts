@@ -186,6 +186,105 @@ export class BillingSystem {
     this.payments = [];
     this.invoices = [];
   }
+
+  /**
+   * Create a Stripe Checkout session for subscription
+   * Requires STRIPE_SECRET_KEY env var
+   */
+  async createCheckoutSession(params: {
+    userId: string;
+    planId: string;
+    billingCycle: "monthly" | "yearly";
+    successUrl: string;
+    cancelUrl: string;
+    customerEmail?: string;
+  }): Promise<{ url: string; sessionId: string } | { error: string }> {
+    const stripeKey = process.env.STRIPE_SECRET_KEY;
+    if (!stripeKey) {
+      return { error: "Stripe not configured. Add STRIPE_SECRET_KEY to environment variables." };
+    }
+
+    // Map plan IDs to Stripe price IDs (set these in Vercel env vars)
+    const priceMap: Record<string, Record<string, string>> = {
+      starter: {
+        monthly: process.env.STRIPE_STARTER_MONTHLY_PRICE_ID ?? "",
+        yearly: process.env.STRIPE_STARTER_YEARLY_PRICE_ID ?? "",
+      },
+      pro: {
+        monthly: process.env.STRIPE_PRO_MONTHLY_PRICE_ID ?? "",
+        yearly: process.env.STRIPE_PRO_YEARLY_PRICE_ID ?? "",
+      },
+      team: {
+        monthly: process.env.STRIPE_TEAM_MONTHLY_PRICE_ID ?? "",
+        yearly: process.env.STRIPE_TEAM_YEARLY_PRICE_ID ?? "",
+      },
+    };
+
+    const priceId = priceMap[params.planId]?.[params.billingCycle];
+    if (!priceId) {
+      return { error: `No Stripe price configured for plan: ${params.planId} (${params.billingCycle})` };
+    }
+
+    try {
+      const response = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${stripeKey}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          mode: "subscription",
+          "line_items[0][price]": priceId,
+          "line_items[0][quantity]": "1",
+          success_url: params.successUrl,
+          cancel_url: params.cancelUrl,
+          ...(params.customerEmail ? { customer_email: params.customerEmail } : {}),
+          "metadata[userId]": params.userId,
+          "metadata[planId]": params.planId,
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json() as { error?: { message?: string } };
+        return { error: err.error?.message ?? "Stripe checkout session creation failed" };
+      }
+
+      const session = await response.json() as { url: string; id: string };
+      return { url: session.url, sessionId: session.id };
+    } catch (e) {
+      return { error: `Stripe error: ${e instanceof Error ? e.message : String(e)}` };
+    }
+  }
+
+  /**
+   * Record a metered AI usage event (for usage-based billing via Stripe Meters)
+   * Call this after every successful generation
+   */
+  async recordUsageEvent(params: {
+    customerId: string;
+    eventName: "ai_generation" | "deployment" | "agent_swarm_run";
+    quantity?: number;
+  }): Promise<void> {
+    const stripeKey = process.env.STRIPE_SECRET_KEY;
+    if (!stripeKey) return; // Silently skip if not configured
+
+    try {
+      await fetch("https://api.stripe.com/v1/billing/meter_events", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${stripeKey}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          event_name: params.eventName,
+          "payload[stripe_customer_id]": params.customerId,
+          "payload[value]": String(params.quantity ?? 1),
+        }),
+      });
+    } catch {
+      // Fire-and-forget — don't break generation if billing tracking fails
+    }
+  }
 }
 
 export const billingSystem = new BillingSystem();

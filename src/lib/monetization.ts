@@ -1,151 +1,134 @@
 /**
- * Monetization Engine Module for Phase 6 - Autonomous AI Company Builder
- * Generates monetization plans, pricing tiers, and upsell strategies
+ * Monetization Engine - Phase 6 Upgrade
+ * Real LLM-powered pricing and revenue model generation
  */
+
+import { generateText } from "./openrouter";
 
 export interface PricingTier {
   name: string;
-  price: string;
-  priceMonthly: number;
+  price: number;
+  billingCycle: "monthly" | "yearly" | "one-time" | "usage";
+  target: string;
   features: string[];
-  recommended: boolean;
-}
-
-export interface Upsell {
-  name: string;
-  description: string;
-  additionalRevenue: string;
+  cta: string;
+  highlighted: boolean;
 }
 
 export interface MonetizationPlan {
-  idea: string;
-  models: string[];
-  pricingTiers: PricingTier[];
-  pricing: string;
-  upsells: Upsell[];
-  projectedMRR: string;
-  revenueStreams: string[];
-  timestamp: string;
+  model: string;
+  rationale: string;
+  tiers: PricingTier[];
+  revenueProjection: RevenueProjection;
+  churnMitigation: string[];
+  upsellStrategies: string[];
+  generatedAt: string;
 }
 
-const SAAS_TIERS: PricingTier[] = [
-  {
-    name: 'Starter',
-    price: '$9/month',
-    priceMonthly: 9,
-    features: ['5 projects', 'Basic AI features', 'Email support'],
-    recommended: false,
-  },
-  {
-    name: 'Pro',
-    price: '$29/month',
-    priceMonthly: 29,
-    features: ['Unlimited projects', 'Advanced AI features', 'Priority support', 'API access'],
-    recommended: true,
-  },
-  {
-    name: 'Enterprise',
-    price: '$99/month',
-    priceMonthly: 99,
-    features: ['Everything in Pro', 'Custom AI models', 'Dedicated support', 'SLA', 'SSO'],
-    recommended: false,
-  },
-];
-
-const API_TIERS: PricingTier[] = [
-  {
-    name: 'Developer',
-    price: 'Free',
-    priceMonthly: 0,
-    features: ['100 API calls/day', 'Public endpoints', 'Community support'],
-    recommended: false,
-  },
-  {
-    name: 'Growth',
-    price: '$49/month',
-    priceMonthly: 49,
-    features: ['10k API calls/day', 'Webhooks', 'Analytics', 'Email support'],
-    recommended: true,
-  },
-  {
-    name: 'Scale',
-    price: '$199/month',
-    priceMonthly: 199,
-    features: ['Unlimited API calls', 'Custom rate limits', 'Dedicated infra', 'SLA'],
-    recommended: false,
-  },
-];
-
-const COMMON_UPSELLS: Upsell[] = [
-  {
-    name: 'AI Pro Add-on',
-    description: 'Access to GPT-4, Claude, and premium models',
-    additionalRevenue: '+$20/month per user',
-  },
-  {
-    name: 'Automation Pack',
-    description: 'Pre-built workflows and integrations',
-    additionalRevenue: '+$15/month per user',
-  },
-  {
-    name: 'White Label',
-    description: 'Custom branding and domain',
-    additionalRevenue: '+$50/month per account',
-  },
-];
+export interface RevenueProjection {
+  month3MRR: string;
+  month6MRR: string;
+  month12MRR: string;
+  keyAssumptions: string[];
+}
 
 export class MonetizationEngine {
-  startMonetization(idea: string): MonetizationPlan {
-    const lower = idea.toLowerCase();
-    const isApiFirst = lower.includes('api') || lower.includes('developer');
-    const tiers = isApiFirst ? API_TIERS : SAAS_TIERS;
-    const models = this.selectModels(idea);
-    const upsells = this.generateUpsells(idea);
+  async startMonetization(idea: string): Promise<MonetizationPlan> {
+    const prompt = `You are a SaaS pricing expert and revenue strategist. Create an optimal monetization plan for this product.
 
-    const avgMonthlyRevenue = tiers.find(t => t.recommended)?.priceMonthly ?? 29;
+Product Idea: "${idea}"
 
-    return {
-      idea,
-      models,
-      pricingTiers: tiers,
-      pricing: `$${tiers[0].priceMonthly}-$${tiers[tiers.length - 1].priceMonthly}/month`,
-      upsells,
-      projectedMRR: `$${avgMonthlyRevenue * 100} - $${avgMonthlyRevenue * 500} at 100-500 customers`,
-      revenueStreams: ['Subscriptions', 'Usage-based billing', 'Marketplace commissions'],
-      timestamp: new Date().toISOString(),
-    };
-  }
-
-  determinePricing(model: string): PricingTier[] {
-    const lower = model.toLowerCase();
-    return lower.includes('api') ? API_TIERS : SAAS_TIERS;
-  }
-
-  generateUpsells(idea: string): Upsell[] {
-    const lower = idea.toLowerCase();
-    const upsells = [...COMMON_UPSELLS];
-
-    if (lower.includes('marketplace') || lower.includes('shop')) {
-      upsells.push({
-        name: 'Transaction Fee Reduction',
-        description: 'Reduce platform commission from 10% to 2%',
-        additionalRevenue: '+$30/month per seller',
-      });
+Return ONLY a JSON object (no markdown):
+{
+  "model": "<freemium|subscription|usage-based|one-time|hybrid>",
+  "rationale": "<2 sentence explanation of why this model fits the product>",
+  "tiers": [
+    {
+      "name": "<tier name, e.g. Free>",
+      "price": <number in USD monthly>,
+      "billingCycle": "<monthly|yearly|one-time|usage>",
+      "target": "<who this tier is for>",
+      "features": ["<feature 1>", "<feature 2>", "<feature 3>"],
+      "cta": "<call to action text>",
+      "highlighted": <true|false - true for recommended tier>
     }
+  ],
+  "revenueProjection": {
+    "month3MRR": "<e.g. $2,500>",
+    "month6MRR": "<e.g. $8,000>",
+    "month12MRR": "<e.g. $25,000>",
+    "keyAssumptions": ["<assumption 1>", "<assumption 2>", "<assumption 3>"]
+  },
+  "churnMitigation": ["<specific tactic 1>", "<specific tactic 2>", "<specific tactic 3>"],
+  "upsellStrategies": ["<upsell strategy 1>", "<upsell strategy 2>"]
+}
 
-    return upsells;
+Create 3 tiers (Free/Starter/Pro or similar). Price the Pro tier between $29-99/month based on value delivered.`;
+
+    try {
+      const response = await generateText(prompt);
+      const cleaned = response.replace(/^```json\n?/g, "").replace(/\n?```$/g, "").trim();
+      const parsed = JSON.parse(cleaned) as Omit<MonetizationPlan, "generatedAt">;
+      return { ...parsed, generatedAt: new Date().toISOString() };
+    } catch {
+      return this.fallbackPlan(idea);
+    }
   }
 
-  private selectModels(idea: string): string[] {
-    const lower = idea.toLowerCase();
-    const models = ['SaaS subscription'];
+  async generateMonetizationPlan(idea: string): Promise<MonetizationPlan> {
+    return this.startMonetization(idea);
+  }
 
-    if (lower.includes('api')) models.push('API usage billing');
-    if (lower.includes('marketplace')) models.push('Marketplace commission (10%)');
-    if (lower.includes('enterprise') || lower.includes('b2b')) models.push('Annual enterprise contracts');
-
-    models.push('Freemium → paid conversion');
-    return models;
+  private fallbackPlan(idea: string): MonetizationPlan {
+    return {
+      model: "freemium",
+      rationale: `A freemium model with usage-based upgrades maximises top-of-funnel growth for ${idea.slice(0, 40)} while capturing value from power users.`,
+      tiers: [
+        {
+          name: "Free",
+          price: 0,
+          billingCycle: "monthly",
+          target: "Individual developers and hobbyists",
+          features: ["5 generations/month", "Single-file mode", "Community support"],
+          cta: "Get Started Free",
+          highlighted: false,
+        },
+        {
+          name: "Pro",
+          price: 29,
+          billingCycle: "monthly",
+          target: "Professional developers and small teams",
+          features: ["Unlimited generations", "Multi-file apps", "Vercel deploy", "Priority support"],
+          cta: "Start Pro Trial",
+          highlighted: true,
+        },
+        {
+          name: "Team",
+          price: 99,
+          billingCycle: "monthly",
+          target: "Agencies and product teams",
+          features: ["Everything in Pro", "5 seats", "API access", "Custom models", "SLA support"],
+          cta: "Start Team Trial",
+          highlighted: false,
+        },
+      ],
+      revenueProjection: {
+        month3MRR: "$2,500",
+        month6MRR: "$8,500",
+        month12MRR: "$28,000",
+        keyAssumptions: ["5% free-to-paid conversion", "2.5% monthly churn", "10% MoM growth"],
+      },
+      churnMitigation: [
+        "In-app progress tracking and milestones",
+        "Proactive CSM outreach at 14-day inactivity",
+        "Annual plan with 2 months free",
+      ],
+      upsellStrategies: [
+        "Usage-based nudge when approaching free tier limits",
+        "Team invites trigger team plan upsell",
+      ],
+      generatedAt: new Date().toISOString(),
+    };
   }
 }
 

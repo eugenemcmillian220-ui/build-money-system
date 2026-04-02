@@ -20,22 +20,22 @@ async function testPhase6() {
   console.log('\n1. Testing Idea Validator:');
   try {
     const validator = new IdeaValidator();
-    const result = validator.validateIdea('AI SaaS platform for developers');
+    const result = await validator.validateIdea('AI SaaS platform for developers');
     console.log(`- Validation Result: ${result.score !== undefined ? 'PASSED' : 'FAILED'}`);
     console.log(`- Verdict Defined: ${result.verdict ? 'PASSED' : 'FAILED'}`);
     console.log(`- Risks Array: ${Array.isArray(result.risks) ? 'PASSED' : 'FAILED'}`);
     console.log(`- Suggestions Array: ${Array.isArray(result.suggestions) ? 'PASSED' : 'FAILED'}`);
     console.log(`- Timestamp Set: ${result.timestamp ? 'PASSED' : 'FAILED'}`);
 
-    const market = validator.analyzeMarket('AI SaaS platform');
+    const market = await validator.analyzeMarket('AI SaaS platform');
     console.log(`- Market Analysis: ${market.targetAudience ? 'PASSED' : 'FAILED'}`);
 
-    const risks = validator.assessRisks('AI marketplace');
+    const risks = await validator.assessRisks('AI marketplace');
     console.log(`- Risk Assessment: ${risks.length > 0 ? 'PASSED' : 'FAILED'}`);
     console.log(`- Risk Has Severity: ${risks[0].severity ? 'PASSED' : 'FAILED'}`);
     console.log(`- Risk Has Mitigation: ${risks[0].mitigation ? 'PASSED' : 'FAILED'}`);
 
-    const notViable = validator.validateIdea('x');
+    const notViable = await validator.validateIdea('x');
     console.log(`- Short Idea Low Score: ${notViable.score < 80 ? 'PASSED' : 'FAILED'}`);
   } catch (e) {
     console.error('Idea Validator tests failed:', e);
@@ -91,19 +91,18 @@ async function testPhase6() {
   console.log('\n4. Testing Growth Engine:');
   try {
     const engine = new GrowthEngine();
-    const strategy = engine.launchGrowth('AI developer tool');
+    const strategy = await engine.launchGrowth('AI developer tool');
     console.log(`- Strategy Has Channels: ${strategy.channels.length > 0 ? 'PASSED' : 'FAILED'}`);
-    console.log(`- Strategy String: ${strategy.strategy ? 'PASSED' : 'FAILED'}`);
-    console.log(`- Estimated Reach: ${strategy.estimatedReach ? 'PASSED' : 'FAILED'}`);
-    console.log(`- Reach Number Positive: ${strategy.estimatedReachNumber > 0 ? 'PASSED' : 'FAILED'}`);
-    console.log(`- KPIs Defined: ${strategy.kpis.length > 0 ? 'PASSED' : 'FAILED'}`);
-    console.log(`- Tactics Defined: ${strategy.tactics.length > 0 ? 'PASSED' : 'FAILED'}`);
+    console.log(`- Strategy Has Content Calendar: ${strategy.contentCalendar.length > 0 ? 'PASSED' : 'FAILED'}`);
+    console.log(`- Viral Mechanics Defined: ${strategy.viralMechanics.length > 0 ? 'PASSED' : 'FAILED'}`);
+    console.log(`- Milestones Defined: ${strategy.milestones.length > 0 ? 'PASSED' : 'FAILED'}`);
+    console.log(`- Partnerships Defined: ${strategy.partnerships.length > 0 ? 'PASSED' : 'FAILED'}`);
+    console.log(`- GeneratedAt Set: ${strategy.generatedAt ? 'PASSED' : 'FAILED'}`);
 
-    const channels = engine.identifyChannels('b2b enterprise software');
-    console.log(`- B2B Channel Detection: ${channels.some(c => c.name === 'LinkedIn') ? 'PASSED' : 'FAILED'}`);
+    const strategy2 = await engine.launchGrowth('b2b enterprise software');
+    console.log(`- B2B Strategy Has Channels: ${strategy2.channels.length > 0 ? 'PASSED' : 'FAILED'}`);
 
-    const reach = engine.estimateReach(channels);
-    console.log(`- Reach Estimation: ${reach > 0 ? 'PASSED' : 'FAILED'}`);
+    console.log(`- Channel Has Tactics: ${strategy2.channels[0]?.tactics.length > 0 ? 'PASSED' : 'FAILED'}`);
   } catch (e) {
     console.error('Growth Engine tests failed:', e);
   }
@@ -112,19 +111,19 @@ async function testPhase6() {
   console.log('\n5. Testing Monetization Engine:');
   try {
     const engine = new MonetizationEngine();
-    const plan = engine.startMonetization('AI SaaS builder');
-    console.log(`- Plan Has Models: ${plan.models.length > 0 ? 'PASSED' : 'FAILED'}`);
-    console.log(`- Plan Has Pricing Tiers: ${plan.pricingTiers.length > 0 ? 'PASSED' : 'FAILED'}`);
-    console.log(`- Pricing String Set: ${plan.pricing ? 'PASSED' : 'FAILED'}`);
-    console.log(`- Plan Has Upsells: ${plan.upsells.length > 0 ? 'PASSED' : 'FAILED'}`);
-    console.log(`- Projected MRR: ${plan.projectedMRR ? 'PASSED' : 'FAILED'}`);
-    console.log(`- Revenue Streams: ${plan.revenueStreams.length > 0 ? 'PASSED' : 'FAILED'}`);
+    const plan = await engine.startMonetization('AI SaaS builder');
+    console.log(`- Plan Has Model: ${plan.model ? 'PASSED' : 'FAILED'}`);
+    console.log(`- Plan Has Tiers: ${plan.tiers.length > 0 ? 'PASSED' : 'FAILED'}`);
+    console.log(`- Rationale Set: ${plan.rationale ? 'PASSED' : 'FAILED'}`);
+    console.log(`- Upsell Strategies Set: ${plan.upsellStrategies.length > 0 ? 'PASSED' : 'FAILED'}`);
+    console.log(`- Revenue Projection MRR: ${plan.revenueProjection.month12MRR ? 'PASSED' : 'FAILED'}`);
+    console.log(`- Churn Mitigation Set: ${plan.churnMitigation.length > 0 ? 'PASSED' : 'FAILED'}`);
 
-    const tiers = engine.determinePricing('api');
-    console.log(`- API Pricing Tiers: ${tiers.length > 0 ? 'PASSED' : 'FAILED'}`);
+    const plan2 = await engine.startMonetization('api marketplace');
+    console.log(`- API Plan Has Tiers: ${plan2.tiers.length > 0 ? 'PASSED' : 'FAILED'}`);
 
-    const upsells = engine.generateUpsells('marketplace platform');
-    console.log(`- Marketplace Upsells: ${upsells.length > 3 ? 'PASSED' : 'FAILED'}`);
+    const plan3 = await engine.generateMonetizationPlan('marketplace platform');
+    console.log(`- Marketplace Plan Generated: ${plan3.upsellStrategies.length > 0 ? 'PASSED' : 'FAILED'}`);
   } catch (e) {
     console.error('Monetization Engine tests failed:', e);
   }

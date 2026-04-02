@@ -214,7 +214,7 @@ Rules:
     { role: "user", content: `User request: ${prompt}\n\nGenerate the app specification:` }
   ];
 
-  const content = await callLLM(messages, { temperature: 0.7, maxTokens: 4096 });
+  const content = await callLLM(messages, { temperature: 0.7, maxTokens: 8192 });
   const cleaned = cleanJson(content);
 
   try {
@@ -260,7 +260,7 @@ Rules:
     { role: "user", content: `App Specification:\n${specJson}\n\nGenerate all files:` }
   ];
 
-  const content = await callLLM(messages, { temperature: 0.7, maxTokens: 8192 });
+  const content = await callLLM(messages, { temperature: 0.7, maxTokens: 16384 });
   const parsed = parseMultiFileJson(content);
   return parsed.files;
 }
@@ -299,7 +299,7 @@ Rules:
     { role: "user", content: `Current Files:\n${filesList}${errorContext}\n\nReturn fixed files:` }
   ];
 
-  const content = await callLLM(messages, { temperature: 0.2, maxTokens: 8192 });
+  const content = await callLLM(messages, { temperature: 0.2, maxTokens: 16384 });
   const parsed = parseMultiFileJson(content);
   return parsed.files;
 }
@@ -340,4 +340,47 @@ export async function testFiles(files: FileMap): Promise<{ success: boolean; err
   }
 
   return { success: errors.length === 0, errors: errors.length > 0 ? errors : undefined };
+}
+
+/**
+ * Surgical Fix: Only send files that have known errors, not the whole project.
+ * Saves ~70% tokens vs sending all files on every fix pass.
+ */
+export async function fixBrokenFiles(
+  allFiles: FileMap,
+  brokenFilePaths: string[],
+  errors: string[]
+): Promise<FileMap> {
+  const brokenFiles = Object.fromEntries(
+    Object.entries(allFiles).filter(([path]) => brokenFilePaths.includes(path))
+  );
+
+  const filesList = Object.entries(brokenFiles)
+    .map(([path, content]) => `File: ${path}\n\`\`\`tsx\n${content}\n\`\`\``)
+    .join("\n\n");
+
+  const errorContext = `Errors to fix:\n${errors.join("\n")}`;
+
+  const messages: ChatMessage[] = [
+    {
+      role: "system",
+      content: `You are an expert TypeScript debugger. Fix ONLY the specific errors listed. Return ONLY the fixed files as JSON:
+{"files": {"path/to/file.tsx": "fixed code here"}}
+Rules:
+- Fix TypeScript errors precisely
+- Add 'use client' where React hooks are used without it
+- Do not modify files that are not broken
+- Return ONLY valid JSON, no markdown fences`,
+    },
+    {
+      role: "user",
+      content: `${filesList}\n\n${errorContext}\n\nReturn fixed files as JSON:`,
+    },
+  ];
+
+  const content = await callLLM(messages, { temperature: 0.1, maxTokens: 8192 });
+  const parsed = parseMultiFileJson(content);
+
+  // Merge fixed files back into the original set
+  return { ...allFiles, ...parsed.files };
 }

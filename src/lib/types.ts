@@ -133,7 +133,7 @@ export const defaultAgentConfig: AgentConfig = {
   retryDelay: 1000,
   model: "openai/gpt-4o-mini",
   temperature: 0.7,
-  maxTokens: 8192,
+  maxTokens: 16384,
 };
 
 export function detectFileType(filename: string): FileType {

@@ -31,6 +31,7 @@ interface OpenRouterRequestBody {
   stream?: boolean;
   temperature?: number;
   max_tokens?: number;
+  response_format?: { type: "json_object" };
 }
 
 function buildHeaders(): Record<string, string> {
@@ -83,7 +84,7 @@ export async function generateText(prompt: string): Promise<string> {
     model: getModel(),
     messages: [{ role: "user", content: prompt }],
     temperature: 0.7,
-    max_tokens: 4096,
+    max_tokens: 8192,
   };
 
   let response: Response;
@@ -117,7 +118,7 @@ export async function generateTextStream(
     messages: [{ role: "user", content: prompt }],
     stream: true,
     temperature: 0.7,
-    max_tokens: 4096,
+    max_tokens: 8192,
   };
 
   let response: Response;
@@ -228,7 +229,8 @@ export async function generateMultiFileApp(prompt: string): Promise<MultiFileRes
     model: getModel(),
     messages: [{ role: "user", content: fullPrompt }],
     temperature: 0.7,
-    max_tokens: 8192,
+    max_tokens: 16384,
+    response_format: { type: "json_object" },
   };
 
   let response: Response;
@@ -265,7 +267,7 @@ export async function generateMultiFileAppStream(
     messages: [{ role: "user", content: fullPrompt }],
     stream: true,
     temperature: 0.7,
-    max_tokens: 8192,
+    max_tokens: 16384,
   };
 
   let response: Response;
@@ -339,7 +341,8 @@ Return ONLY the fixed files in the same JSON format:
     model: getModel(),
     messages: [{ role: "user", content: prompt }],
     temperature: 0.2,
-    max_tokens: 8192,
+    max_tokens: 16384,
+    response_format: { type: "json_object" },
   };
 
   let response: Response;
