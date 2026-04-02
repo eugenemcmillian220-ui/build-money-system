@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { serverEnv } from "@/lib/env";
 
 export const runtime = "nodejs";
 

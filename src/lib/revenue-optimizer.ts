@@ -41,7 +41,7 @@ class RevenueOptimizer {
   private pricingHistory: Array<{ date: string; tiers: PricingTier[] }> = [];
   private revenueHistory: Array<{ date: string; revenue: number }> = [];
 
-  optimizePricing(currentPricing: PricingTier[], _currentMRR: number): PricingTier[] {
+  optimizePricing(currentPricing: PricingTier[], _currentMRR?: number): PricingTier[] {
     const optimized = currentPricing.map((tier) => {
       let newPrice = tier.price;
       this.getOptimalPriceFactor(tier);

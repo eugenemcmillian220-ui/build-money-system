@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import type { Route } from "next";
 import { createClient } from "@/lib/supabase/server";
 
 export async function login(formData: FormData) {
@@ -17,7 +18,7 @@ export async function login(formData: FormData) {
   }
 
   revalidatePath("/", "layout");
-  redirect(redirectTo || "/app");
+  redirect((redirectTo || "/app") as Route);
 }
 
 export async function signup(formData: FormData) {

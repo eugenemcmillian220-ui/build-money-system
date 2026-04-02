@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 
 // Types
@@ -76,7 +76,8 @@ const PHASE_NAMES: Record<string, { name: string; description: string }> = {
 export default function DashboardPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [health, setHealth] = useState<SystemHealth | null>(null);
-  const [envVars, setEnvVars] = useState<Record<string, string>>({});
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_envVars, setEnvVars] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"projects" | "health" | "endpoints" | "env" | "ai-tools">("projects");
   const [testResults, setTestResults] = useState<Record<string, { status: number; response: unknown; time: number }>>({});

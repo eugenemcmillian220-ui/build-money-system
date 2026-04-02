@@ -2,7 +2,6 @@ import crypto from "crypto";
 import {
   GenerationResult,
   Project,
-  generationResultSchema,
   llmResponseSchema,
   AgentConfig,
   defaultAgentConfig,
