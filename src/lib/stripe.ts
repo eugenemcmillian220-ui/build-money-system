@@ -12,8 +12,9 @@ export const priceSchema = z.object({
 });
 
 export interface BillingTier {
-  id: "starter" | "pro" | "enterprise";
+  id: string;
   name: string;
+  category: "basic" | "elite"; // basic = phases 1-3, elite = phases 1-11
   priceIdMonthly: string;
   priceIdYearly: string;
   monthlyPrice: number;
@@ -23,49 +24,74 @@ export interface BillingTier {
 }
 
 export const BILLING_TIERS: Record<string, BillingTier> = {
-  starter: {
-    id: "starter",
-    name: "Starter",
-    priceIdMonthly: "price_starter_monthly",
-    priceIdYearly: "price_starter_yearly",
+  // --- Phase 1-3 Basic Tiers ---
+  "basic_starter": {
+    id: "basic_starter",
+    name: "Basic Starter",
+    category: "basic",
+    priceIdMonthly: "price_basic_starter_monthly",
+    priceIdYearly: "price_basic_starter_yearly",
+    monthlyPrice: 19,
+    yearlyPriceEffective: 15,
+    creditsPerMonth: 1000,
+    features: ["Phases 1-3 Only", "Single Component Gen", "Basic Multi-file", "Supabase Integration", "1,000 Credits/mo"],
+  },
+  "basic_pro": {
+    id: "basic_pro",
+    name: "Basic Pro",
+    category: "basic",
+    priceIdMonthly: "price_basic_pro_monthly",
+    priceIdYearly: "price_basic_pro_yearly",
+    monthlyPrice: 49,
+    yearlyPriceEffective: 39,
+    creditsPerMonth: 3000,
+    features: ["Phases 1-3 Only", "Unlimited Basic Projects", "Priority Support", "3,000 Credits/mo"],
+  },
+  "basic_premium": {
+    id: "basic_premium",
+    name: "Basic Premium",
+    category: "basic",
+    priceIdMonthly: "price_basic_premium_monthly",
+    priceIdYearly: "price_basic_premium_yearly",
+    monthlyPrice: 99,
+    yearlyPriceEffective: 79,
+    creditsPerMonth: 7000,
+    features: ["Phases 1-3 Only", "Custom Database Templates", "Early Access to UI components", "7,000 Credits/mo"],
+  },
+
+  // --- Phase 1-11 Elite Tiers ---
+  "elite_starter": {
+    id: "elite_starter",
+    name: "Elite Starter",
+    category: "elite",
+    priceIdMonthly: "price_elite_starter_monthly",
+    priceIdYearly: "price_elite_starter_yearly",
     monthlyPrice: 49,
     yearlyPriceEffective: 39,
     creditsPerMonth: 5000,
-    features: ["All Phases (1-11)", "Standard LLM Router", "Mobile App Gen", "Vision-to-Code", "5,000 Credits/mo"],
+    features: ["All Phases (1-11)", "Mobile App Gen", "Vision-to-Code", "Hype Agent Access", "5,000 Credits/mo"],
   },
-  pro: {
-    id: "pro",
-    name: "Pro Builder",
-    priceIdMonthly: "price_pro_monthly",
-    priceIdYearly: "price_pro_yearly",
+  "elite_pro": {
+    id: "elite_pro",
+    name: "Elite Pro Builder",
+    category: "elite",
+    priceIdMonthly: "price_elite_pro_monthly",
+    priceIdYearly: "price_elite_pro_yearly",
     monthlyPrice: 149,
     yearlyPriceEffective: 119,
     creditsPerMonth: 20000,
-    features: [
-      "Everything in Starter",
-      "Multi-tenant Workspaces",
-      "Real-time Collaboration",
-      "Autonomous SRE",
-      "Compliance Vault",
-      "20,000 Credits/mo"
-    ],
+    features: ["Everything in Elite Starter", "Multi-tenant Workspaces", "Autonomous SRE", "Compliance Vault", "20,000 Credits/mo"],
   },
-  enterprise: {
-    id: "enterprise",
-    name: "Enterprise Empire",
-    priceIdMonthly: "price_enterprise_monthly",
-    priceIdYearly: "price_enterprise_yearly",
+  "elite_enterprise": {
+    id: "elite_enterprise",
+    name: "Elite Enterprise Empire",
+    category: "elite",
+    priceIdMonthly: "price_elite_enterprise_monthly",
+    priceIdYearly: "price_elite_enterprise_yearly",
     monthlyPrice: 499,
     yearlyPriceEffective: 399,
     creditsPerMonth: 100000,
-    features: [
-      "Everything in Pro",
-      "SSO/SAML/OIDC",
-      "White-label branding",
-      "Multi-cloud IaC",
-      "Dedicated Hype Instances",
-      "100,000 Credits/mo"
-    ],
+    features: ["Everything in Elite Pro", "SSO/SAML/OIDC", "White-label branding", "Multi-cloud IaC", "100,000 Credits/mo"],
   },
 };
 
@@ -102,10 +128,10 @@ export class StripeService {
   }
 
   /**
-   * Create a subscription session for plan upgrades with 14-day trial
+   * Create a subscription session for plan upgrades - NO FREE TRIAL
    */
-  async createSubscriptionSession(orgId: string, tier: string, interval: "monthly" | "yearly" = "monthly"): Promise<string> {
-    const plan = BILLING_TIERS[tier];
+  async createSubscriptionSession(orgId: string, tierId: string, interval: "monthly" | "yearly" = "monthly"): Promise<string> {
+    const plan = BILLING_TIERS[tierId];
     if (!plan) throw new Error("Invalid tier");
 
     const priceId = interval === "monthly" ? plan.priceIdMonthly : plan.priceIdYearly;
@@ -120,10 +146,9 @@ export class StripeService {
         },
       ],
       subscription_data: {
-        trial_period_days: 14,
-        metadata: { orgId, tier, interval },
+        metadata: { orgId, tier: tierId, interval },
       },
-      metadata: { orgId, tier, type: "subscription", interval },
+      metadata: { orgId, tier: tierId, type: "subscription", interval },
       success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/billing?success=true`,
       cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/billing?canceled=true`,
     });

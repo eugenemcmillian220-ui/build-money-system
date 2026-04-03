@@ -52,8 +52,15 @@ export class BillingEngine {
     }, { onConflict: "stripe_subscription_id" });
 
     // 3. Optional: Grant monthly allowance for new/renewed subscriptions
-    if (status === "active" || status === "trialing") {
-      const allowanceMap: Record<string, number> = { starter: 5000, pro: 20000, enterprise: 100000 };
+    if (status === "active") {
+      const allowanceMap: Record<string, number> = {
+        basic_starter: 1000,
+        basic_pro: 3000,
+        basic_premium: 7000,
+        elite_starter: 5000,
+        elite_pro: 20000,
+        elite_enterprise: 100000
+      };
       const allowance = allowanceMap[tier] || 0;
       await this.processMonthlyGrant(orgId, allowance);
     }

@@ -719,7 +719,7 @@ CREATE TABLE IF NOT EXISTS organizations (
   slug VARCHAR(100) UNIQUE NOT NULL,
   logo_url TEXT,
   primary_color VARCHAR(20),
-  plan_id VARCHAR(50) DEFAULT 'free',
+  plan_id VARCHAR(50) DEFAULT 'none',
   billing_customer_id TEXT,
   metadata JSONB DEFAULT '{}',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -835,7 +835,7 @@ CREATE TABLE IF NOT EXISTS compliance_reports (
 
 -- PHASE 10: Multi-Agent Economy & Marketplace
 -- Tracks credit balances for organizations
-ALTER TABLE organizations ADD COLUMN IF NOT EXISTS credit_balance DECIMAL(12, 4) DEFAULT 100.00;
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS credit_balance DECIMAL(12, 4) DEFAULT 0.00;
 
 -- Ledger for agent-to-agent transactions and resource costs
 CREATE TABLE IF NOT EXISTS agent_ledger (
@@ -939,7 +939,7 @@ CREATE TABLE IF NOT EXISTS credit_transactions (
 
 -- Sync organizations table with Stripe customer ID
 ALTER TABLE organizations ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT;
-ALTER TABLE organizations ADD COLUMN IF NOT EXISTS billing_tier VARCHAR(20) DEFAULT 'free';
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS billing_tier VARCHAR(20) DEFAULT 'none';
 
 CREATE INDEX IF NOT EXISTS idx_billing_subs_org_id ON billing_subscriptions(org_id);
 CREATE INDEX IF NOT EXISTS idx_credit_trans_org_id ON credit_transactions(org_id);

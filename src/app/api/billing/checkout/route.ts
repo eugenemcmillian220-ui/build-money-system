@@ -8,7 +8,7 @@ const requestSchema = z.object({
   type: z.enum(["topup", "subscription"]),
   amount: z.number().int().optional(), // In cents (for topup)
   credits: z.number().int().optional(), // For topup
-  tier: z.enum(["starter", "pro", "enterprise"]).optional(), // For subscription
+  tier: z.string().optional(), // For subscription
   interval: z.enum(["monthly", "yearly"]).optional().default("monthly"),
 });
 
