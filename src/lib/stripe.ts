@@ -12,34 +12,60 @@ export const priceSchema = z.object({
 });
 
 export interface BillingTier {
-  id: "free" | "pro" | "enterprise";
+  id: "starter" | "pro" | "enterprise";
   name: string;
-  priceId: string; // Stripe Price ID
+  priceIdMonthly: string;
+  priceIdYearly: string;
+  monthlyPrice: number;
+  yearlyPriceEffective: number;
   creditsPerMonth: number;
   features: string[];
 }
 
 export const BILLING_TIERS: Record<string, BillingTier> = {
-  free: {
-    id: "free",
-    name: "Free Tier",
-    priceId: "",
-    creditsPerMonth: 100,
-    features: ["Phase 1-5 Access", "1 Project/mo", "Community Support"],
+  starter: {
+    id: "starter",
+    name: "Starter",
+    priceIdMonthly: "price_starter_monthly",
+    priceIdYearly: "price_starter_yearly",
+    monthlyPrice: 49,
+    yearlyPriceEffective: 39,
+    creditsPerMonth: 5000,
+    features: ["All Phases (1-11)", "Standard LLM Router", "Mobile App Gen", "Vision-to-Code", "5,000 Credits/mo"],
   },
   pro: {
     id: "pro",
     name: "Pro Builder",
-    priceId: "price_pro_monthly", // Replace with real ID
-    creditsPerMonth: 2500,
-    features: ["All Phases (1-11)", "Unlimited Projects", "Phase 9-11 Access", "Priority Support"],
+    priceIdMonthly: "price_pro_monthly",
+    priceIdYearly: "price_pro_yearly",
+    monthlyPrice: 149,
+    yearlyPriceEffective: 119,
+    creditsPerMonth: 20000,
+    features: [
+      "Everything in Starter",
+      "Multi-tenant Workspaces",
+      "Real-time Collaboration",
+      "Autonomous SRE",
+      "Compliance Vault",
+      "20,000 Credits/mo"
+    ],
   },
   enterprise: {
     id: "enterprise",
     name: "Enterprise Empire",
-    priceId: "price_enterprise_custom", // Replace with real ID
-    creditsPerMonth: 10000,
-    features: ["White-labeling", "Custom SSO", "SOC2 Compliance Reports", "Dedicated Infrastructure"],
+    priceIdMonthly: "price_enterprise_monthly",
+    priceIdYearly: "price_enterprise_yearly",
+    monthlyPrice: 499,
+    yearlyPriceEffective: 399,
+    creditsPerMonth: 100000,
+    features: [
+      "Everything in Pro",
+      "SSO/SAML/OIDC",
+      "White-label branding",
+      "Multi-cloud IaC",
+      "Dedicated Hype Instances",
+      "100,000 Credits/mo"
+    ],
   },
 };
 
@@ -54,7 +80,6 @@ export class StripeService {
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       mode: "payment",
-      customer_email: undefined, // Or get from org
       line_items: [
         {
           price_data: {
@@ -77,22 +102,28 @@ export class StripeService {
   }
 
   /**
-   * Create a subscription session for plan upgrades
+   * Create a subscription session for plan upgrades with 14-day trial
    */
-  async createSubscriptionSession(orgId: string, tier: string): Promise<string> {
+  async createSubscriptionSession(orgId: string, tier: string, interval: "monthly" | "yearly" = "monthly"): Promise<string> {
     const plan = BILLING_TIERS[tier];
     if (!plan) throw new Error("Invalid tier");
+
+    const priceId = interval === "monthly" ? plan.priceIdMonthly : plan.priceIdYearly;
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       mode: "subscription",
       line_items: [
         {
-          price: plan.priceId,
+          price: priceId,
           quantity: 1,
         },
       ],
-      metadata: { orgId, tier, type: "subscription" },
+      subscription_data: {
+        trial_period_days: 14,
+        metadata: { orgId, tier, interval },
+      },
+      metadata: { orgId, tier, type: "subscription", interval },
       success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/billing?success=true`,
       cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/billing?canceled=true`,
     });
@@ -104,7 +135,6 @@ export class StripeService {
    * Record metered usage to Stripe (e.g., LLM tokens beyond plan)
    */
   async reportUsage(customerId: string, quantity: number): Promise<void> {
-    // Meters API (v2) for usage-based billing
     await stripe.billing.meterEvents.create({
       event_name: "ai_token_usage",
       payload: {

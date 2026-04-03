@@ -19,7 +19,26 @@ AI App Builder is a comprehensive platform with 10 production-ready phases:
 - **Phase 11**: Autonomous Growth Lab (Hype Agent, Social Automation, SEO Loops, Viral Scaling)
 - **Experimental Path C**: Self-Evolving Applications (Autonomous Visual Feedback Loop)
 
-## Tech Stack
+## Pricing (Premium Only — No Free Tier)
+
+All access to **AI App Builder Elite** (Phases 1–11) requires a paid subscription.
+
+| Tier | Monthly | Annual (Save 20%) | Credits/mo | Best For |
+|---|---|---|---|---|
+| **Starter** | $49 | $39/mo | 5,000 | Indie Hackers |
+| **Pro** | $149 | $119/mo | 20,000 | Founders & Teams |
+| **Enterprise** | $499 | $399/mo | 100,000 | Agencies & Scaling Startups |
+
+- **14-Day Full Access Trial**: Test every feature before your first charge.
+- **Credit Top-ups**: $20 for 5,000 extra credits (with bulk discounts).
+### Specialized Licensing
+
+- **Lifetime Starter**: $790 (One-time)
+- **Lifetime Pro**: $2,390 (One-time)
+- **On-Prem Perpetual License**: $4,999 (Unlimited internal use, self-hosted)
+
+- **Marketplace Commission**: 25% on all agent-to-agent transactions.
+- **Affiliate Program**: Earn 20% recurring commission on all referrals.
 
 - **Frontend**: Next.js 15, React 19, Tailwind CSS v4
 - **Backend**: Next.js API Routes (Node.js runtime)
@@ -289,6 +308,7 @@ docker run -p 3000:3000 --env-file .env ai-app-builder
 - Phase 9: ✅ Autonomous Enterprise Layer
 - Phase 10: ✅ Multi-Agent Economy & Marketplace
 - Phase 11: ✅ Autonomous Growth Lab
+- Pricing: 💎 Premium-Only (No Free Tier)
 - Path C: 🧪 Self-Evolving Applications (Experimental)
 
 ## Documentation

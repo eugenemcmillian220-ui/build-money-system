@@ -8,7 +8,8 @@ const requestSchema = z.object({
   type: z.enum(["topup", "subscription"]),
   amount: z.number().int().optional(), // In cents (for topup)
   credits: z.number().int().optional(), // For topup
-  tier: z.enum(["pro", "enterprise"]).optional(), // For subscription
+  tier: z.enum(["starter", "pro", "enterprise"]).optional(), // For subscription
+  interval: z.enum(["monthly", "yearly"]).optional().default("monthly"),
 });
 
 export async function POST(request: Request): Promise<Response> {
@@ -27,7 +28,7 @@ export async function POST(request: Request): Promise<Response> {
       if (!parsed.tier) {
         return Response.json({ error: "Missing tier for subscription" }, { status: 400 });
       }
-      checkoutUrl = await stripeService.createSubscriptionSession(parsed.orgId, parsed.tier);
+      checkoutUrl = await stripeService.createSubscriptionSession(parsed.orgId, parsed.tier, parsed.interval);
     }
 
     return Response.json({ url: checkoutUrl });
