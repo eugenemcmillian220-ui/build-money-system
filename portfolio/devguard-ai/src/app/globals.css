@@ -1,0 +1,7 @@
+@import "tailwindcss";
+
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+  html { color-scheme: dark; }
+  body { margin: 0; background-color: #020617; }
+}

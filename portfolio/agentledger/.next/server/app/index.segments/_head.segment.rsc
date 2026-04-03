@@ -1,0 +1,6 @@
+1:"$Sreact.fragment"
+2:I[97367,["/_next/static/chunks/0dbhjjzl8qfwv.js","/_next/static/chunks/09vq3315hyovj.js"],"ViewportBoundary"]
+3:I[97367,["/_next/static/chunks/0dbhjjzl8qfwv.js","/_next/static/chunks/09vq3315hyovj.js"],"MetadataBoundary"]
+4:"$Sreact.suspense"
+5:I[27201,["/_next/static/chunks/0dbhjjzl8qfwv.js","/_next/static/chunks/09vq3315hyovj.js"],"IconMark"]
+0:{"rsc":["$","$1","h",{"children":[null,["$","$L2",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}],["$","meta","2",{"name":"theme-color","content":"#0d1117"}],["$","meta","3",{"name":"color-scheme","content":"dark"}]]}],["$","div",null,{"hidden":true,"children":["$","$L3",null,{"children":["$","$4",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"AgentLedger – AI Fiscal Management"}],["$","meta","1",{"name":"description","content":"Real-time AI spend tracking across OpenAI, Anthropic, and Groq — with agent budgeting, COGS insights, and anomaly detection."}],["$","link","2",{"rel":"icon","href":"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>"}],["$","$L5","3",{}]]}]}]}],null]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"wykKNfN2jh_91p5aTSMD8"}

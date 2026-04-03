@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-50: #f0f4ff;
+  --color-brand-100: #e0e9ff;
+  --color-brand-200: #c7d6fe;
+  --color-brand-300: #a4bbfd;
+  --color-brand-400: #7c96fa;
+  --color-brand-500: #5b6ef6;
+  --color-brand-600: #4451eb;
+  --color-brand-700: #3840d0;
+  --color-brand-800: #3035a8;
+  --color-brand-900: #2e3385;
+  --color-brand-950: #1b1e50;
+
+  --color-danger-400: #f87171;
+  --color-danger-500: #ef4444;
+  --color-danger-600: #dc2626;
+
+  --color-success-400: #4ade80;
+  --color-success-500: #22c55e;
+
+  --color-warning-400: #facc15;
+  --color-warning-500: #eab308;
+
+  --font-sans: "Inter", "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", "JetBrains Mono", ui-monospace, monospace;
+
+  --radius-card: 0.75rem;
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.12), 0 1px 2px -1px rgb(0 0 0 / 0.12);
+  --shadow-elevated: 0 4px 24px -4px rgb(0 0 0 / 0.18);
+}
+
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html {
+    font-family: var(--font-sans);
+    background-color: #0d1117;
+    color: #e6edf3;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    min-height: 100dvh;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@layer utilities {
+  .card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+  }
+  .card-elevated {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-elevated);
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+  }
+  .badge-green  { background: #1a3d2b; color: var(--color-success-400); }
+  .badge-red    { background: #3d1a1a; color: var(--color-danger-400); }
+  .badge-yellow { background: #3d3a1a; color: var(--color-warning-400); }
+  .badge-blue   { background: #1a2b3d; color: var(--color-brand-400); }
+}
