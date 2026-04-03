@@ -874,3 +874,38 @@ CREATE TABLE IF NOT EXISTS agent_skills (
 
 CREATE INDEX IF NOT EXISTS idx_agent_ledger_org_id ON agent_ledger(org_id);
 CREATE INDEX IF NOT EXISTS idx_agent_skills_category ON agent_skills(category);
+
+-- PHASE 11: Autonomous Growth Lab
+-- Tracks social media posts and campaigns
+CREATE TABLE IF NOT EXISTS marketing_posts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  platform VARCHAR(50) NOT NULL, -- 'x', 'linkedin', 'reddit'
+  content TEXT NOT NULL,
+  media_urls TEXT[],
+  status VARCHAR(20) DEFAULT 'scheduled', -- 'scheduled', 'posted', 'failed'
+  external_id TEXT, -- ID from the social platform
+  engagement_metrics JSONB DEFAULT '{}', -- likes, shares, etc.
+  scheduled_at TIMESTAMPTZ,
+  posted_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Tracks automated SEO articles and landing pages
+CREATE TABLE IF NOT EXISTS seo_articles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  slug TEXT NOT NULL,
+  content TEXT NOT NULL,
+  keywords TEXT[],
+  status VARCHAR(20) DEFAULT 'draft', -- 'draft', 'published'
+  view_count INTEGER DEFAULT 0,
+  last_revalidated_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_marketing_posts_project_id ON marketing_posts(project_id);
+CREATE INDEX IF NOT EXISTS idx_seo_articles_project_id ON seo_articles(project_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_seo_articles_slug ON seo_articles(slug);
