@@ -10,7 +10,7 @@ if (!supabaseUrl || !supabaseServiceKey) {
   console.warn("Supabase service role key not configured. Database persistence will be unavailable.");
 }
 
-const supabaseAdmin = supabaseUrl && supabaseServiceKey
+export const supabaseAdmin = supabaseUrl && supabaseServiceKey
   ? createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,

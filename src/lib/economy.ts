@@ -1,4 +1,4 @@
-import { createClient } from "./supabase/server";
+import { supabaseAdmin } from "./supabase/db";
 
 export type AgentRole = "Architect" | "Developer" | "QA" | "SecurityAuditor" | "ProductManager" | "SRE";
 
@@ -8,7 +8,7 @@ export interface Transaction {
   fromAgent: AgentRole | "System";
   toAgent?: AgentRole;
   amount: number;
-  type: "hiring" | "resource_cost" | "top_up";
+  type: "hiring" | "resource_cost" | "top_up" | "subscription_grant";
   description: string;
 }
 
@@ -20,8 +20,8 @@ export class AgentEconomy {
    * Get the current credit balance for an organization
    */
   async getBalance(orgId: string): Promise<number> {
-    const supabase = await createClient();
-    const { data, error } = await supabase
+    if (!supabaseAdmin) throw new Error("Supabase admin not configured");
+    const { data, error } = await supabaseAdmin
       .from("organizations")
       .select("credit_balance")
       .eq("id", orgId)
@@ -35,10 +35,10 @@ export class AgentEconomy {
    * Record a transaction in the ledger and update organization balance
    */
   async recordTransaction(tx: Transaction): Promise<void> {
-    const supabase = await createClient();
+    if (!supabaseAdmin) throw new Error("Supabase admin not configured");
 
     // 1. Insert into ledger
-    const { error: ledgerError } = await supabase
+    const { error: ledgerError } = await supabaseAdmin
       .from("agent_ledger")
       .insert({
         org_id: tx.orgId,
@@ -53,10 +53,10 @@ export class AgentEconomy {
     if (ledgerError) throw new Error(`Ledger error: ${ledgerError.message}`);
 
     // 2. Update organization balance
-    // If it's a top_up, we add. If it's hiring or resource_cost, we subtract.
-    const delta = tx.type === "top_up" ? tx.amount : -tx.amount;
+    // If it's a top_up or subscription_grant, we add.
+    const delta = (tx.type === "top_up" || tx.type === "subscription_grant") ? tx.amount : -tx.amount;
 
-    const { error: balanceError } = await supabase.rpc("increment_org_balance", {
+    const { error: balanceError } = await supabaseAdmin.rpc("increment_org_balance", {
       org_id: tx.orgId,
       amount: delta,
     });
@@ -64,11 +64,24 @@ export class AgentEconomy {
     if (balanceError) {
       // Fallback if RPC isn't defined yet
       const currentBalance = await this.getBalance(tx.orgId);
-      await supabase
+      await supabaseAdmin
         .from("organizations")
         .update({ credit_balance: currentBalance + delta })
         .eq("id", tx.orgId);
     }
+  }
+
+  /**
+   * Grant credits to an organization (e.g., from top-up or subscription)
+   */
+  async grantCredits(orgId: string, amount: number, type: "top_up" | "subscription_grant" = "top_up"): Promise<void> {
+    await this.recordTransaction({
+      orgId,
+      fromAgent: "System",
+      amount,
+      type,
+      description: type === "top_up" ? "Manual Credit Top-up" : "Monthly Subscription Allowance",
+    });
   }
 
   /**

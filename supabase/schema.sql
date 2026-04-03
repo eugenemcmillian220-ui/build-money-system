@@ -909,3 +909,37 @@ CREATE TABLE IF NOT EXISTS seo_articles (
 CREATE INDEX IF NOT EXISTS idx_marketing_posts_project_id ON marketing_posts(project_id);
 CREATE INDEX IF NOT EXISTS idx_seo_articles_project_id ON seo_articles(project_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_seo_articles_slug ON seo_articles(slug);
+
+-- STRIPE BILLING & CREDIT ECONOMY
+-- Tracks organization subscription status
+CREATE TABLE IF NOT EXISTS billing_subscriptions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+  stripe_customer_id TEXT UNIQUE,
+  stripe_subscription_id TEXT UNIQUE,
+  status VARCHAR(20), -- 'active', 'past_due', 'canceled'
+  tier VARCHAR(20) DEFAULT 'free', -- 'free', 'pro', 'enterprise'
+  current_period_end TIMESTAMPTZ,
+  cancel_at_period_end BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Detailed credit transaction history (Top-ups, Subscriptions, Usage)
+CREATE TABLE IF NOT EXISTS credit_transactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+  amount INTEGER NOT NULL, -- positive for top-ups, negative for usage
+  type VARCHAR(30) NOT NULL, -- 'subscription_grant', 'topup', 'usage', 'referral'
+  description TEXT,
+  stripe_session_id TEXT,
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Sync organizations table with Stripe customer ID
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT;
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS billing_tier VARCHAR(20) DEFAULT 'free';
+
+CREATE INDEX IF NOT EXISTS idx_billing_subs_org_id ON billing_subscriptions(org_id);
+CREATE INDEX IF NOT EXISTS idx_credit_trans_org_id ON credit_transactions(org_id);
