@@ -820,3 +820,57 @@ $$;
 
 -- END OF SCHEMA
 -- =============================================================================
+
+-- PHASE 9: Autonomous Enterprise Layer
+CREATE TABLE IF NOT EXISTS compliance_reports (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  score INTEGER NOT NULL,
+  pii_detected BOOLEAN DEFAULT false,
+  soc2_passed BOOLEAN DEFAULT false,
+  gdpr_passed BOOLEAN DEFAULT false,
+  report_data JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- PHASE 10: Multi-Agent Economy & Marketplace
+-- Tracks credit balances for organizations
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS credit_balance DECIMAL(12, 4) DEFAULT 100.00;
+
+-- Ledger for agent-to-agent transactions and resource costs
+CREATE TABLE IF NOT EXISTS agent_ledger (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+  project_id UUID REFERENCES projects(id) ON DELETE SET NULL,
+  from_agent VARCHAR(50) NOT NULL, -- e.g., 'Architect', 'Developer'
+  to_agent VARCHAR(50),           -- e.g., 'SecurityAuditor'
+  amount DECIMAL(12, 4) NOT NULL,
+  currency VARCHAR(10) DEFAULT 'CREDIT',
+  transaction_type VARCHAR(20) NOT NULL, -- 'hiring', 'resource_cost', 'top_up'
+  description TEXT,
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Marketplace for specialized agent skills/prompts
+CREATE TABLE IF NOT EXISTS agent_skills (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(255) NOT NULL,
+  slug VARCHAR(100) UNIQUE NOT NULL,
+  description TEXT,
+  author_id UUID REFERENCES auth.users(id),
+  author_name TEXT,
+  category VARCHAR(50), -- 'ui', 'logic', 'security', 'data'
+  price DECIMAL(12, 4) DEFAULT 0.00,
+  prompt_template TEXT NOT NULL,
+  required_tools TEXT[],
+  version VARCHAR(20) DEFAULT '1.0.0',
+  rating DECIMAL(3, 2) DEFAULT 0.00,
+  usage_count INTEGER DEFAULT 0,
+  is_verified BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_agent_ledger_org_id ON agent_ledger(org_id);
+CREATE INDEX IF NOT EXISTS idx_agent_skills_category ON agent_skills(category);

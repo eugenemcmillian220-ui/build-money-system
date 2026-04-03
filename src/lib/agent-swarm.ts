@@ -1,6 +1,7 @@
 import { AppBuildAgent } from "./agent";
 import { FileMap, ProjectStatus } from "./types";
 import { LLMError } from "./llm";
+import { agentEconomy, AgentRole as EconomyRole } from "./economy";
 
 /**
  * Agent Swarm System for AI App Builder
@@ -10,6 +11,7 @@ import { LLMError } from "./llm";
 export interface AgentRole {
   name: string;
   role: 'architect' | 'developer' | 'tester' | 'reviewer';
+  economyRole: EconomyRole;
   promptPrefix: string;
 }
 
@@ -30,26 +32,30 @@ export class AgentSwarm {
     {
       name: 'Architect',
       role: 'architect',
+      economyRole: 'Architect',
       promptPrefix: 'You are an Expert Software Architect. Plan the file structure and core logic for the following project: ',
     },
     {
       name: 'Frontend Developer',
       role: 'developer',
+      economyRole: 'Developer',
       promptPrefix: 'You are a Senior Frontend Developer. Implement the UI components and pages using React and Tailwind CSS: ',
     },
     {
       name: 'Backend Developer',
       role: 'developer',
+      economyRole: 'Developer',
       promptPrefix: 'You are a Senior Backend Developer. Implement the API routes and database logic using Supabase: ',
     },
     {
       name: 'QA Engineer',
       role: 'tester',
+      economyRole: 'QA',
       promptPrefix: 'You are a QA Engineer. Identify and fix potential bugs in the following code: ',
     }
   ];
 
-  constructor(private projectId: string) {}
+  constructor(private projectId: string, private orgId?: string) {}
 
   /**
    * Executes a collaborative project build using the swarm
@@ -76,8 +82,14 @@ export class AgentSwarm {
         status: 'running'
       };
       this.tasks.push(architectTask);
-      
+
+      // Economy: Charge for hiring Architect
+      if (this.orgId) {
+        await agentEconomy.hireAgent(this.orgId, "System", "Architect", architectTask.description, this.projectId);
+      }
+
       // Simulate architecture planning
+
       const architectAgent = new AppBuildAgent();
       const plan = await architectAgent.run(`Plan the file structure for: ${prompt}. Return a basic scaffolding.`);
       Object.assign(combinedFiles, plan.files);
@@ -102,6 +114,11 @@ export class AgentSwarm {
 
       // Parallel execution simulation
       const devResults = await Promise.all(devTasks.map(async (task) => {
+        // Economy: Architect hires Developers
+        if (this.orgId) {
+          await agentEconomy.hireAgent(this.orgId, "Architect", "Developer", task.description, this.projectId);
+        }
+
         const agent = new AppBuildAgent();
         const result = await agent.run(`${task.role.promptPrefix} ${prompt}`);
         task.status = 'completed';
@@ -123,6 +140,11 @@ export class AgentSwarm {
         status: 'running'
       };
       this.tasks.push(qaTask);
+
+      // Economy: Hire QA Engineer
+      if (this.orgId) {
+        await agentEconomy.hireAgent(this.orgId, "Developer", "QA", qaTask.description, this.projectId);
+      }
 
       const qaAgent = new AppBuildAgent();
       // In a real swarm, the QA agent would analyze existing files and fix them

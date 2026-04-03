@@ -49,10 +49,46 @@ export interface Review {
   createdAt: string;
 }
 
+export interface AgentSkill {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  authorId: string;
+  authorName: string;
+  category: 'ui' | 'logic' | 'security' | 'data';
+  price: number;
+  promptTemplate: string;
+  requiredTools?: string[];
+  version: string;
+  rating: number;
+  usageCount: number;
+  isVerified: boolean;
+  createdAt: string;
+}
+
 export class Marketplace {
   private listings: Listing[] = [];
   private purchases: Purchase[] = [];
   private reviews: Review[] = [];
+  private skills: AgentSkill[] = [];
+
+  addSkill(skill: Omit<AgentSkill, 'id' | 'createdAt' | 'rating' | 'usageCount' | 'isVerified'>): AgentSkill {
+    const newSkill: AgentSkill = {
+      ...skill,
+      id: Math.random().toString(36).substring(2, 11),
+      rating: 0,
+      usageCount: 0,
+      isVerified: false,
+      createdAt: new Date().toISOString(),
+    };
+    this.skills.push(newSkill);
+    return newSkill;
+  }
+
+  getSkills(category?: string): AgentSkill[] {
+    return category ? this.skills.filter(s => s.category === category) : this.skills;
+  }
 
   addListing(item: ListingInput): Listing {
     const listing: Listing = {

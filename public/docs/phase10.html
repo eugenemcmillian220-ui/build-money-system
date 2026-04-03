@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phase 10 Documentation — AI App Builder Elite</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #16161f;
+    --border: rgba(255,255,255,0.08);
+    --accent: #ec4899;
+    --accent2: #f472b6;
+    --green: #22c55e;
+    --blue: #3b82f6;
+    --orange: #f59e0b;
+    --red: #ef4444;
+    --text: #f1f0ff;
+    --muted: #8b8aa0;
+    --code-bg: #0d0d14;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 15px;
+    line-height: 1.75;
+  }
+
+  /* Layout */
+  .layout { display: flex; min-height: 100vh; }
+  .sidebar {
+    width: 260px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 0 0 40px;
+  }
+  .sidebar-logo {
+    padding: 24px 20px 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 12px;
+  }
+  .logo-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 900; color: white;
+  }
+  .phase-tag {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+  .nav-section {
+    padding: 8px 20px 4px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-top: 8px;
+  }
+  .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 20px;
+    font-size: 13px;
+    color: var(--muted);
+    text-decoration: none;
+    border-radius: 0;
+    transition: all 0.15s;
+    border-left: 2px solid transparent;
+  }
+  .nav-link:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+  .nav-link.active { color: var(--accent); border-left-color: var(--accent); background: rgba(236,72,153,0.08); }
+  .nav-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+  }
+
+  .main { flex: 1; overflow-x: hidden; }
+  .content { max-width: 880px; padding: 60px 48px 100px; margin: 0 auto; }
+
+  /* Hero */
+  .hero {
+    background: linear-gradient(135deg, rgba(236,72,153,0.12) 0%, rgba(244,114,182,0.06) 100%);
+    border: 1px solid rgba(236,72,153,0.2);
+    border-radius: 20px;
+    padding: 48px;
+    margin-bottom: 60px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 240px; height: 240px;
+    background: radial-gradient(circle, rgba(236,72,153,0.15), transparent 70%);
+    border-radius: 50%;
+  }
+  .hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 12px;
+    background: rgba(236,72,153,0.15);
+    border: 1px solid rgba(236,72,153,0.3);
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .pulse { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .hero h1 { font-size: 40px; font-weight: 900; letter-spacing: -1.5px; line-height: 1.15; margin-bottom: 16px; }
+  .hero h1 span { background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .hero p { font-size: 17px; color: var(--muted); max-width: 560px; line-height: 1.7; }
+  .hero-stats {
+    display: flex; gap: 32px; margin-top: 32px;
+    flex-wrap: wrap;
+  }
+  .stat { text-align: left; }
+  .stat-val { font-size: 28px; font-weight: 900; letter-spacing: -1px; color: var(--accent); }
+  .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+
+  /* Sections */
+  .doc-section { margin-bottom: 72px; scroll-margin-top: 32px; }
+  .section-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .feature-number {
+    width: 40px; height: 40px; flex-shrink: 0;
+    background: rgba(236,72,153,0.12);
+    border: 1px solid rgba(236,72,153,0.25);
+    border-radius: 100px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 800; color: var(--accent);
+    margin-top: 2px;
+  }
+  .section-header h2 { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
+  .section-header p { font-size: 14px; color: var(--muted); margin-top: 6px; }
+
+  /* Cards */
+  .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 24px 0; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    transition: border-color 0.2s;
+  }
+  .card:hover { border-color: rgba(236,72,153,0.3); }
+  .card-icon { font-size: 20px; margin-bottom: 10px; }
+  .card h4 { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+  .card p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+  /* Code blocks */
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    overflow-x: auto;
+    margin: 20px 0;
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  code { font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace; }
+  p code, li code {
+    background: rgba(255,255,255,0.06);
+    padding: 2px 7px;
+    border-radius: 5px;
+    font-size: 12.5px;
+    color: #f472b6;
+  }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 13px; }
+  th { background: var(--surface2); text-align: left; padding: 10px 14px; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--border); }
+  td { padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+
+  /* Callouts */
+  .callout {
+    display: flex; gap: 14px;
+    padding: 16px 20px;
+    border-radius: 12px;
+    margin: 20px 0;
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+  .callout.info { background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.25); }
+
+  /* TOC top bar */
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .topbar-title { font-size: 13px; font-weight: 600; color: var(--muted); }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .sidebar { display: none; }
+    .content { padding: 32px 20px 80px; }
+    .card-grid { grid-template-columns: 1fr; }
+    .hero { padding: 28px; }
+    .hero h1 { font-size: 28px; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- Sidebar Navigation -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-badge">
+        <div class="logo-icon">M</div>
+        Multi-Agent
+      </div>
+      <div class="phase-tag">Phase 10 Docs</div>
+    </div>
+
+    <div class="nav-section">Overview</div>
+    <a href="#intro" class="nav-link active"><span class="nav-dot"></span> Introduction</a>
+    <a href="#economy" class="nav-link"><span class="nav-dot"></span> 1. Agent Economy</a>
+    <a href="#marketplace" class="nav-link"><span class="nav-dot"></span> 2. Skills Marketplace</a>
+    <a href="#swarm" class="nav-link"><span class="nav-dot"></span> 3. Swarm Hiring</a>
+    <a href="#ledger" class="nav-link"><span class="nav-dot"></span> 4. Agent Ledger</a>
+
+  </aside>
+
+  <div class="main">
+    <!-- Top Bar -->
+    <div class="topbar">
+      <span class="topbar-title">AI App Builder — Phase 10 Technical Documentation</span>
+    </div>
+
+    <div class="content">
+
+      <!-- Hero -->
+      <section id="intro" class="doc-section">
+        <div class="hero">
+          <div class="hero-eyebrow"><span class="pulse"></span> Final Phase 10</div>
+          <h1>Multi-Agent <span>Economy</span></h1>
+          <p>Phase 10 introduces the <strong>Agent-to-Agent Marketplace & Economy</strong>. Agents now operate within a fiscal framework, "hiring" specialists and paying for resources, creating a self-regulating development ecosystem.</p>
+          <div class="hero-stats">
+            <div class="stat"><div class="stat-val">10</div><div class="stat-label">Total Phases</div></div>
+            <div class="stat"><div class="stat-val">Ledger</div><div class="stat-label">Fiscal System</div></div>
+            <div class="stat"><div class="stat-val">Skills</div><div class="stat-label">Marketplace</div></div>
+          </div>
+        </div>
+
+        <h3>The Final Evolution</h3>
+        <p>Your platform is no longer just a tool; it is a <strong>Dynamic Economic System</strong> where agents optimize for both code quality and resource efficiency.</p>
+      </section>
+
+      <!-- Agent Economy -->
+      <section id="economy" class="doc-section">
+        <div class="section-header">
+          <div class="feature-number">1</div>
+          <div>
+            <h2>Agent Credit System</h2>
+            <p>Organizations maintain a credit balance that agents draw from to perform tasks and hire specialists.</p>
+          </div>
+        </div>
+
+        <div class="card-grid">
+          <div class="card">
+            <div class="card-icon">💳</div>
+            <h4>Project Budgets</h4>
+            <p>Every project generation has a calculated cost based on the complexity and agents involved.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">📈</div>
+            <h4>COGS Tracking</h4>
+            <p>Real-time tracking of "Cost of Goods Sold" for every build, accounting for tokens and agent fees.</p>
+          </div>
+        </div>
+
+        <h3>Implementation: <code>src/lib/economy.ts</code></h3>
+        <pre><code><span style="color: #4b5563;">// Example of charging for LLM usage</span>
+<span style="color: #67e8f9;">await</span> agentEconomy.<span style="color: #93c5fd;">chargeResourceCost</span>(
+  orgId, 
+  <span style="color: #86efac;">"Developer"</span>, 
+  tokens, 
+  model
+);</code></pre>
+      </section>
+
+      <!-- Skills Marketplace -->
+      <section id="marketplace" class="doc-section">
+        <div class="section-header">
+          <div class="feature-number">2</div>
+          <div>
+            <h2>Agent Skills Marketplace</h2>
+            <p>A community-driven marketplace where specialized prompts and agent configurations can be shared and purchased.</p>
+          </div>
+        </div>
+
+        <table>
+          <thead><tr><th>Category</th><th>Description</th><th>Example Skill</th></tr></thead>
+          <tbody>
+            <tr><td><strong>UI Specialist</strong></td><td>Pixel-perfect component styling</td><td>"Modern Dashboard Theme"</td></tr>
+            <tr><td><strong>Logic Architect</strong></td><td>Complex state & mutation patterns</td><td>"Supabase Auth Flow"</td></tr>
+            <tr><td><strong>Security Auditor</strong></td><td>Deep PII and RLS verification</td><td>"GDPR Compliance Scanner"</td></tr>
+            <tr><td><strong>Data Modeler</strong></td><td>Advanced SQL and Schema design</td><td>"Multi-tenant Schema Bot"</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Endpoint: <code>GET /api/marketplace/skills</code></h3>
+        <p>List available agentic skills with ratings, price, and usage counts.</p>
+      </section>
+
+      <!-- Swarm Hiring -->
+      <section id="swarm" class="doc-section">
+        <div class="section-header">
+          <div class="feature-number">3</div>
+          <div>
+            <h2>Autonomous Swarm Hiring</h2>
+            <p>The Swarm Orchestrator now "hires" specialist agents based on the project requirements.</p>
+          </div>
+        </div>
+
+        <div class="callout info">
+          <span class="callout-icon">ℹ</span>
+          <div>Agents will refuse to work if the organization's credit balance is insufficient, preventing unexpected billing overages.</div>
+        </div>
+
+        <h3>The Hiring Logic</h3>
+        <pre><code><span style="color: #4b5563;">// src/lib/agent-swarm.ts</span>
+<span style="color: #67e8f9;">const</span> success = <span style="color: #67e8f9;">await</span> agentEconomy.<span style="color: #93c5fd;">hireAgent</span>(
+  orgId, 
+  <span style="color: #86efac;">"Architect"</span>, 
+  <span style="color: #86efac;">"Developer"</span>, 
+  taskDescription
+);</code></pre>
+      </section>
+
+      <!-- Agent Ledger -->
+      <section id="ledger" class="doc-section">
+        <div class="section-header">
+          <div class="feature-number">4</div>
+          <div>
+            <h2>The Agent Ledger</h2>
+            <p>A transparent audit trail of all economic activity within an organization.</p>
+          </div>
+        </div>
+
+        <p>The ledger tracks:</p>
+        <ul>
+          <li><strong>Hiring Events:</strong> When one agent delegates a subtask to another.</li>
+          <li><strong>Resource Costs:</strong> Exact credit deductions for OpenAI/OpenRouter token usage.</li>
+          <li><strong>Top-ups:</strong> When credits are added to an organization.</li>
+        </ul>
+      </section>
+
+    </div>
+  </div>
+</div>
+</body>
+</html>
