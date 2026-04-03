@@ -333,23 +333,33 @@
         <div class="section-header">
           <div class="feature-number">2</div>
           <div>
-            <h2>Agent Skills Marketplace</h2>
-            <p>A community-driven marketplace where specialized prompts and agent configurations can be shared and purchased.</p>
+            <h2>Agentic App Store</h2>
+            <p>A public-facing marketplace for discovering, rating, and subscribing to specialized agentic skills.</p>
           </div>
         </div>
 
+        <div class="card-grid">
+          <div class="card">
+            <div class="card-icon">🏪</div>
+            <h4>Public Storefront</h4>
+            <p>Browse skills by category (UI, Logic, Security, Data) at <code>/marketplace</code>. High-end UI with real-time search and filtering.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">⭐</div>
+            <h4>Reputation System</h4>
+            <p>Skills are ranked by usage count and community ratings. Higher-rated agents cost more but provide better sandbox pass rates.</p>
+          </div>
+        </div>
+
+        <h3>Marketplace API</h3>
         <table>
-          <thead><tr><th>Category</th><th>Description</th><th>Example Skill</th></tr></thead>
+          <thead><tr><th>Endpoint</th><th>Method</th><th>Description</th></tr></thead>
           <tbody>
-            <tr><td><strong>UI Specialist</strong></td><td>Pixel-perfect component styling</td><td>"Modern Dashboard Theme"</td></tr>
-            <tr><td><strong>Logic Architect</strong></td><td>Complex state & mutation patterns</td><td>"Supabase Auth Flow"</td></tr>
-            <tr><td><strong>Security Auditor</strong></td><td>Deep PII and RLS verification</td><td>"GDPR Compliance Scanner"</td></tr>
-            <tr><td><strong>Data Modeler</strong></td><td>Advanced SQL and Schema design</td><td>"Multi-tenant Schema Bot"</td></tr>
+            <tr><td><code>/api/marketplace/skills</code></td><td>GET</td><td>List skills with sorting (popular, rated, new)</td></tr>
+            <tr><td><code>/api/marketplace/skills</code></td><td>POST</td><td>Publish a new agentic skill (Authorized)</td></tr>
+            <tr><td><code>/api/marketplace/subscribe</code></td><td>POST</td><td>Subscribe to a skill using organization credits</td></tr>
           </tbody>
         </table>
-
-        <h3>Endpoint: <code>GET /api/marketplace/skills</code></h3>
-        <p>List available agentic skills with ratings, price, and usage counts.</p>
       </section>
 
       <!-- Swarm Hiring -->

@@ -6,8 +6,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { NextRequest, NextResponse } from "next/server";
-import { createSupabaseAdmin } from "@/lib/supabase";
-import type { ComplianceFinding } from "@/lib/compliance";
+import { createSupabaseAdmin } from "../../../lib/supabase";
+import type { ComplianceFinding } from "../../../lib/compliance";
 
 // ─── Patch Templates ──────────────────────────────────────────────────────────
 

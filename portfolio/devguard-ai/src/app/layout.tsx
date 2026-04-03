@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ComplianceDashboard } from "@/components/ComplianceDashboard";
+import { ComplianceDashboard } from "../components/ComplianceDashboard";
 import "./globals.css";
 
 export const metadata: Metadata = {

@@ -6,7 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState } from "react";
-import type { ComplianceReport, ComplianceFinding, Severity } from "@/lib/compliance";
+import type { ComplianceReport, ComplianceFinding, Severity } from "../lib/compliance";
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 

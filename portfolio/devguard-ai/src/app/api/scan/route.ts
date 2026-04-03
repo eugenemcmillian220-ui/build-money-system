@@ -6,8 +6,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { NextRequest, NextResponse } from "next/server";
-import { auditProject, redactPII } from "@/lib/compliance";
-import { createSupabaseAdmin } from "@/lib/supabase";
+import { auditProject, redactPII } from "../../../lib/compliance";
+import { createSupabaseAdmin } from "../../../lib/supabase";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

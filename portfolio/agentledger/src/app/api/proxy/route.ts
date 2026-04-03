@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { AgentCreditSystem, MODEL_PRICING, type Provider, type LLMModel } from "@/lib/economy";
+import { AgentCreditSystem, MODEL_PRICING, type Provider, type LLMModel } from "../../../lib/economy";
 
 const creditSystem = new AgentCreditSystem();
 
@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
       // Run anomaly check asynchronously (non-blocking)
       creditSystem.detectAnomalies(orgId).then(async (anomalies) => {
         if (anomalies.length > 0) {
-          const { createClient } = await import("@/lib/supabase");
+          const { createClient } = await import("../../../lib/supabase");
           const supabase = createClient();
           await supabase.from("anomalies").insert(
             anomalies.map((a) => ({

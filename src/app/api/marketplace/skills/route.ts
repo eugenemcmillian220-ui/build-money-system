@@ -17,13 +17,24 @@ const skillSchema = z.object({
 export async function GET(request: Request): Promise<Response> {
   const { searchParams } = new URL(request.url);
   const category = searchParams.get("category");
+  const sort = searchParams.get("sort") || "popular";
 
   try {
     const supabase = await createClient();
     let query = supabase.from("agent_skills").select("*");
+    
     if (category) {
       query = query.eq("category", category);
     }
+
+    if (sort === "popular") {
+      query = query.order("usage_count", { ascending: false });
+    } else if (sort === "rated") {
+      query = query.order("rating", { ascending: false });
+    } else {
+      query = query.order("created_at", { ascending: false });
+    }
+
     const { data, error } = await query;
 
     if (error) throw error;
