@@ -54,6 +54,7 @@ export class BillingEngine {
     // 3. Optional: Grant monthly allowance for new/renewed subscriptions
     if (status === "active") {
       const allowanceMap: Record<string, number> = {
+        basic_mini: 300,
         basic_starter: 1000,
         basic_pro: 3000,
         basic_premium: 7000,

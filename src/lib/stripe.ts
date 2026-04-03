@@ -25,6 +25,17 @@ export interface BillingTier {
 
 export const BILLING_TIERS: Record<string, BillingTier> = {
   // --- Phase 1-3 Basic Tiers ---
+  "basic_mini": {
+    id: "basic_mini",
+    name: "Basic Mini",
+    category: "basic",
+    priceIdMonthly: "price_basic_mini_monthly",
+    priceIdYearly: "price_basic_mini_yearly",
+    monthlyPrice: 5,
+    yearlyPriceEffective: 4,
+    creditsPerMonth: 300,
+    features: ["Phases 1-3 Only", "Single Component Gen", "Basic Multi-file", "300 Credits/mo"],
+  },
   "basic_starter": {
     id: "basic_starter",
     name: "Basic Starter",
