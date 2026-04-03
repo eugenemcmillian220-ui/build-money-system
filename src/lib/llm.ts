@@ -1,17 +1,10 @@
 import { serverEnv } from "@/lib/env";
-import { FileMap, AppSpec, AgentConfig, defaultAgentConfig } from "./types";
+import { FileMap, AppSpec, AgentConfig, defaultAgentConfig, ChatMessage } from "./types";
 import { MemoryContext } from "./memory-store";
 
+import { llmRouter, LLMProvider } from "./llm-router";
+
 const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
-
-export interface ChatMessage {
-  role: "system" | "user" | "assistant";
-  content: string | Array<MessageContent>;
-}
-
-export type MessageContent = 
-  | { type: "text"; text: string }
-  | { type: "image_url"; image_url: { url: string } };
 
 interface OpenRouterRequestBody {
   model: string;
@@ -69,39 +62,60 @@ export async function callLLM(
 ): Promise<string> {
   const fullConfig = { ...defaultAgentConfig, ...config };
 
-  const body: OpenRouterRequestBody = {
-    model: fullConfig.model,
-    messages,
-    temperature: fullConfig.temperature,
-    max_tokens: fullConfig.maxTokens,
-  };
-
-  let response: Response;
-  try {
-    response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-      method: "POST",
-      headers: buildHeaders(),
-      body: JSON.stringify(body),
-    });
-  } catch (cause) {
-    throw new LLMError("Failed to reach LLM API", undefined, cause);
+  // If a specific model is requested (like GPT-4o), try it first via OpenRouter
+  if (config.model && !config.model.includes(":free")) {
+    try {
+      return await callProvider("openrouter", config.model, messages, fullConfig);
+    } catch (e) {
+      console.warn(`[LLM] Primary provider failed, falling back to free rotation:`, e);
+    }
   }
+
+  // Fallback / Free Rotation Logic
+  let lastError: Error | null = null;
+  for (let i = 0; i < 3; i++) {
+    try {
+      const req = llmRouter.getNextFreeRequest(messages, fullConfig);
+      return await callProvider(req.provider, req.model, messages, fullConfig);
+    } catch (e) {
+      lastError = e as Error;
+      console.warn(`[LLM] Rotation attempt ${i + 1} failed:`, e);
+    }
+  }
+
+  throw new LLMError(`All LLM providers failed: ${lastError?.message}`, 500);
+}
+
+async function callProvider(
+  provider: LLMProvider,
+  model: string,
+  messages: ChatMessage[],
+  config: AgentConfig
+): Promise<string> {
+  const { url, headers, body } = llmRouter.getFetchParams({ provider, model, messages, config });
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+  });
 
   if (!response.ok) {
     const text = await response.text().catch(() => "");
-    throw new LLMError(
-      `LLM API returned ${response.status}: ${text}`,
-      response.status,
-    );
+    throw new LLMError(`LLM API (${provider}) returned ${response.status}: ${text}`, response.status);
   }
 
-  const json = (await response.json()) as {
-    choices: Array<{ message: { content: string } }>;
-  };
+  const json = await response.json();
+  
+  let content = "";
+  if (provider === "gemini") {
+    content = json.candidates?.[0]?.content?.parts?.[0]?.text;
+  } else {
+    content = json.choices?.[0]?.message?.content;
+  }
 
-  const content = json.choices[0]?.message?.content;
   if (!content) {
-    throw new LLMError("LLM API returned an empty response");
+    throw new LLMError(`LLM API (${provider}) returned an empty response`);
   }
 
   return content;

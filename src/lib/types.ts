@@ -6,6 +6,15 @@ export type AgentPhase = 'planning' | 'vision' | 'building' | 'testing' | 'fixin
 
 export type DeploymentStatus = 'pending' | 'building' | 'ready' | 'error' | 'cancelled';
 
+export interface ChatMessage {
+  role: "system" | "user" | "assistant";
+  content: string | Array<MessageContent>;
+}
+
+export type MessageContent = 
+  | { type: "text"; text: string }
+  | { type: "image_url"; image_url: { url: string } };
+
 export interface GenerationResult {
   files: FileMap;
   description?: string;

@@ -17,6 +17,8 @@ const serverEnvSchema = z.object({
   VERCEL_TOKEN: z.string().optional(),
   VERCEL_TEAM_ID: z.string().optional(),
   ADMIN_API_KEYS: z.string().optional(),
+  GEMINI_API_KEY: z.string().optional(),
+  GROQ_API_KEY: z.string().optional(),
 });
 
 const clientEnvSchema = z.object({
