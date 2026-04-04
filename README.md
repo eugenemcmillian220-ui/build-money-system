@@ -19,6 +19,7 @@ AI App Builder is a comprehensive platform with 10 production-ready phases:
 - **Phase 11**: Autonomous Growth Lab (Hype Agent, Social Automation, SEO Loops, Viral Scaling)
 - **Phase 12**: Autonomous Governance & Edge Scale (HITL Approval, Global Orchestration, Multi-region Deployment)
 - **Phase 13**: Autonomous VC Layer (Funding Agent, Credit Injection, RevShare Models)
+- **Phase 14**: Agentic Diplomacy & B2B Negotiation (Vendor Relations, Auto-Negotiation, Savings Ledger)
 - **Experimental Path C**: Self-Evolving Applications (Autonomous Visual Feedback Loop)
 
 ## Pricing (Premium Only — No Free Tier)
@@ -312,6 +313,7 @@ docker run -p 3000:3000 --env-file .env ai-app-builder
 - Phase 11: ✅ Autonomous Growth Lab
 - Phase 12: ✅ Autonomous Governance & Edge Scale
 - Phase 13: ✅ Autonomous VC Layer
+- Phase 14: ✅ Agentic Diplomacy & B2B Negotiation
 - Pricing: 💎 Premium-Only (No Free Tier)
 - Path C: 🧪 Self-Evolving Applications (Experimental)
 

@@ -1012,3 +1012,33 @@ CREATE TABLE IF NOT EXISTS revenue_share_payouts (
 
 CREATE INDEX IF NOT EXISTS idx_investment_deals_org_id ON investment_deals(org_id);
 CREATE INDEX IF NOT EXISTS idx_project_performance_project_id ON project_performance(project_id);
+
+-- PHASE 14: Agentic Diplomacy & B2B Negotiation
+CREATE TABLE IF NOT EXISTS vendor_relations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  vendor_name TEXT NOT NULL,
+  vendor_type TEXT NOT NULL, -- 'llm', 'payment', 'storage', 'deployment'
+  api_endpoint TEXT,
+  current_price_per_unit DECIMAL(10,6) DEFAULT 0.0,
+  negotiated_price DECIMAL(10,6),
+  status TEXT DEFAULT 'active', -- 'active', 'negotiating', 'at_risk', 'downgraded'
+  health_score FLOAT DEFAULT 1.0, -- 0.0 to 1.0
+  last_incident_at TIMESTAMPTZ,
+  contract_expires_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS negotiation_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  vendor_id UUID REFERENCES vendor_relations(id) ON DELETE CASCADE,
+  trigger TEXT NOT NULL, -- 'price_hike', 'downtime', 'rate_limit', 'manual'
+  agent_message TEXT NOT NULL,
+  vendor_response TEXT,
+  outcome TEXT, -- 'resolved', 'pending', 'escalated', 'failed'
+  savings_usd DECIMAL(10,2) DEFAULT 0.0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_vendor_relations_status ON vendor_relations(status);
+CREATE INDEX IF NOT EXISTS idx_negotiation_logs_vendor_id ON negotiation_logs(vendor_id);

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phase 14 Documentation — AI App Builder Elite</title>
+<style>
+  :root { --bg:#0a0a0f;--surface:#111118;--border:rgba(255,255,255,0.08);--accent:#3b82f6;--text:#f1f0ff;--muted:#8b8aa0;--code-bg:#0d0d14; }
+  body { background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;line-height:1.6;margin:0;padding:0; }
+  .content { max-width:900px;margin:0 auto;padding:60px 20px; }
+  .hero { background:linear-gradient(135deg,rgba(59,130,246,0.1),transparent);border:1px solid var(--border);border-radius:24px;padding:48px;margin-bottom:60px; }
+  h1 { font-size:48px;font-weight:900;margin-bottom:16px; }
+  h1 span { color:var(--accent); }
+  h2 { font-size:28px;border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:24px; }
+  pre { background:var(--code-bg);border:1px solid var(--border);border-radius:12px;padding:24px;overflow-x:auto; }
+  code { font-family:'JetBrains Mono',monospace;font-size:13px; }
+  .grid { display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:24px 0; }
+  .card { background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px; }
+  table { width:100%;border-collapse:collapse;margin:20px 0;font-size:13px; }
+  th { background:var(--surface);padding:10px 14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border); }
+  td { padding:11px 14px;border-bottom:1px solid var(--border); }
+</style>
+</head>
+<body>
+<div class="content">
+  <div class="hero">
+    <h1>Agentic Diplomacy &amp; <span>B2B Negotiation</span></h1>
+    <p>Phase 14 gives your platform a voice. The Diplomat Agent autonomously monitors all vendor relationships, detects risks, and negotiates better terms on your behalf — 24/7 without human involvement.</p>
+  </div>
+
+  <div style="margin-bottom:60px">
+    <h2>1. The Diplomat Agent</h2>
+    <p>A specialized AI agent acts as your Chief Negotiation Officer, handling all vendor communications autonomously.</p>
+    <div class="grid">
+      <div class="card">
+        <h4 style="margin-bottom:8px">🔍 Vendor Monitoring</h4>
+        <p style="font-size:13px;color:var(--muted)">Continuously monitors health scores, uptime SLAs, and contract expiry dates across all vendors.</p>
+      </div>
+      <div class="card">
+        <h4 style="margin-bottom:8px">📨 Auto-Negotiation</h4>
+        <p style="font-size:13px;color:var(--muted)">Drafts and sends professional negotiation letters using platform usage volume as leverage.</p>
+      </div>
+      <div class="card">
+        <h4 style="margin-bottom:8px">💰 Savings Ledger</h4>
+        <p style="font-size:13px;color:var(--muted)">Every dollar saved via negotiation is logged in the <code>negotiation_logs</code> table for audit trails.</p>
+      </div>
+      <div class="card">
+        <h4 style="margin-bottom:8px">⚠️ Risk Detection</h4>
+        <p style="font-size:13px;color:var(--muted)">Automatic alerts for vendors with health score &lt; 0.75 or contracts expiring within 30 days.</p>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-bottom:60px">
+    <h2>2. Negotiation Triggers</h2>
+    <table>
+      <thead><tr><th>Trigger</th><th>Condition</th><th>Agent Action</th></tr></thead>
+      <tbody>
+        <tr><td><code>price_hike</code></td><td>Vendor price increases &gt;10%</td><td>Demand rollback or switch to competitor</td></tr>
+        <tr><td><code>downtime</code></td><td>Health score &lt; 0.75</td><td>Request SLA credit + guaranteed SLA</td></tr>
+        <tr><td><code>rate_limit</code></td><td>API limits hit 3+ times/week</td><td>Negotiate higher tier at current price</td></tr>
+        <tr><td><code>contract_renewal</code></td><td>Expiry &lt; 30 days</td><td>Lock in multi-year discount</td></tr>
+        <tr><td><code>manual</code></td><td>Human-initiated</td><td>Execute custom negotiation brief</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="margin-bottom:60px">
+    <h2>3. API Reference</h2>
+    <pre><code>// Trigger a manual negotiation
+POST /api/diplomat
+{
+  "vendorId": "uuid",
+  "vendorName": "OpenRouter",
+  "trigger": "price_hike",
+  "context": "Price increased 40% this month"
+}
+
+// Run a full vendor audit
+GET /api/diplomat</code></pre>
+  </div>
+</div>
+</body>
+</html>
