@@ -113,7 +113,7 @@ export function PricingTable({
             
             <div className="mb-6">
               <h3 className="text-xl font-black mb-1 uppercase tracking-tight text-white">{tier.name}</h3>
-              <p className="text-muted-foreground text-xs mb-4">{category === 'basic' ? 'Core Foundation' : 'Full Empire Building'}</p>
+              <p className="text-muted-foreground text-xs mb-4">{category === 'basic' ? 'Core Foundation (Phases 1-3)' : 'Global AI Empire (Phases 1-16)'}</p>
               <p className="text-4xl font-black flex items-baseline gap-1">
                 ${interval === "monthly" ? tier.monthlyPrice : tier.yearlyPriceEffective}
                 <span className="text-sm font-normal text-muted-foreground">/mo</span>

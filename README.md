@@ -26,15 +26,21 @@ AI App Builder is a comprehensive platform with 10 production-ready phases:
 
 ## Pricing (Premium Only — No Free Tier)
 
-All access to **AI App Builder Elite** (Phases 1–11) requires a paid subscription.
-
-| Tier | Monthly | Annual (Save 20%) | Credits/mo | Best For |
+### Elite Empire (Phases 1–16)
+| Tier | Monthly | Annual (Save 20%) | Credits/mo | Key Focus |
 |---|---|---|---|---|
-| **Starter** | $49 | $39/mo | 5,000 | Indie Hackers |
-| **Pro** | $149 | $119/mo | 20,000 | Founders & Teams |
-| **Enterprise** | $499 | $399/mo | 100,000 | Agencies & Scaling Startups |
+| **Elite Starter** | $99 | $79/mo | 10,000 | Governance & Edge |
+| **Elite Pro** | $249 | $199/mo | 35,000 | VC & Diplomacy |
+| **Elite Enterprise** | $999 | $799/mo | 150,000 | Hive Mind & M&A |
 
-- **14-Day Full Access Trial**: Test every feature before your first charge.
+### Basic Foundation (Phases 1–3)
+| Tier | Monthly | Annual | Credits/mo |
+|---|---|---|---|
+| **Basic Mini** | $5 | $4/mo | 300 |
+| **Basic Starter** | $19 | $15/mo | 1,000 |
+| **Basic Pro** | $49 | $39/mo | 3,000 |
+| **Basic Premium** | $99 | $79/mo | 7,000 |
+
 - **Credit Top-ups**: $20 for 5,000 extra credits (with bulk discounts).
 ### Specialized Licensing
 

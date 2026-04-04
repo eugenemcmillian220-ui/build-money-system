@@ -70,17 +70,17 @@ export const BILLING_TIERS: Record<string, BillingTier> = {
     features: ["Phases 1-3 Only", "Custom Database Templates", "Early Access to UI components", "7,000 Credits/mo"],
   },
 
-  // --- Phase 1-11 Elite Tiers ---
+  // --- Phase 1-11+ Elite Tiers ---
   "elite_starter": {
     id: "elite_starter",
     name: "Elite Starter",
     category: "elite",
     priceIdMonthly: "price_elite_starter_monthly",
     priceIdYearly: "price_elite_starter_yearly",
-    monthlyPrice: 49,
-    yearlyPriceEffective: 39,
-    creditsPerMonth: 5000,
-    features: ["All Phases (1-11)", "Mobile App Gen", "Vision-to-Code", "Hype Agent Access", "5,000 Credits/mo"],
+    monthlyPrice: 99,
+    yearlyPriceEffective: 79,
+    creditsPerMonth: 10000,
+    features: ["Phases 1-12 Access", "Autonomous Governance (HITL)", "Edge Scale Orchestration", "10,000 Credits/mo"],
   },
   "elite_pro": {
     id: "elite_pro",
@@ -88,10 +88,10 @@ export const BILLING_TIERS: Record<string, BillingTier> = {
     category: "elite",
     priceIdMonthly: "price_elite_pro_monthly",
     priceIdYearly: "price_elite_pro_yearly",
-    monthlyPrice: 149,
-    yearlyPriceEffective: 119,
-    creditsPerMonth: 20000,
-    features: ["Everything in Elite Starter", "Multi-tenant Workspaces", "Autonomous SRE", "Compliance Vault", "20,000 Credits/mo"],
+    monthlyPrice: 249,
+    yearlyPriceEffective: 199,
+    creditsPerMonth: 35000,
+    features: ["Phases 1-14 Access", "Autonomous VC Investment", "Agentic Diplomacy (B2B)", "35,000 Credits/mo"],
   },
   "elite_enterprise": {
     id: "elite_enterprise",
@@ -99,10 +99,10 @@ export const BILLING_TIERS: Record<string, BillingTier> = {
     category: "elite",
     priceIdMonthly: "price_elite_enterprise_monthly",
     priceIdYearly: "price_elite_enterprise_yearly",
-    monthlyPrice: 499,
-    yearlyPriceEffective: 399,
-    creditsPerMonth: 100000,
-    features: ["Everything in Elite Pro", "SSO/SAML/OIDC", "White-label branding", "Multi-cloud IaC", "100,000 Credits/mo"],
+    monthlyPrice: 999,
+    yearlyPriceEffective: 799,
+    creditsPerMonth: 150000,
+    features: ["Full 16-Phase Suite", "The Hive Mind (Collective AI)", "Autonomous M&A Engine", "150,000 Credits/mo"],
   },
 };
 

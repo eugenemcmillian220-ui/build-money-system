@@ -58,9 +58,9 @@ export class BillingEngine {
         basic_starter: 1000,
         basic_pro: 3000,
         basic_premium: 7000,
-        elite_starter: 5000,
-        elite_pro: 20000,
-        elite_enterprise: 100000
+        elite_starter: 10000,
+        elite_pro: 35000,
+        elite_enterprise: 150000
       };
       const allowance = allowanceMap[tier] || 0;
       await this.processMonthlyGrant(orgId, allowance);
