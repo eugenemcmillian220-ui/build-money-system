@@ -29,6 +29,7 @@ import { generateInfrastructure } from "./infra-generator";
 import { productManager } from "./product-manager";
 import { processVisualContext } from "./vision";
 import { security } from "./security";
+import { hiveMind } from "./hive-mind";
 
 export { isDatabaseAvailable, isVercelAvailable, isGitHubAvailable };
 
@@ -276,6 +277,13 @@ Rules:
     }
 
     await this.persistProject(result);
+
+    // Phase 15: Contribute successful pattern to Hive Mind
+    if (prompt && result.files) {
+      hiveMind.extractPattern(prompt, result.files, "architecture").then(pattern => {
+        if (pattern) hiveMind.contribute(pattern, this.userId);
+      }).catch(console.error);
+    }
 
     this.reportProgress({
       phase: "complete",

@@ -1042,3 +1042,31 @@ CREATE TABLE IF NOT EXISTS negotiation_logs (
 
 CREATE INDEX IF NOT EXISTS idx_vendor_relations_status ON vendor_relations(status);
 CREATE INDEX IF NOT EXISTS idx_negotiation_logs_vendor_id ON negotiation_logs(vendor_id);
+
+-- PHASE 15: The Hive Mind Global Intelligence Loop
+-- Stores anonymized build patterns and knowledge assets
+CREATE TABLE IF NOT EXISTS hive_knowledge_base (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  pattern_type VARCHAR(50) NOT NULL, -- 'bug_fix', 'architecture', 'ui_pattern'
+  problem_description TEXT NOT NULL,
+  solution_delta JSONB NOT NULL, -- Anonymized AST Delta or CSS/Logic snippet
+  tags TEXT[],
+  confidence_score FLOAT DEFAULT 0.0, -- Aggregated trust score
+  usage_count INTEGER DEFAULT 0,
+  is_verified BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Tracks contributions from organizations (anonymized)
+CREATE TABLE IF NOT EXISTS hive_contributions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id UUID REFERENCES organizations(id) ON DELETE SET NULL, -- Null for absolute anonymity if needed
+  knowledge_id UUID REFERENCES hive_knowledge_base(id) ON DELETE CASCADE,
+  contribution_type VARCHAR(30), -- 'submission', 'validation', 'recall'
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Search index for the global knowledge base
+CREATE INDEX IF NOT EXISTS idx_hive_kb_pattern_type ON hive_knowledge_base(pattern_type);
+CREATE INDEX IF NOT EXISTS idx_hive_kb_tags ON hive_knowledge_base USING GIN(tags);
