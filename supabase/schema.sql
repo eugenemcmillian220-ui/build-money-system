@@ -1070,3 +1070,30 @@ CREATE TABLE IF NOT EXISTS hive_contributions (
 -- Search index for the global knowledge base
 CREATE INDEX IF NOT EXISTS idx_hive_kb_pattern_type ON hive_knowledge_base(pattern_type);
 CREATE INDEX IF NOT EXISTS idx_hive_kb_tags ON hive_knowledge_base USING GIN(tags);
+
+-- PHASE 16: Autonomous M&A (Mergers & Acquisitions)
+-- Tracks proposals for merging two or more projects
+CREATE TABLE IF NOT EXISTS merger_proposals (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  source_project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  target_project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  synergy_score FLOAT DEFAULT 0.0, -- 0.0 to 1.0
+  synergy_reasoning TEXT,
+  proposed_equity_split JSONB, -- e.g. {"source": 0.6, "target": 0.4}
+  status VARCHAR(20) DEFAULT 'proposed', -- 'proposed', 'under_review', 'accepted', 'executed'
+  technical_due_diligence JSONB,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Tracks consolidated project histories
+CREATE TABLE IF NOT EXISTS consolidated_projects (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  merger_id UUID REFERENCES merger_proposals(id) ON DELETE CASCADE,
+  new_project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  integration_strategy TEXT, -- 'semantic_rebase', 'module_wrap'
+  executed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_merger_source ON merger_proposals(source_project_id);
+CREATE INDEX IF NOT EXISTS idx_merger_target ON merger_proposals(target_project_id);
