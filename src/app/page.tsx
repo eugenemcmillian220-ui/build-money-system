@@ -49,9 +49,19 @@ const FEATURES = [
     desc: "Hire specialized AI agents and track usage in the agent ledger.",
   },
   {
-    icon: "🧑‍💻",
-    title: "Hype Agent",
-    desc: "Auto-generate viral X threads and LinkedIn posts for your projects.",
+    icon: "🤝",
+    title: "Autonomous M&A",
+    desc: "AI identifies and executes strategic project consolidations and mergers.",
+  },
+  {
+    icon: "💰",
+    title: "VC Investment",
+    desc: "Platform autonomously invests credits in high-potential projects for RevShare.",
+  },
+  {
+    icon: "🌐",
+    title: "Hive Intelligence",
+    desc: "Global knowledge synthesis loop makes every build smarter from collective fixes.",
   },
 ];
 
@@ -66,8 +76,14 @@ const PHASES = [
   { num: "08", name: "DevOS", desc: "Sandbox & multi-tenant" },
   { num: "09", name: "Enterprise", desc: "Vision-to-code & SRE" },
   { num: "10", name: "Economy", desc: "Agent marketplace & ledger" },
-  { num: "11", name: "Growth Lab", desc: "Hype agent & viral SEO" },
+  { num: "11", name: "Growth", desc: "Hype agent & viral SEO" },
+  { num: "12", name: "Governance", desc: "HITL & Global Edge" },
+  { num: "13", name: "VC", desc: "Autonomous Investment" },
+  { num: "14", name: "Diplomacy", desc: "B2B Negotiation" },
+  { num: "15", name: "Hive", desc: "Collective Intelligence" },
+  { num: "16", name: "M&A", desc: "Strategic Consolidation" },
 ];
+
 
 export default function LandingPage() {
   return (
@@ -93,7 +109,7 @@ export default function LandingPage() {
             href="/signup"
             className="rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-black text-white shadow-lg shadow-brand-500/30 transition-all hover:scale-105 hover:bg-brand-400"
           >
-            Start Free →
+            Get Started →
           </Link>
         </div>
       </nav>
@@ -105,7 +121,7 @@ export default function LandingPage() {
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-500 opacity-75" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-500" />
           </span>
-          11-Phase Autonomous AI Platform
+          16-Phase Autonomous AI Empire
         </div>
 
         <h1 className="mx-auto max-w-5xl text-6xl font-black tracking-tight sm:text-8xl lg:text-9xl">
@@ -125,7 +141,7 @@ export default function LandingPage() {
             className="group relative inline-flex items-center gap-3 overflow-hidden rounded-2xl bg-brand-500 px-10 py-5 text-base font-black text-white shadow-2xl shadow-brand-500/40 transition-all hover:scale-105"
           >
             <span className="absolute inset-0 -z-10 bg-gradient-to-r from-brand-400 to-brand-600 opacity-0 transition-opacity group-hover:opacity-100" />
-            BUILD FOR FREE
+            START BUILDING
             <span className="text-xl">→</span>
           </Link>
           <Link
@@ -136,18 +152,18 @@ export default function LandingPage() {
           </Link>
         </div>
 
-        <p className="mt-5 text-xs text-muted-foreground/60">No credit card required · Free tier available</p>
+        <p className="mt-5 text-xs text-muted-foreground/60 uppercase tracking-[0.2em] font-black">Elite Production Access · No Free Tiers · Absolute Autonomy</p>
       </section>
 
       {/* Phase Ribbon */}
       <section className="border-y border-border/40 bg-black/30 py-12 backdrop-blur-sm">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="grid grid-cols-3 gap-4 sm:grid-cols-6 lg:grid-cols-11">
+        <div className="mx-auto max-w-[1600px] px-6 lg:px-8">
+          <div className="grid grid-cols-4 gap-4 sm:grid-cols-8 lg:grid-cols-16">
             {PHASES.map((p) => (
               <div key={p.num} className="text-center">
                 <div className="mb-1 text-2xl font-black text-brand-500/50">{p.num}</div>
-                <div className="text-sm font-bold text-white">{p.name}</div>
-                <div className="mt-1 text-xs text-muted-foreground">{p.desc}</div>
+                <div className="text-[10px] font-black uppercase tracking-tighter text-white">{p.name}</div>
+                <div className="mt-1 text-[9px] leading-tight text-muted-foreground">{p.desc}</div>
               </div>
             ))}
           </div>
@@ -192,7 +208,7 @@ export default function LandingPage() {
             href="/signup"
             className="mt-10 inline-flex items-center gap-3 rounded-2xl bg-brand-500 px-10 py-5 text-base font-black text-white shadow-2xl shadow-brand-500/40 transition-all hover:scale-105"
           >
-            START BUILDING FREE →
+            ENTER THE EMPIRE →
           </Link>
         </div>
       </section>
