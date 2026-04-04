@@ -943,3 +943,34 @@ ALTER TABLE organizations ADD COLUMN IF NOT EXISTS billing_tier VARCHAR(20) DEFA
 
 CREATE INDEX IF NOT EXISTS idx_billing_subs_org_id ON billing_subscriptions(org_id);
 CREATE INDEX IF NOT EXISTS idx_credit_trans_org_id ON credit_transactions(org_id);
+
+-- PHASE 12: Autonomous Governance & Edge Scale
+-- Tracks agent actions requiring human approval
+CREATE TABLE IF NOT EXISTS pending_actions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  agent_id TEXT NOT NULL, -- e.g. 'architect', 'sre'
+  action_type TEXT NOT NULL, -- e.g. 'hire_agent', 'deploy_infra', 'expensive_generation'
+  payload JSONB NOT NULL, -- Full data for the action
+  status VARCHAR(20) DEFAULT 'pending', -- 'pending', 'approved', 'rejected'
+  reason TEXT, -- Optional reason for rejection or context for approval
+  risk_score FLOAT DEFAULT 0.0, -- AI-calculated risk
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Tracks regional deployment configurations
+CREATE TABLE IF NOT EXISTS regional_configs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  region TEXT NOT NULL, -- e.g. 'us-east-1', 'eu-west-1'
+  endpoint_url TEXT,
+  health_status TEXT DEFAULT 'healthy',
+  last_sync_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_pending_actions_org_id ON pending_actions(org_id);
+CREATE INDEX IF NOT EXISTS idx_pending_actions_status ON pending_actions(status);
+CREATE INDEX IF NOT EXISTS idx_regional_configs_project_id ON regional_configs(project_id);
