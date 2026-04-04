@@ -21,7 +21,7 @@ const FEATURES = [
   {
     icon: "📈",
     title: "Revenue Optimized",
-    desc: "AI churn prediction and pricing optimization baked directly into Phase 7.",
+    desc: "AI churn prediction and pricing optimization baked directly in.",
   },
   {
     icon: "🤖",
@@ -38,6 +38,21 @@ const FEATURES = [
     title: "Self-Improving AI",
     desc: "Feedback loop trains the platform to write better code every generation.",
   },
+  {
+    icon: "📸",
+    title: "Vision-to-Code",
+    desc: "Generate apps from screenshots and Figma designs with GPT-4o Vision.",
+  },
+  {
+    icon: "🏪",
+    title: "Agent Marketplace",
+    desc: "Hire specialized AI agents and track usage in the agent ledger.",
+  },
+  {
+    icon: "🧑‍💻",
+    title: "Hype Agent",
+    desc: "Auto-generate viral X threads and LinkedIn posts for your projects.",
+  },
 ];
 
 const PHASES = [
@@ -48,6 +63,10 @@ const PHASES = [
   { num: "05", name: "Grow", desc: "AI company builder pipeline" },
   { num: "06", name: "Optimize", desc: "Revenue & churn AI engine" },
   { num: "07", name: "Automate", desc: "Fully autonomous operations" },
+  { num: "08", name: "DevOS", desc: "Sandbox & multi-tenant" },
+  { num: "09", name: "Enterprise", desc: "Vision-to-code & SRE" },
+  { num: "10", name: "Economy", desc: "Agent marketplace & ledger" },
+  { num: "11", name: "Growth Lab", desc: "Hype agent & viral SEO" },
 ];
 
 export default function LandingPage() {
@@ -86,7 +105,7 @@ export default function LandingPage() {
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-500 opacity-75" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-500" />
           </span>
-          7-Phase Autonomous AI Platform
+          11-Phase Autonomous AI Platform
         </div>
 
         <h1 className="mx-auto max-w-5xl text-6xl font-black tracking-tight sm:text-8xl lg:text-9xl">
@@ -123,7 +142,7 @@ export default function LandingPage() {
       {/* Phase Ribbon */}
       <section className="border-y border-border/40 bg-black/30 py-12 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="grid grid-cols-3 gap-4 sm:grid-cols-7">
+          <div className="grid grid-cols-3 gap-4 sm:grid-cols-6 lg:grid-cols-11">
             {PHASES.map((p) => (
               <div key={p.num} className="text-center">
                 <div className="mb-1 text-2xl font-black text-brand-500/50">{p.num}</div>
