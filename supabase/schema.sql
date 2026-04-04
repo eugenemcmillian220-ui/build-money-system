@@ -974,3 +974,41 @@ CREATE TABLE IF NOT EXISTS regional_configs (
 CREATE INDEX IF NOT EXISTS idx_pending_actions_org_id ON pending_actions(org_id);
 CREATE INDEX IF NOT EXISTS idx_pending_actions_status ON pending_actions(status);
 CREATE INDEX IF NOT EXISTS idx_regional_configs_project_id ON regional_configs(project_id);
+
+-- PHASE 13: Autonomous VC Layer
+-- Tracks investments made by the platform into projects
+CREATE TABLE IF NOT EXISTS investment_deals (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  amount_credits INTEGER NOT NULL, -- Investment in platform credits
+  equity_share FLOAT NOT NULL, -- Revenue share percentage (e.g. 0.05 for 5%)
+  status VARCHAR(20) DEFAULT 'proposed', -- 'proposed', 'accepted', 'rejected', 'active'
+  terms TEXT,
+  investment_type VARCHAR(30) DEFAULT 'credit_injection', -- 'credit_injection', 'growth_boost'
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Real-time performance metrics for project scoring
+CREATE TABLE IF NOT EXISTS project_performance (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  user_count INTEGER DEFAULT 0,
+  revenue_total DECIMAL(12, 2) DEFAULT 0.00,
+  growth_velocity FLOAT DEFAULT 0.0, -- Weekly growth rate
+  retention_rate FLOAT DEFAULT 0.0,
+  last_updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Tracks revenue share settlements back to the platform
+CREATE TABLE IF NOT EXISTS revenue_share_payouts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  deal_id UUID REFERENCES investment_deals(id) ON DELETE CASCADE,
+  amount_usd DECIMAL(12, 2) NOT NULL,
+  status VARCHAR(20) DEFAULT 'settled',
+  payout_date TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_investment_deals_org_id ON investment_deals(org_id);
+CREATE INDEX IF NOT EXISTS idx_project_performance_project_id ON project_performance(project_id);
