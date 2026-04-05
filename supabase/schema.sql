@@ -1097,3 +1097,60 @@ CREATE TABLE IF NOT EXISTS consolidated_projects (
 
 CREATE INDEX IF NOT EXISTS idx_merger_source ON merger_proposals(source_project_id);
 CREATE INDEX IF NOT EXISTS idx_merger_target ON merger_proposals(target_project_id);
+
+-- PHASE 11 EXPANSION: Option A - Media Agent
+CREATE TABLE IF NOT EXISTS marketing_videos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  platform VARCHAR(50) NOT NULL, -- 'tiktok', 'reels', 'shorts'
+  script TEXT NOT NULL,
+  asset_urls TEXT[], -- Screenshots or video clips selected by Vision
+  status VARCHAR(20) DEFAULT 'draft', -- 'draft', 'generating', 'ready'
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- PHASE 11 EXPANSION: Option B - Ad Agent
+CREATE TABLE IF NOT EXISTS ad_campaigns (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  platform VARCHAR(50) NOT NULL, -- 'meta', 'google', 'x'
+  ad_copy TEXT NOT NULL,
+  budget_credits INTEGER NOT NULL,
+  status VARCHAR(20) DEFAULT 'active', -- 'active', 'paused', 'completed'
+  metrics JSONB DEFAULT '{}', -- clicks, impressions, conversions
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- PHASE 11 EXPANSION: Option C - Launch Agent
+CREATE TABLE IF NOT EXISTS viral_launches (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  platform VARCHAR(50) NOT NULL, -- 'product_hunt', 'hacker_news', 'indie_hackers'
+  pitch_title TEXT NOT NULL,
+  pitch_body TEXT NOT NULL,
+  launch_date TIMESTAMPTZ,
+  status VARCHAR(20) DEFAULT 'scheduled', -- 'scheduled', 'live', 'completed'
+  engagement_score FLOAT DEFAULT 0.0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- PHASE 11 EXPANSION: Option D - Community Agent
+CREATE TABLE IF NOT EXISTS community_channels (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  platform VARCHAR(50) NOT NULL, -- 'discord', 'slack'
+  channel_id TEXT NOT NULL,
+  auto_welcome BOOLEAN DEFAULT TRUE,
+  auto_support BOOLEAN DEFAULT TRUE,
+  active_members INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS community_interactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  channel_id UUID REFERENCES community_channels(id) ON DELETE CASCADE,
+  user_query TEXT,
+  agent_response TEXT,
+  sentiment_score FLOAT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
