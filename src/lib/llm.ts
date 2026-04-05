@@ -75,7 +75,7 @@ export async function callLLM(
   let lastError: Error | null = null;
   for (let i = 0; i < 3; i++) {
     try {
-      const req = llmRouter.getNextFreeRequest(messages, fullConfig);
+      const req = llmRouter.getNextRequest(messages, fullConfig);
       return await callProvider(req.provider, req.model, messages, fullConfig);
     } catch (e) {
       lastError = e as Error;
