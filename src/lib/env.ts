@@ -19,6 +19,19 @@ const serverEnvSchema = z.object({
   ADMIN_API_KEYS: z.string().optional(),
   GEMINI_API_KEY: z.string().optional(),
   GROQ_API_KEY: z.string().optional(),
+  STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  OPENAI_API_KEY: z.string().optional(),
+  E2B_API_KEY: z.string().optional(),
+  CRON_SECRET: z.string().optional(),
+  X_API_KEY: z.string().optional(),
+  X_API_SECRET: z.string().optional(),
+  X_ACCESS_TOKEN: z.string().optional(),
+  X_ACCESS_SECRET: z.string().optional(),
+  LINKEDIN_CLIENT_ID: z.string().optional(),
+  LINKEDIN_CLIENT_SECRET: z.string().optional(),
+  DISCORD_TOKEN: z.string().optional(),
+  SLACK_TOKEN: z.string().optional(),
 });
 
 const clientEnvSchema = z.object({

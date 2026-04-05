@@ -1154,3 +1154,32 @@ CREATE TABLE IF NOT EXISTS community_interactions (
   sentiment_score FLOAT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- PHASE 17: Autonomous Legal & Corporate Suite
+-- Tracks legal entities (LLCs, DAOs) formed for projects
+CREATE TABLE IF NOT EXISTS legal_entities (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  entity_name TEXT NOT NULL,
+  entity_type TEXT NOT NULL, -- 'llc', 'corporation', 'dao'
+  jurisdiction TEXT NOT NULL, -- e.g. 'Delaware', 'Wyoming', 'On-chain'
+  registration_id TEXT, -- Government or protocol ID
+  status VARCHAR(20) DEFAULT 'draft', -- 'draft', 'pending', 'active', 'dissolved'
+  governance_docs JSONB, -- AI-generated Operating Agreements, TOS, Privacy Policy
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Tracks IP, Patents, and Trademark filings
+CREATE TABLE IF NOT EXISTS ip_vault (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  asset_type TEXT NOT NULL, -- 'trademark', 'patent', 'copyright'
+  asset_description TEXT,
+  filing_status TEXT DEFAULT 'pending',
+  filing_date TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_legal_entities_project_id ON legal_entities(project_id);
+CREATE INDEX IF NOT EXISTS idx_ip_vault_project_id ON ip_vault(project_id);

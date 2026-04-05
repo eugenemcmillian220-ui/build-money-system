@@ -22,16 +22,17 @@ AI App Builder is a comprehensive platform with 10 production-ready phases:
 - **Phase 14**: Agentic Diplomacy & B2B Negotiation (Vendor Relations, Auto-Negotiation, Savings Ledger)
 - **Phase 15**: The Hive Mind Loop (Collective Learning, Anonymized Pattern Synthesis, Global KB)
 - **Phase 16**: Autonomous M&A (Synergy Detection, Technical Due Diligence, Automated Mergers)
+- **Phase 17**: Autonomous Legal & Corporate Suite (Entity Formation, Contracts, IP Vault)
 - **Experimental Path C**: Self-Evolving Applications (Autonomous Visual Feedback Loop)
 
 ## Pricing (Premium Only — No Free Tier)
 
-### Elite Empire (Phases 1–16)
+### Elite Empire (Phases 1–17)
 | Tier | Monthly | Annual (Save 20%) | Credits/mo | Key Focus |
 |---|---|---|---|---|
 | **Elite Starter** | $99 | $79/mo | 10,000 | Governance & Edge |
 | **Elite Pro** | $249 | $199/mo | 35,000 | VC & Diplomacy |
-| **Elite Enterprise** | $999 | $799/mo | 150,000 | Hive Mind & M&A |
+| **Elite Enterprise** | $999 | $799/mo | 150,000 | Legal, Hive & M&A |
 
 ### Basic Foundation (Phases 1–3)
 | Tier | Monthly | Annual | Credits/mo |
@@ -324,6 +325,7 @@ docker run -p 3000:3000 --env-file .env ai-app-builder
 - Phase 14: ✅ Agentic Diplomacy & B2B Negotiation
 - Phase 15: ✅ The Hive Mind Loop
 - Phase 16: ✅ Autonomous M&A
+- Phase 17: ✅ Autonomous Legal & Corporate Suite
 - Pricing: 💎 Premium-Only (No Free Tier)
 - Path C: 🧪 Self-Evolving Applications (Experimental)
 
