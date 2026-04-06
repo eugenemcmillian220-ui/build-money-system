@@ -39,6 +39,7 @@ export interface CreditPack {
   price: number; // In cents
   label: string;
   savings?: string;
+  priceId?: string; // Optional Stripe price ID
 }
 
 // === BILLING TIERS (Subscription Plans) ===
@@ -158,9 +159,29 @@ export const LIFETIME_LICENSES: Record<string, LifetimeLicense> = {
 
 // === CREDIT TOP-UP PACKS ===
 export const CREDIT_PACKS: CreditPack[] = [
-  { id: "credits_5k", credits: 5000, price: 2000, label: "Starter Pack" },
-  { id: "credits_15k", credits: 15000, price: 5000, label: "Pro Surge", savings: "17% off" },
-  { id: "credits_50k", credits: 50000, price: 15000, label: "Empire Overdrive", savings: "25% off" },
+  { 
+    id: "credits_5k", 
+    credits: 5000, 
+    price: 2000, 
+    label: "Starter Pack",
+    priceId: process.env.STRIPE_PRICE_CREDITS_5K || "price_credits_5k"
+  },
+  { 
+    id: "credits_15k", 
+    credits: 15000, 
+    price: 5000, 
+    label: "Pro Surge", 
+    savings: "17% off",
+    priceId: process.env.STRIPE_PRICE_CREDITS_15K || "price_credits_15k"
+  },
+  { 
+    id: "credits_50k", 
+    credits: 50000, 
+    price: 15000, 
+    label: "Empire Overdrive", 
+    savings: "25% off",
+    priceId: process.env.STRIPE_PRICE_CREDITS_50K || "price_credits_50k"
+  },
 ];
 
 // === MARKETPLACE & AFFILIATE CONFIG ===
