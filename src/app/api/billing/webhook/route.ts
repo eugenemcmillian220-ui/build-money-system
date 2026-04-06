@@ -28,13 +28,19 @@ export async function POST(request: Request): Promise<Response> {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
-        const { orgId, type, credits, tier } = session.metadata || {};
+        const { orgId, type, credits, tier, licenseId, affiliateCode } = session.metadata || {};
 
         if (orgId) {
           if (type === "topup" && credits) {
             await billingEngine.processTopUp(orgId, parseInt(credits, 10), session.id);
           } else if (type === "subscription" && tier) {
             await billingEngine.processSubscriptionUpdate(orgId, tier, session.subscription as string, "active");
+            // Process affiliate commission for subscription
+            if (affiliateCode && session.amount_total) {
+              await billingEngine.processAffiliateCommission(affiliateCode, orgId, session.amount_total, "subscription");
+            }
+          } else if (type === "lifetime_license" && licenseId) {
+            await billingEngine.processLifetimeLicense(orgId, licenseId, session.id, affiliateCode);
           }
         }
         break;
