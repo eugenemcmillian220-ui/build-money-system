@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PricingTable } from "@/components/billing/pricing-table";
+import { PricingTableClient } from "./pricing-client";
 
 export const metadata: Metadata = {
   title: "Pricing | Build Money System",
@@ -56,7 +56,7 @@ export default function PricingPage({
 
       {/* Pricing Table */}
       <section className="mx-auto max-w-7xl px-6 pb-32 lg:px-8">
-        <PricingTableWrapper />
+        <PricingTableClient />
       </section>
 
       {/* Footer */}
@@ -66,13 +66,3 @@ export default function PricingPage({
     </main>
   );
 }
-
-// Client wrapper to handle affiliate codes from URL
-async function PricingTableWrapper() {
-  return (
-    <PricingTableClient />
-  );
-}
-
-// This needs to be a separate client component
-import { PricingTableClient } from "./pricing-client";
