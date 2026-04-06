@@ -1183,3 +1183,32 @@ CREATE TABLE IF NOT EXISTS ip_vault (
 
 CREATE INDEX IF NOT EXISTS idx_legal_entities_project_id ON legal_entities(project_id);
 CREATE INDEX IF NOT EXISTS idx_ip_vault_project_id ON ip_vault(project_id);
+
+-- PHASE 18: Autonomous R&D & Tech Scouting
+-- Tracks emerging technology trends from GitHub/arXiv
+CREATE TABLE IF NOT EXISTS research_trends (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tech_name TEXT NOT NULL,
+  category TEXT NOT NULL, -- 'framework', 'llm', 'library', 'protocol'
+  star_velocity FLOAT DEFAULT 0.0,
+  discovery_source TEXT, -- 'github', 'arxiv', 'huggingface'
+  analysis_summary TEXT,
+  adoption_status VARCHAR(20) DEFAULT 'monitoring', -- 'monitoring', 'testing', 'integrated', 'obsolete'
+  confidence_score FLOAT DEFAULT 0.0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Tracks autonomous R&D test projects
+CREATE TABLE IF NOT EXISTS rd_test_projects (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  trend_id UUID REFERENCES research_trends(id) ON DELETE CASCADE,
+  test_project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  test_objective TEXT,
+  verification_status VARCHAR(20) DEFAULT 'pending', -- 'pending', 'verified', 'failed'
+  findings TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_research_trends_category ON research_trends(category);
+CREATE INDEX IF NOT EXISTS idx_research_trends_status ON research_trends(adoption_status);

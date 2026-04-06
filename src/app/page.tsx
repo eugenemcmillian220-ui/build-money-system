@@ -83,6 +83,7 @@ const PHASES = [
   { num: "15", name: "Hive", desc: "Collective Intelligence" },
   { num: "16", name: "M&A", desc: "Strategic Consolidation" },
   { num: "17", name: "Legal", desc: "Corporate Suite & IP" },
+  { num: "18", name: "R&D", desc: "Autonomous Tech Scouting" },
 ];
 
 
@@ -128,7 +129,7 @@ export default function LandingPage() {
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-500 opacity-75" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-500" />
           </span>
-          17-Phase Autonomous AI Empire
+          18-Phase Autonomous AI Empire
         </div>
 
         <h1 className="mx-auto max-w-5xl text-6xl font-black tracking-tight sm:text-8xl lg:text-9xl">
@@ -164,8 +165,8 @@ export default function LandingPage() {
 
       {/* Phase Ribbon */}
       <section className="border-y border-border/40 bg-black/30 py-12 backdrop-blur-sm">
-        <div className="mx-auto max-w-[1800px] px-6 lg:px-8">
-          <div className="grid grid-cols-4 gap-4 sm:grid-cols-9 lg:grid-cols-17">
+        <div className="mx-auto max-w-[2000px] px-6 lg:px-8">
+          <div className="grid grid-cols-4 gap-4 sm:grid-cols-9 lg:grid-cols-18">
             {PHASES.map((p) => (
               <div key={p.num} className="text-center">
                 <div className="mb-1 text-2xl font-black text-brand-500/50">{p.num}</div>

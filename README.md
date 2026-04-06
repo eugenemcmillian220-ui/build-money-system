@@ -23,6 +23,7 @@ AI App Builder is a comprehensive platform with 10 production-ready phases:
 - **Phase 15**: The Hive Mind Loop (Collective Learning, Anonymized Pattern Synthesis, Global KB)
 - **Phase 16**: Autonomous M&A (Synergy Detection, Technical Due Diligence, Automated Mergers)
 - **Phase 17**: Autonomous Legal & Corporate Suite (Entity Formation, Contracts, IP Vault)
+- **Phase 18**: Autonomous R&D (Tech Scouting, Automated Adoption, R&D Lab)
 - **Experimental Path C**: Self-Evolving Applications (Autonomous Visual Feedback Loop)
 
 ## Pricing (Premium Only — No Free Tier)
@@ -326,6 +327,7 @@ docker run -p 3000:3000 --env-file .env ai-app-builder
 - Phase 15: ✅ The Hive Mind Loop
 - Phase 16: ✅ Autonomous M&A
 - Phase 17: ✅ Autonomous Legal & Corporate Suite
+- Phase 18: ✅ Autonomous R&D
 - Pricing: 💎 Premium-Only (No Free Tier)
 - Path C: 🧪 Self-Evolving Applications (Experimental)
 
