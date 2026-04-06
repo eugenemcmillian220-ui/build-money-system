@@ -99,7 +99,13 @@ export default function LandingPage() {
           <span className="h-9 w-9 rounded-xl bg-brand-500 flex items-center justify-center text-white font-black">A</span>
           <span className="text-gradient">AppBuilder</span>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
+          <Link
+            href="/pricing"
+            className="text-sm font-semibold text-muted-foreground transition-colors hover:text-white"
+          >
+            Pricing
+          </Link>
           <Link
             href="/login"
             className="text-sm font-semibold text-muted-foreground transition-colors hover:text-white"
@@ -110,7 +116,7 @@ export default function LandingPage() {
             href="/signup"
             className="rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-black text-white shadow-lg shadow-brand-500/30 transition-all hover:scale-105 hover:bg-brand-400"
           >
-            Get Started →
+            Get Started
           </Link>
         </div>
       </nav>

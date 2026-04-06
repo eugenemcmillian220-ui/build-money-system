@@ -5,11 +5,13 @@ export const runtime = "nodejs";
 
 const requestSchema = z.object({
   orgId: z.string().uuid(),
-  type: z.enum(["topup", "subscription"]),
+  type: z.enum(["topup", "subscription", "lifetime"]),
   amount: z.number().int().optional(), // In cents (for topup)
   credits: z.number().int().optional(), // For topup
   tier: z.string().optional(), // For subscription
+  licenseId: z.string().optional(), // For lifetime license
   interval: z.enum(["monthly", "yearly"]).optional().default("monthly"),
+  affiliateCode: z.string().optional(), // For affiliate tracking
 });
 
 export async function POST(request: Request): Promise<Response> {
@@ -24,11 +26,25 @@ export async function POST(request: Request): Promise<Response> {
         return Response.json({ error: "Missing amount or credits for topup" }, { status: 400 });
       }
       checkoutUrl = await stripeService.createTopUpSession(parsed.orgId, parsed.amount, parsed.credits);
+    } else if (parsed.type === "lifetime") {
+      if (!parsed.licenseId) {
+        return Response.json({ error: "Missing licenseId for lifetime purchase" }, { status: 400 });
+      }
+      checkoutUrl = await stripeService.createLifetimeLicenseSession(
+        parsed.orgId, 
+        parsed.licenseId, 
+        parsed.affiliateCode
+      );
     } else {
       if (!parsed.tier) {
         return Response.json({ error: "Missing tier for subscription" }, { status: 400 });
       }
-      checkoutUrl = await stripeService.createSubscriptionSession(parsed.orgId, parsed.tier, parsed.interval);
+      checkoutUrl = await stripeService.createSubscriptionSession(
+        parsed.orgId, 
+        parsed.tier, 
+        parsed.interval,
+        parsed.affiliateCode
+      );
     }
 
     return Response.json({ url: checkoutUrl });
