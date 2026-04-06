@@ -51,6 +51,46 @@ export async function POST(request: Request): Promise<Response> {
         break;
       }
 
+      case "invoice.payment_succeeded": {
+        const invoice = event.data.object as Stripe.Invoice;
+        
+        // Handle subscription renewal payments
+        const subscriptionId = (invoice as unknown as { subscription?: string }).subscription;
+        if (subscriptionId) {
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          const { orgId, tier } = subscription.metadata || {};
+
+          if (orgId && tier && subscription.status === "active") {
+            await billingEngine.processSubscriptionRenewal(orgId, tier, subscription.id);
+          }
+        }
+        
+        // Handle one-time payments (fallback for top-ups not caught by checkout.session.completed)
+        if (invoice.metadata?.orgId && invoice.metadata?.credits) {
+          await billingEngine.processTopUp(
+            invoice.metadata.orgId, 
+            parseInt(invoice.metadata.credits, 10), 
+            invoice.id
+          );
+        }
+        break;
+      }
+
+      case "invoice.payment_failed": {
+        const invoice = event.data.object as Stripe.Invoice;
+        
+        const subscriptionId = (invoice as unknown as { subscription?: string }).subscription;
+        if (subscriptionId) {
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          const { orgId } = subscription.metadata || {};
+
+          if (orgId) {
+            await billingEngine.processPaymentFailure(orgId, subscription.id, invoice.id);
+          }
+        }
+        break;
+      }
+
       default:
         console.log(`[Stripe Webhook] Unhandled event type ${event.type}`);
     }

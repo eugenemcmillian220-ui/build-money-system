@@ -96,6 +96,71 @@ export class BillingEngine {
       await this.economy.grantCredits(orgId, allowance, "subscription_grant");
     }
   }
+
+  /**
+   * Processes a successful subscription renewal payment
+   * Grants monthly credits for the new billing period
+   */
+  async processSubscriptionRenewal(orgId: string, tier: string, subId: string): Promise<void> {
+    if (!supabaseAdmin) throw new Error("Supabase admin not configured");
+    console.log(`[Billing] Processing subscription renewal for ${orgId} (${tier})`);
+
+    // Update subscription status to active
+    await supabaseAdmin.from("billing_subscriptions").upsert({
+      org_id: orgId,
+      stripe_subscription_id: subId,
+      status: "active",
+      tier,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "stripe_subscription_id" });
+
+    // Grant monthly allowance for the new period
+    const allowanceMap: Record<string, number> = {
+      basic_mini: 300,
+      basic_starter: 1000,
+      basic_pro: 3000,
+      basic_premium: 7000,
+      elite_starter: 10000,
+      elite_pro: 35000,
+      elite_enterprise: 150000
+    };
+    const allowance = allowanceMap[tier] || 0;
+    
+    await supabaseAdmin.from("credit_transactions").insert({
+      org_id: orgId,
+      amount: allowance,
+      type: "subscription_renewal",
+      description: `Subscription Renewal - Monthly Allowance (${allowance.toLocaleString()} Credits)`,
+    });
+
+    await this.economy.grantCredits(orgId, allowance, "subscription_renewal");
+  }
+
+  /**
+   * Processes a failed subscription payment
+   * Records the failure and may suspend services
+   */
+  async processPaymentFailure(orgId: string, subId: string, invoiceId: string): Promise<void> {
+    if (!supabaseAdmin) throw new Error("Supabase admin not configured");
+    console.log(`[Billing] Processing payment failure for ${orgId}, invoice: ${invoiceId}`);
+
+    // Record the payment failure
+    await supabaseAdmin.from("credit_transactions").insert({
+      org_id: orgId,
+      amount: 0,
+      type: "payment_failed",
+      description: `Payment Failed - Invoice ${invoiceId}`,
+    });
+
+    // Update subscription status to past_due
+    await supabaseAdmin.from("billing_subscriptions").update({
+      status: "past_due",
+      updated_at: new Date().toISOString(),
+    }).eq("stripe_subscription_id", subId);
+
+    // Optionally notify the organization admin
+    console.warn(`[Billing] Payment failed for org ${orgId}. Subscription ${subId} is now past_due.`);
+  }
 }
 
 export const billingEngine = new BillingEngine();
