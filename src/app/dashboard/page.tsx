@@ -61,6 +61,15 @@ const API_ENDPOINTS: EndpointTest[] = [
   { name: "Build Company", method: "POST", endpoint: "/api/build-company", description: "Build AI company (requires auth)" },
   { name: "Swarm", method: "POST", endpoint: "/api/swarm", description: "Multi-agent collaboration (requires auth)" },
   { name: "Self Improve", method: "POST", endpoint: "/api/self-improve", description: "Trigger self-improvement (requires auth)" },
+  { name: "Ab Test", method: "POST", endpoint: "/api/ab-test", description: "Generate A/B test variant" },
+  { name: "Compliance", method: "POST", endpoint: "/api/compliance", description: "Run compliance audit" },
+  { name: "Evolve", method: "POST", endpoint: "/api/evolve", description: "Trigger self-evolution" },
+  { name: "Hype", method: "POST", endpoint: "/api/hype", description: "Launch growth campaign" },
+  { name: "Governance", method: "GET", endpoint: "/api/governance", description: "Check action status" },
+  { name: "VC Propose", method: "POST", endpoint: "/api/vc/propose", description: "Propose VC investment" },
+  { name: "Diplomat", method: "GET", endpoint: "/api/diplomat", description: "Run vendor audit" },
+  { name: "Hive Sync", method: "POST", endpoint: "/api/hive/sync", description: "Sync with Hive Mind" },
+  { name: "M&A Analyze", method: "POST", endpoint: "/api/ma/analyze", description: "Analyze synergies" },
 ];
 
 const PHASE_NAMES: Record<string, { name: string; description: string }> = {
@@ -71,6 +80,16 @@ const PHASE_NAMES: Record<string, { name: string; description: string }> = {
   phase5: { name: "Phase 5", description: "Production Systems" },
   phase6: { name: "Phase 6", description: "AI Company Builder" },
   phase7: { name: "Phase 7", description: "Marketplace & Billing" },
+  phase8: { name: "Phase 8", description: "AI Development OS" },
+  phase9: { name: "Phase 9", description: "Autonomous Enterprise" },
+  phase10: { name: "Phase 10", description: "Agent Economy" },
+  phase11: { name: "Phase 11", description: "Growth Lab" },
+  phase12: { name: "Phase 12", description: "Governance & Edge" },
+  phase13: { name: "Phase 13", description: "Autonomous VC" },
+  phase14: { name: "Phase 14", description: "Agentic Diplomacy" },
+  phase15: { name: "Phase 15", description: "Hive Mind Loop" },
+  phase16: { name: "Phase 16", description: "Autonomous M&A" },
+  phase17: { name: "Phase 17", description: "Legal & Corporate Suite" },
 };
 
 export default function DashboardPage() {
@@ -780,6 +799,57 @@ export default function DashboardPage() {
                           name: "Marketplace",
                           method: "GET",
                           endpoint: "/api/marketplace",
+                          description: ""
+                        })}
+                        className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+                      >
+                        Test Endpoint
+                      </button>
+                    </div>
+
+                    {/* Hype Agent */}
+                    <div className="border rounded-lg p-4">
+                      <h3 className="font-medium mb-2">📢 Hype Agent</h3>
+                      <p className="text-sm text-gray-600 mb-3">Launch viral growth campaigns</p>
+                      <button
+                        onClick={() => testEndpoint({
+                          name: "Hype",
+                          method: "POST",
+                          endpoint: "/api/hype",
+                          description: ""
+                        })}
+                        className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+                      >
+                        Test Endpoint
+                      </button>
+                    </div>
+
+                    {/* Compliance */}
+                    <div className="border rounded-lg p-4">
+                      <h3 className="font-medium mb-2">🛡️ Compliance Vault</h3>
+                      <p className="text-sm text-gray-600 mb-3">Run automated compliance audits</p>
+                      <button
+                        onClick={() => testEndpoint({
+                          name: "Compliance",
+                          method: "POST",
+                          endpoint: "/api/compliance",
+                          description: ""
+                        })}
+                        className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+                      >
+                        Test Endpoint
+                      </button>
+                    </div>
+
+                    {/* Diplomat */}
+                    <div className="border rounded-lg p-4">
+                      <h3 className="font-medium mb-2">💼 Diplomat Agent</h3>
+                      <p className="text-sm text-gray-600 mb-3">Audit and negotiate vendor relations</p>
+                      <button
+                        onClick={() => testEndpoint({
+                          name: "Diplomat",
+                          method: "GET",
+                          endpoint: "/api/diplomat",
                           description: ""
                         })}
                         className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
