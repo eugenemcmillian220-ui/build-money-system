@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { LiveProvider, LiveEditor, LiveError, LivePreview } from "react-live";
 
 interface CodeDisplayProps {
   code: string;
@@ -9,6 +10,7 @@ interface CodeDisplayProps {
 
 export function CodeDisplay({ code, isStreaming = false }: CodeDisplayProps) {
   const [copied, setCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState<"code" | "preview">("code");
   const preRef = useRef<HTMLPreElement>(null);
 
   if (!code && !isStreaming) return null;
@@ -44,6 +46,24 @@ export function CodeDisplay({ code, isStreaming = false }: CodeDisplayProps) {
           </span>
         </div>
         <div className="flex items-center gap-3">
+          <div className="flex bg-black/20 rounded-lg p-1 mr-2">
+            <button
+              onClick={() => setActiveTab("code")}
+              className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all ${
+                activeTab === "code" ? "bg-white/10 text-white" : "text-muted-foreground hover:text-white"
+              }`}
+            >
+              Code
+            </button>
+            <button
+              onClick={() => setActiveTab("preview")}
+              className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all ${
+                activeTab === "preview" ? "bg-white/10 text-white" : "text-muted-foreground hover:text-white"
+              }`}
+            >
+              Preview
+            </button>
+          </div>
           {isStreaming && (
             <span className="flex items-center gap-1.5 text-xs" style={{ color: "oklch(0.6 0.15 145)" }}>
               <span className="relative flex h-2 w-2">
@@ -66,20 +86,31 @@ export function CodeDisplay({ code, isStreaming = false }: CodeDisplayProps) {
           </button>
         </div>
       </div>
-      <pre
-        ref={preRef}
-        className="overflow-x-auto p-5 text-sm leading-relaxed"
-        style={{ background: "oklch(0.11 0 0)", color: "oklch(0.85 0.08 145)" }}
-      >
-        <code>{code || " "}</code>
-        {isStreaming && (
-          <span
-            className="ml-0.5 inline-block h-4 w-0.5 animate-pulse"
-            style={{ background: "oklch(0.7 0 0)" }}
-            aria-hidden
-          />
-        )}
-      </pre>
+      {activeTab === "code" ? (
+        <pre
+          ref={preRef}
+          className="overflow-x-auto p-5 text-sm leading-relaxed"
+          style={{ background: "oklch(0.11 0 0)", color: "oklch(0.85 0.08 145)" }}
+        >
+          <code>{code || " "}</code>
+          {isStreaming && (
+            <span
+              className="ml-0.5 inline-block h-4 w-0.5 animate-pulse"
+              style={{ background: "oklch(0.7 0 0)" }}
+              aria-hidden
+            />
+          )}
+        </pre>
+      ) : (
+        <div className="p-6 bg-white rounded-b-xl min-h-[300px]">
+          <LiveProvider code={code} noInline>
+            <div className="flex flex-col gap-4">
+              <LivePreview className="preview-container border border-gray-100 rounded-lg p-4 text-black" />
+              <LiveError className="text-xs text-red-500 font-mono bg-red-50 p-3 rounded-lg" />
+            </div>
+          </LiveProvider>
+        </div>
+      )}
     </section>
   );
 }

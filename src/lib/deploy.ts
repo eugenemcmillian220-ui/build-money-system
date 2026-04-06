@@ -38,7 +38,8 @@ interface VercelDeploymentResponse {
 export async function createVercelDeploy(
   projectId: string,
   files: FileMap,
-  name?: string
+  name?: string,
+  env: Record<string, string> = {}
 ): Promise<VercelDeployResult> {
   const token = serverEnv.VERCEL_TOKEN;
   
@@ -80,6 +81,10 @@ export async function createVercelDeploy(
             next: "^15.2.4",
             react: "^19.0.0",
             "react-dom": "^19.0.0",
+            "stripe": "^17.0.0",
+            "@supabase/supabase-js": "^2.45.0",
+            "lucide-react": "^0.450.0",
+            "zod": "^3.23.0"
           },
           devDependencies: {
             "@types/node": "^22.14.0",
@@ -115,6 +120,10 @@ module.exports = nextConfig
         files: vercelFiles,
         framework: "nextjs",
         target: "production",
+        projectSettings: {
+          framework: "nextjs"
+        },
+        env: env // Build-time env vars
       },
       {
         headers: {

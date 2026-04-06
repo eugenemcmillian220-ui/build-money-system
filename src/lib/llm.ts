@@ -200,37 +200,23 @@ export async function planSpec(prompt: string, context: MemoryContext[] = []): P
     ? `\n\nRelevant context from previous projects:\n${JSON.stringify(context, null, 2)}`
     : "";
 
-  const systemPrompt = `You are an expert software architect. Given a user request, create a detailed specification for a Next.js application.${contextText}
-
-Return a JSON object with this exact structure:
-{
-  "name": "App Name",
-  "description": "Brief description of the app",
-  "features": ["feature 1", "feature 2"],
-  "pages": [
-    {
-      "route": "/",
-      "description": "What this page does",
-      "components": ["Hero", "Features"]
-    }
-  ],
-  "components": [
-    {
-      "name": "ComponentName",
-      "description": "What this component does",
-      "props": { "title": "string", "count": "number" }
-    }
-  ],
-  "integrations": ["stripe", "supabase"],
-  "schema": "SQL schema if database is needed",
-  "fileStructure": ["app/page.tsx", "components/Hero.tsx"]
-}
+  const systemPrompt = `You are an expert software architect. Given a user request, create a detailed specification for a Next.js 15 application.${contextText}
 
 Rules:
-- Keep the app focused and achievable (5-10 files max)
-- Use Next.js 15 App Router patterns
-- Include only necessary integrations
-- Return ONLY valid JSON, no markdown fences`;
+- Include Supabase Auth by default (login/signup pages) unless explicitly told not to.
+- Use shadcn/ui and Tailwind CSS v4 design language.
+- Keep the app focused and achievable (5-10 files max).
+- Return a JSON object with this exact structure:
+{
+  "name": "App Name",
+  "description": "Brief description",
+  "features": ["auth", "dashboard"],
+  "pages": [{ "route": "/login", "description": "Login page", "components": ["LoginForm"] }],
+  "components": [{ "name": "LoginForm", "description": "Auth form", "props": {} }],
+  "integrations": ["supabase", "stripe"],
+  "schema": "SQL schema here",
+  "fileStructure": ["app/layout.tsx", "app/page.tsx", "lib/supabase.ts"]
+}`;
 
   const messages: ChatMessage[] = [
     { role: "system", content: systemPrompt },
@@ -260,22 +246,13 @@ Rules:
 export async function buildFromSpec(spec: AppSpec): Promise<FileMap> {
   const systemPrompt = `You are an expert React/Next.js developer. Generate complete, production-ready code based on the app specification.
 
-Return a JSON object with this structure:
-{
-  "files": {
-    "app/page.tsx": "complete code here",
-    "components/Hero.tsx": "complete code here"
-  }
-}
-
 Rules:
-- Use Next.js 15 with App Router and React 19 patterns
-- Use Tailwind CSS for all styling (already configured)
-- Include 'use client' directive for interactive components
-- Use TypeScript with proper types
-- Make components fully functional and complete
-- Return ONLY valid JSON, no markdown fences
-- File paths must start with app/, components/, or lib/`;
+- Use Next.js 15 with App Router and React 19 patterns.
+- Use shadcn/ui aesthetic with Tailwind CSS v4.
+- Implement full-stack logic: Supabase Auth, Server Actions, and DB queries.
+- Ensure 'use client' is used correctly.
+- Return ONLY valid JSON in this structure: {"files": {"path": "content"}}.
+- No markdown fences.`;
 
   const specJson = JSON.stringify(spec, null, 2);
   const messages: ChatMessage[] = [
