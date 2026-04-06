@@ -39,7 +39,6 @@ export interface CreditPack {
   price: number; // In cents
   label: string;
   savings?: string;
-  priceId?: string; // Optional Stripe price ID
 }
 
 // === BILLING TIERS (Subscription Plans) ===
@@ -49,8 +48,8 @@ export const BILLING_TIERS: Record<string, BillingTier> = {
     id: "basic_mini",
     name: "Basic Mini",
     category: "basic",
-    priceIdMonthly: process.env.STRIPE_PRICE_BASIC_MINI_MONTHLY || "price_basic_mini_monthly",
-    priceIdYearly: process.env.STRIPE_PRICE_BASIC_MINI_YEARLY || "price_basic_mini_yearly",
+    priceIdMonthly: process.env.STRIPE_BASIC_MINI_MONTHLY_PRICE_ID || "price_basic_mini_monthly",
+    priceIdYearly: process.env.STRIPE_BASIC_MINI_YEARLY_PRICE_ID || "price_basic_mini_yearly",
     monthlyPrice: 5,
     yearlyPriceEffective: 4,
     creditsPerMonth: 300,
@@ -60,8 +59,8 @@ export const BILLING_TIERS: Record<string, BillingTier> = {
     id: "basic_starter",
     name: "Basic Starter",
     category: "basic",
-    priceIdMonthly: process.env.STRIPE_PRICE_BASIC_STARTER_MONTHLY || "price_basic_starter_monthly",
-    priceIdYearly: process.env.STRIPE_PRICE_BASIC_STARTER_YEARLY || "price_basic_starter_yearly",
+    priceIdMonthly: process.env.STRIPE_BASIC_STARTER_MONTHLY_PRICE_ID || "price_basic_starter_monthly",
+    priceIdYearly: process.env.STRIPE_BASIC_STARTER_YEARLY_PRICE_ID || "price_basic_starter_yearly",
     monthlyPrice: 19,
     yearlyPriceEffective: 15,
     creditsPerMonth: 1000,
@@ -71,8 +70,8 @@ export const BILLING_TIERS: Record<string, BillingTier> = {
     id: "basic_pro",
     name: "Basic Pro",
     category: "basic",
-    priceIdMonthly: process.env.STRIPE_PRICE_BASIC_PRO_MONTHLY || "price_basic_pro_monthly",
-    priceIdYearly: process.env.STRIPE_PRICE_BASIC_PRO_YEARLY || "price_basic_pro_yearly",
+    priceIdMonthly: process.env.STRIPE_BASIC_PRO_MONTHLY_PRICE_ID || "price_basic_pro_monthly",
+    priceIdYearly: process.env.STRIPE_BASIC_PRO_YEARLY_PRICE_ID || "price_basic_pro_yearly",
     monthlyPrice: 49,
     yearlyPriceEffective: 39,
     creditsPerMonth: 3000,
@@ -82,8 +81,8 @@ export const BILLING_TIERS: Record<string, BillingTier> = {
     id: "basic_premium",
     name: "Basic Premium",
     category: "basic",
-    priceIdMonthly: process.env.STRIPE_PRICE_BASIC_PREMIUM_MONTHLY || "price_basic_premium_monthly",
-    priceIdYearly: process.env.STRIPE_PRICE_BASIC_PREMIUM_YEARLY || "price_basic_premium_yearly",
+    priceIdMonthly: process.env.STRIPE_BASIC_PREMIUM_MONTHLY_PRICE_ID || "price_basic_premium_monthly",
+    priceIdYearly: process.env.STRIPE_BASIC_PREMIUM_YEARLY_PRICE_ID || "price_basic_premium_yearly",
     monthlyPrice: 99,
     yearlyPriceEffective: 79,
     creditsPerMonth: 7000,
@@ -95,8 +94,8 @@ export const BILLING_TIERS: Record<string, BillingTier> = {
     id: "elite_starter",
     name: "Elite Starter",
     category: "elite",
-    priceIdMonthly: process.env.STRIPE_PRICE_ELITE_STARTER_MONTHLY || "price_elite_starter_monthly",
-    priceIdYearly: process.env.STRIPE_PRICE_ELITE_STARTER_YEARLY || "price_elite_starter_yearly",
+    priceIdMonthly: process.env.STRIPE_ELITE_STARTER_MONTHLY_PRICE_ID || "price_elite_starter_monthly",
+    priceIdYearly: process.env.STRIPE_ELITE_STARTER_YEARLY_PRICE_ID || "price_elite_starter_yearly",
     monthlyPrice: 99,
     yearlyPriceEffective: 79,
     creditsPerMonth: 10000,
@@ -107,8 +106,8 @@ export const BILLING_TIERS: Record<string, BillingTier> = {
     id: "elite_pro",
     name: "Elite Pro",
     category: "elite",
-    priceIdMonthly: process.env.STRIPE_PRICE_ELITE_PRO_MONTHLY || "price_elite_pro_monthly",
-    priceIdYearly: process.env.STRIPE_PRICE_ELITE_PRO_YEARLY || "price_elite_pro_yearly",
+    priceIdMonthly: process.env.STRIPE_ELITE_PRO_MONTHLY_PRICE_ID || "price_elite_pro_monthly",
+    priceIdYearly: process.env.STRIPE_ELITE_PRO_YEARLY_PRICE_ID || "price_elite_pro_yearly",
     monthlyPrice: 249,
     yearlyPriceEffective: 199,
     creditsPerMonth: 35000,
@@ -119,8 +118,8 @@ export const BILLING_TIERS: Record<string, BillingTier> = {
     id: "elite_enterprise",
     name: "Elite Enterprise",
     category: "elite",
-    priceIdMonthly: process.env.STRIPE_PRICE_ELITE_ENTERPRISE_MONTHLY || "price_elite_enterprise_monthly",
-    priceIdYearly: process.env.STRIPE_PRICE_ELITE_ENTERPRISE_YEARLY || "price_elite_enterprise_yearly",
+    priceIdMonthly: process.env.STRIPE_ELITE_ENTERPRISE_MONTHLY_PRICE_ID || "price_elite_enterprise_monthly",
+    priceIdYearly: process.env.STRIPE_ELITE_ENTERPRISE_YEARLY_PRICE_ID || "price_elite_enterprise_yearly",
     monthlyPrice: 999,
     yearlyPriceEffective: 799,
     creditsPerMonth: 150000,
@@ -134,7 +133,7 @@ export const LIFETIME_LICENSES: Record<string, LifetimeLicense> = {
   "lifetime_starter": {
     id: "lifetime_starter",
     name: "Lifetime Starter",
-    priceId: process.env.STRIPE_PRICE_LIFETIME_STARTER || "price_lifetime_starter",
+    priceId: process.env.STRIPE_LIFETIME_STARTER_PRICE_ID || "price_lifetime_starter",
     price: 790,
     description: "One-time payment, lifetime access to Basic features",
     features: ["Phases 1-3 Lifetime Access", "1,000 Credits/mo Forever", "All Basic Features", "No Recurring Fees"],
@@ -142,7 +141,7 @@ export const LIFETIME_LICENSES: Record<string, LifetimeLicense> = {
   "lifetime_pro": {
     id: "lifetime_pro",
     name: "Lifetime Pro",
-    priceId: process.env.STRIPE_PRICE_LIFETIME_PRO || "price_lifetime_pro",
+    priceId: process.env.STRIPE_LIFETIME_PRO_PRICE_ID || "price_lifetime_pro",
     price: 2390,
     description: "One-time payment, lifetime access to Pro features",
     features: ["Phases 1-17 Lifetime Access", "5,000 Credits/mo Forever", "All Elite Features", "Priority Support Forever"],
@@ -150,38 +149,20 @@ export const LIFETIME_LICENSES: Record<string, LifetimeLicense> = {
   "onprem_perpetual": {
     id: "onprem_perpetual",
     name: "On-Prem Perpetual",
-    priceId: process.env.STRIPE_PRICE_ONPREM_PERPETUAL || "price_onprem_perpetual",
+    priceId: process.env.STRIPE_ON_PREM_PERPETUAL_PRICE_ID || "price_onprem_perpetual",
     price: 4999,
     description: "Self-hosted, unlimited internal use",
     features: ["Full Source Code Access", "Unlimited Internal Users", "Self-Hosted Deployment", "No Cloud Dependency", "1 Year Updates Included"],
   },
 };
 
-// === CREDIT TOP-UP PACKS ===
+// === CREDIT TOP-UP PACKS (5 Packs) ===
 export const CREDIT_PACKS: CreditPack[] = [
-  { 
-    id: "credits_5k", 
-    credits: 5000, 
-    price: 2000, 
-    label: "Starter Pack",
-    priceId: process.env.STRIPE_PRICE_CREDITS_5K || "price_credits_5k"
-  },
-  { 
-    id: "credits_15k", 
-    credits: 15000, 
-    price: 5000, 
-    label: "Pro Surge", 
-    savings: "17% off",
-    priceId: process.env.STRIPE_PRICE_CREDITS_15K || "price_credits_15k"
-  },
-  { 
-    id: "credits_50k", 
-    credits: 50000, 
-    price: 15000, 
-    label: "Empire Overdrive", 
-    savings: "25% off",
-    priceId: process.env.STRIPE_PRICE_CREDITS_50K || "price_credits_50k"
-  },
+  { id: "credits_5k", credits: 5000, price: 2000, label: "Starter Pack" },
+  { id: "credits_10k", credits: 10000, price: 3800, label: "Pro Boost", savings: "5% off" },
+  { id: "credits_25k", credits: 25000, price: 9000, label: "Empire Surge", savings: "10% off" },
+  { id: "credits_50k", credits: 50000, price: 17000, label: "Empire Overdrive", savings: "15% off" },
+  { id: "credits_100k", credits: 100000, price: 32000, label: "Empire Titan", savings: "20% off" },
 ];
 
 // === MARKETPLACE & AFFILIATE CONFIG ===
@@ -198,7 +179,10 @@ export class StripeService {
   /**
    * Create a checkout session for one-time credit top-up
    */
-  async createTopUpSession(orgId: string, amountCents: number, credits: number): Promise<string> {
+  async createTopUpSession(orgId: string, packId: string, affiliateCode?: string): Promise<string> {
+    const pack = CREDIT_PACKS.find(p => p.id === packId);
+    if (!pack) throw new Error("Invalid credit pack");
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       mode: "payment",
@@ -207,15 +191,15 @@ export class StripeService {
           price_data: {
             currency: "usd",
             product_data: {
-              name: `${credits.toLocaleString()} Credits Pack`,
+              name: `${pack.credits.toLocaleString()} Credits Pack`,
               description: "Credits for AI Agents, Sandboxes, and Vision-to-Code",
             },
-            unit_amount: amountCents,
+            unit_amount: pack.price,
           },
           quantity: 1,
         },
       ],
-      metadata: { orgId, credits: credits.toString(), type: "topup" },
+      metadata: { orgId, credits: pack.credits.toString(), type: "topup", packId, ...(affiliateCode && { affiliateCode }) },
       success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/billing?success=true`,
       cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/billing?canceled=true`,
     });
@@ -318,7 +302,7 @@ export class StripeService {
     const commission = Math.round(amountCents * MARKETPLACE_CONFIG.commissionRate);
     const sellerAmount = amountCents - commission;
 
-    // Create a payment intent for the transaction
+    // Create a payment intent for transaction
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountCents,
       currency: "usd",

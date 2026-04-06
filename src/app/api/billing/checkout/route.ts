@@ -6,8 +6,7 @@ export const runtime = "nodejs";
 const requestSchema = z.object({
   orgId: z.string().uuid(),
   type: z.enum(["topup", "subscription", "lifetime"]),
-  amount: z.number().int().optional(), // In cents (for topup)
-  credits: z.number().int().optional(), // For topup
+  packId: z.string().optional(), // For topup - use pack ID instead of amount/credits
   tier: z.string().optional(), // For subscription
   licenseId: z.string().optional(), // For lifetime license
   interval: z.enum(["monthly", "yearly"]).optional().default("monthly"),
@@ -22,10 +21,10 @@ export async function POST(request: Request): Promise<Response> {
     let checkoutUrl: string;
 
     if (parsed.type === "topup") {
-      if (!parsed.amount || !parsed.credits) {
-        return Response.json({ error: "Missing amount or credits for topup" }, { status: 400 });
+      if (!parsed.packId) {
+        return Response.json({ error: "Missing packId for credit topup" }, { status: 400 });
       }
-      checkoutUrl = await stripeService.createTopUpSession(parsed.orgId, parsed.amount, parsed.credits);
+      checkoutUrl = await stripeService.createTopUpSession(parsed.orgId, parsed.packId, parsed.affiliateCode);
     } else if (parsed.type === "lifetime") {
       if (!parsed.licenseId) {
         return Response.json({ error: "Missing licenseId for lifetime purchase" }, { status: 400 });
