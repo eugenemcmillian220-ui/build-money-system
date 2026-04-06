@@ -63,11 +63,18 @@ const PRODUCTS = [
   }
 ];
 
+interface CreatedPrice {
+  tierId: string;
+  monthly: string;
+  yearly: string;
+}
+
 async function setup() {
-  console.log("🚀 Starting Stripe Autonomous Setup...");
+  console.log("🚀 Starting Stripe Autonomous Setup...\n");
+  const createdPrices: CreatedPrice[] = [];
 
   for (const p of PRODUCTS) {
-    console.log(`\n📦 Creating Product: ${p.name}`);
+    console.log(`📦 Creating Product: ${p.name}`);
     
     const product = await stripe.products.create({
       name: p.name,
@@ -78,7 +85,6 @@ async function setup() {
       }
     });
 
-    console.log(`   - Creating Monthly Price ($${p.monthly/100}/mo)`);
     const monthlyPrice = await stripe.prices.create({
       product: product.id,
       unit_amount: p.monthly,
@@ -87,7 +93,6 @@ async function setup() {
       metadata: { type: "monthly", tier: p.id }
     });
 
-    console.log(`   - Creating Yearly Price ($${p.yearly/1200}/mo effective)`);
     const yearlyPrice = await stripe.prices.create({
       product: product.id,
       unit_amount: p.yearly,
@@ -96,12 +101,31 @@ async function setup() {
       metadata: { type: "yearly", tier: p.id }
     });
 
-    console.log(`✅ Success! Product: ${product.id}`);
-    console.log(`   Monthly Price ID: ${monthlyPrice.id}`);
-    console.log(`   Yearly Price ID: ${yearlyPrice.id}`);
+    createdPrices.push({
+      tierId: p.id,
+      monthly: monthlyPrice.id,
+      yearly: yearlyPrice.id
+    });
+
+    console.log(`   ✅ Created: ${product.id}`);
   }
 
-  console.log("\n✨ Stripe Setup Complete. All 16-Phase Tiers are now live in your Dashboard.");
+  console.log("\n" + "=".repeat(60));
+  console.log("✨ Stripe Setup Complete!");
+  console.log("=".repeat(60));
+  console.log("\n📋 Copy these environment variables to your .env file:\n");
+  
+  for (const price of createdPrices) {
+    const envPrefix = price.tierId.toUpperCase().replace(/-/g, "_");
+    console.log(`STRIPE_PRICE_${envPrefix}_MONTHLY=${price.monthly}`);
+    console.log(`STRIPE_PRICE_${envPrefix}_YEARLY=${price.yearly}`);
+  }
+  
+  console.log("\n🔔 Don't forget to set up your webhook endpoint:");
+  console.log("   Endpoint: /api/billing/webhook");
+  console.log("   Events: checkout.session.completed, customer.subscription.updated,");
+  console.log("           customer.subscription.deleted, invoice.payment_succeeded,");
+  console.log("           invoice.payment_failed");
 }
 
 setup().catch(err => {

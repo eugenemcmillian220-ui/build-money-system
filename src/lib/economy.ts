@@ -8,7 +8,7 @@ export interface Transaction {
   fromAgent: AgentRole | "System";
   toAgent?: AgentRole;
   amount: number;
-  type: "hiring" | "resource_cost" | "top_up" | "subscription_grant";
+  type: "hiring" | "resource_cost" | "top_up" | "subscription_grant" | "subscription_renewal";
   description: string;
 }
 
@@ -74,7 +74,7 @@ export class AgentEconomy {
   /**
    * Grant credits to an organization (e.g., from top-up or subscription)
    */
-  async grantCredits(orgId: string, amount: number, type: "top_up" | "subscription_grant" = "top_up"): Promise<void> {
+  async grantCredits(orgId: string, amount: number, type: "top_up" | "subscription_grant" | "subscription_renewal" = "top_up"): Promise<void> {
     await this.recordTransaction({
       orgId,
       fromAgent: "System",
