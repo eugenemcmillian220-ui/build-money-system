@@ -24,7 +24,7 @@ export function ApprovalsTab() {
     setLoading(false);
   }, []);
 
-  const handleResolve = async (id: string, _status: "approved" | "rejected") => {
+  const handleResolve = async (id: string) => {
     setActions(prev => prev.filter(a => a.id !== id));
     // In production: await fetch('/api/governance', { method: 'POST', body: JSON.stringify({ actionId: id, status: _status }) });
   };
@@ -67,13 +67,13 @@ export function ApprovalsTab() {
 
               <div className="flex items-center gap-3">
                 <button 
-                  onClick={() => handleResolve(action.id, "rejected")}
+                  onClick={() => handleResolve(action.id)}
                   className="px-6 py-3 rounded-xl border border-white/10 text-xs font-black uppercase tracking-widest hover:bg-red-500 hover:text-white hover:border-red-500 transition-all"
                 >
                   Reject
                 </button>
                 <button 
-                  onClick={() => handleResolve(action.id, "approved")}
+                  onClick={() => handleResolve(action.id)}
                   className="px-6 py-3 rounded-xl bg-white text-black text-xs font-black uppercase tracking-widest hover:bg-blue-500 hover:text-white transition-all shadow-xl shadow-white/5"
                 >
                   Approve Action

@@ -33,7 +33,7 @@ export async function GET(request: Request): Promise<Response> {
   try {
     const status = await governance.checkActionStatus(actionId);
     return Response.json({ actionId, status });
-  } catch (_error) {
+  } catch {
     return Response.json({ error: "Failed to check status" }, { status: 500 });
   }
 }

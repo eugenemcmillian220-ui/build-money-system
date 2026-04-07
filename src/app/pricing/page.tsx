@@ -7,15 +7,7 @@ export const metadata: Metadata = {
   description: "Premium pricing plans for the Build Money System autonomous AI platform. Elite Empire and Basic Foundation tiers with lifetime license options.",
 };
 
-// For the public pricing page, we use a placeholder orgId
-// Users will be redirected to sign up/login before checkout
-const PLACEHOLDER_ORG_ID = "00000000-0000-0000-0000-000000000000";
-
-export default function PricingPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ ref?: string }>;
-}) {
+export default function PricingPage() {
   return (
     <main className="relative overflow-hidden min-h-screen">
       {/* Background */}

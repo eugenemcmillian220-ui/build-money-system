@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import Image from "next/image";
 import { CodeDisplay } from "@/components/code-display";
 import { MultiFileDisplay } from "@/components/multi-file-display";
 
@@ -297,7 +298,7 @@ export function GeneratorForm() {
             </button>
           ) : (
             <div className="group relative h-48 w-full overflow-hidden rounded-2xl border border-white/10">
-              <img src={imageUrl} alt="Design reference" className="h-full w-full object-cover" />
+              <Image src={imageUrl} alt="Design reference" className="h-full w-full object-cover" fill unoptimized />
               <div className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 transition-opacity group-hover:opacity-100">
                 <button
                   onClick={() => setImageUrl(null)}

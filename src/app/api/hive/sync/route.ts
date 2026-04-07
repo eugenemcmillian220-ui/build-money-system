@@ -48,7 +48,7 @@ export async function GET(request: Request): Promise<Response> {
   try {
     const relevant = await hiveMind.recall(problem, tags);
     return Response.json({ success: true, results: relevant });
-  } catch (error) {
+  } catch {
     return Response.json({ error: "Failed to recall from Hive Mind" }, { status: 500 });
   }
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { LiveProvider, LiveEditor, LiveError, LivePreview } from "react-live";
+import { LiveProvider, LiveError, LivePreview } from "react-live";
 
 interface CodeDisplayProps {
   code: string;
