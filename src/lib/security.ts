@@ -50,7 +50,12 @@ export class SecurityLayer {
     if (adminKeys.length > 0 && adminKeys.includes(apiKey)) {
       return true;
     }
-    // Development fallback: check format
+    // Development fallback: allow any key if no ADMIN_API_KEYS configured
+    // This allows testing without setting environment variables
+    if (process.env.NODE_ENV === 'development' && adminKeys.length === 0) {
+      return apiKey.length > 5; // Simple length check for dev mode
+    }
+    // Production fallback: check format
     return apiKey.startsWith('sk-') && apiKey.length > 20;
   }
 
