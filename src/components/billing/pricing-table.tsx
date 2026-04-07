@@ -68,13 +68,13 @@ export function PricingTable({
     }
   };
 
-  const handleTopUp = async (packId: string, price: number, credits: number) => {
+  const handleTopUp = async (packId: string) => {
     setLoading(packId);
     try {
       const res = await fetch("/api/billing/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orgId, type: "topup", amount: price, credits }),
+        body: JSON.stringify({ orgId, type: "topup", packId }),
       });
       const data = await res.json();
       if (data.url) window.location.href = data.url;
@@ -311,7 +311,7 @@ export function PricingTable({
             {CREDIT_PACKS.map((pack) => (
               <button
                 key={pack.id}
-                onClick={() => handleTopUp(pack.id, pack.price, pack.credits)}
+                onClick={() => handleTopUp(pack.id)}
                 disabled={loading === pack.id}
                 className="p-8 rounded-[2rem] border border-white/10 bg-white/5 hover:border-green-500/50 hover:bg-green-500/10 transition-all duration-300 text-left group/btn flex flex-col justify-between h-56 disabled:opacity-50"
               >

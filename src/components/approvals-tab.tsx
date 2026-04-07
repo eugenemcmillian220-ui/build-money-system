@@ -26,7 +26,7 @@ export function ApprovalsTab() {
 
   const handleResolve = async (id: string) => {
     setActions(prev => prev.filter(a => a.id !== id));
-    // In production: await fetch('/api/governance', { method: 'POST', body: JSON.stringify({ actionId: id, status: _status }) });
+    // In production: await fetch('/api/governance', { method: 'POST', body: JSON.stringify({ actionId: id, status: 'approved' }) });
   };
 
   if (loading) return <div className="p-8 text-center text-muted-foreground">Scanning governance gates...</div>;

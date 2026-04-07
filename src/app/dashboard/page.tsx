@@ -3,6 +3,13 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PricingTable } from "@/components/billing/pricing-table";
+import { ApprovalsTab } from "@/components/approvals-tab";
+import { HiveDashboard } from "@/components/hive-dashboard";
+import { DiplomatDashboard } from "@/components/diplomat-dashboard";
+import { InvestorPortal } from "@/components/investor-portal";
+import { MADealRoom } from "@/components/ma-deal-room";
+import { RDLab } from "@/components/rd-lab";
+import { EconomyDashboard } from "@/components/economy-dashboard";
 
 // Types
 interface Project {
@@ -91,6 +98,105 @@ const PHASE_NAMES: Record<string, { name: string; description: string }> = {
   phase15: { name: "Phase 15", description: "Hive Mind Loop" },
   phase16: { name: "Phase 16", description: "Autonomous M&A" },
   phase17: { name: "Phase 17", description: "Legal & Corporate Suite" },
+  phase18: { name: "Phase 18", description: "R&D Tech Scouting" },
+};
+
+type ActiveTab = "projects" | "health" | "endpoints" | "billing" | "ai-tools" | "enterprise";
+type EnterpriseView = "overview" | "economy" | "governance" | "vc" | "diplomat" | "hive" | "ma" | "rd";
+
+const ENTERPRISE_FEATURES = [
+  {
+    phase: "Phase 8",
+    title: "AI Development OS",
+    icon: "🖥️",
+    features: ["Live Code Sandbox (E2B)", "Multi-Tenant Workspaces", "Agent Memory & Recall", "Mobile App Generation", "Real-Time Collaboration", "Semantic Code Search", "Enterprise Auth & White-label"],
+    color: "blue",
+  },
+  {
+    phase: "Phase 9",
+    title: "Autonomous Enterprise",
+    icon: "🏢",
+    features: ["Vision-to-Code Pipeline", "Compliance Vault (SOC2/GDPR)", "Auto-SRE Healing", "Multi-Cloud IaC (Terraform)"],
+    color: "purple",
+  },
+  {
+    phase: "Phase 10",
+    title: "Agent Economy",
+    icon: "💹",
+    features: ["Agent Credit System", "Skills Marketplace", "Revenue Sharing", "Agent-to-Agent Transactions"],
+    color: "green",
+    view: "economy" as EnterpriseView,
+  },
+  {
+    phase: "Phase 11",
+    title: "Growth Lab",
+    icon: "📈",
+    features: ["Hype Agent (Viral Campaigns)", "Social Automation", "SEO Intelligence", "A/B Test Engine"],
+    color: "amber",
+  },
+  {
+    phase: "Phase 12",
+    title: "Governance & Edge",
+    icon: "🛡️",
+    features: ["Human-in-the-Loop Approvals", "Edge Scale Orchestration", "Global CDN Deployment", "Risk Scoring Engine"],
+    color: "red",
+    view: "governance" as EnterpriseView,
+  },
+  {
+    phase: "Phase 13",
+    title: "Autonomous VC",
+    icon: "🚀",
+    features: ["AI Investment Engine", "Portfolio Management", "ROI Projection", "Revenue Share Intelligence"],
+    color: "green",
+    view: "vc" as EnterpriseView,
+  },
+  {
+    phase: "Phase 14",
+    title: "Agentic Diplomacy",
+    icon: "💼",
+    features: ["Vendor Relationship AI", "Automated Negotiations", "Contract Renewal", "Cost Optimization"],
+    color: "blue",
+    view: "diplomat" as EnterpriseView,
+  },
+  {
+    phase: "Phase 15",
+    title: "Hive Mind",
+    icon: "🧠",
+    features: ["Collective Intelligence", "Cross-Org Learning", "Pattern Synthesis", "Anonymized Knowledge Base"],
+    color: "purple",
+    view: "hive" as EnterpriseView,
+  },
+  {
+    phase: "Phase 16",
+    title: "Autonomous M&A",
+    icon: "🤝",
+    features: ["Synergy Analysis", "Deal Room", "Merger Execution", "Due Diligence AI"],
+    color: "blue",
+    view: "ma" as EnterpriseView,
+  },
+  {
+    phase: "Phase 17",
+    title: "Legal & Corporate Suite",
+    icon: "⚖️",
+    features: ["Entity Formation AI", "IP Vault", "Contract Generation", "Regulatory Compliance"],
+    color: "amber",
+  },
+  {
+    phase: "Phase 18",
+    title: "R&D Tech Scouting",
+    icon: "🔬",
+    features: ["Emerging Tech Radar", "Auto-Adoption Pipeline", "GitHub Trend Analysis", "Integration Proposals"],
+    color: "green",
+    view: "rd" as EnterpriseView,
+  },
+];
+
+const COLOR_MAP: Record<string, { badge: string; border: string; icon: string }> = {
+  blue: { badge: "bg-blue-500/10 text-blue-400 border-blue-500/20", border: "hover:border-blue-500/30", icon: "bg-blue-500/10" },
+  purple: { badge: "bg-purple-500/10 text-purple-400 border-purple-500/20", border: "hover:border-purple-500/30", icon: "bg-purple-500/10" },
+  green: { badge: "bg-green-500/10 text-green-400 border-green-500/20", border: "hover:border-green-500/30", icon: "bg-green-500/10" },
+  amber: { badge: "bg-amber-500/10 text-amber-400 border-amber-500/20", border: "hover:border-amber-500/30", icon: "bg-amber-500/10" },
+  red: { badge: "bg-red-500/10 text-red-400 border-red-500/20", border: "hover:border-red-500/30", icon: "bg-red-500/10" },
 };
 
 export default function DashboardPage() {
@@ -99,7 +205,8 @@ export default function DashboardPage() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_envVars, setEnvVars] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"projects" | "health" | "endpoints" | "env" | "ai-tools" | "billing">("projects");
+  const [activeTab, setActiveTab] = useState<ActiveTab>("projects");
+  const [enterpriseView, setEnterpriseView] = useState<EnterpriseView>("overview");
   const [testResults, setTestResults] = useState<Record<string, { status: number; response: unknown; time: number }>>({});
   const [newProjectPrompt, setNewProjectPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -107,7 +214,6 @@ export default function DashboardPage() {
   const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState("");
 
-  // Fetch data
   useEffect(() => {
     fetchData();
   }, []);
@@ -142,10 +248,8 @@ export default function DashboardPage() {
     }
   };
 
-  // Delete project
   const deleteProject = async (id: string) => {
     if (!confirm("Are you sure you want to delete this project?")) return;
-    
     try {
       const res = await fetch(`/api/projects/${id}`, { method: "DELETE" });
       if (res.ok) {
@@ -156,10 +260,8 @@ export default function DashboardPage() {
     }
   };
 
-  // Create new project
   const createProject = async () => {
     if (!newProjectPrompt.trim()) return;
-    
     setIsGenerating(true);
     try {
       const res = await fetch("/api/generate", {
@@ -171,7 +273,6 @@ export default function DashboardPage() {
       if (res.ok) {
         const data = await res.json();
         if (data.result?.files) {
-          // Save the project
           const saveRes = await fetch("/api/projects", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -196,7 +297,6 @@ export default function DashboardPage() {
     }
   };
 
-  // Deploy project
   const deployProject = async (projectId: string) => {
     try {
       const res = await fetch("/api/deploy", {
@@ -216,7 +316,6 @@ export default function DashboardPage() {
     }
   };
 
-  // Export to GitHub
   const exportToGitHub = async (projectId: string, repoName: string) => {
     try {
       const res = await fetch("/api/github", {
@@ -236,7 +335,6 @@ export default function DashboardPage() {
     }
   };
 
-  // Test endpoint
   const testEndpoint = async (endpoint: EndpointTest) => {
     const startTime = performance.now();
     try {
@@ -262,7 +360,7 @@ export default function DashboardPage() {
 
       const res = await fetch(endpoint.endpoint, options);
       const time = Math.round(performance.now() - startTime);
-      
+
       let response;
       try {
         response = await res.json();
@@ -283,13 +381,10 @@ export default function DashboardPage() {
     }
   };
 
-  // Submit feedback
   const submitFeedback = async () => {
     if (!feedback.comment.trim()) return;
-    
     setFeedbackSubmitting(true);
     setFeedbackMessage("");
-    
     try {
       const res = await fetch("/api/feedback", {
         method: "POST",
@@ -349,11 +444,12 @@ export default function DashboardPage() {
             { id: "health", label: "System Health", icon: "🏥" },
             { id: "endpoints", label: "API Endpoints", icon: "🔌" },
             { id: "billing", label: "Billing & Payment", icon: "💳" },
-            { id: "ai-tools", label: "AI Tools", icon: "🏢" },
+            { id: "ai-tools", label: "AI Tools", icon: "🤖" },
+            { id: "enterprise", label: "Enterprise (Ph. 8-18)", icon: "🏢" },
           ].map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as typeof activeTab)}
+              onClick={() => setActiveTab(tab.id as ActiveTab)}
               className={`rounded-xl px-5 py-2 text-xs font-bold tracking-wide whitespace-nowrap transition-all ${
                 activeTab === tab.id
                   ? "bg-brand-500 text-white shadow-lg shadow-brand-500/30"
@@ -377,7 +473,6 @@ export default function DashboardPage() {
             {/* Projects Tab */}
             {activeTab === "projects" && (
               <div className="space-y-6">
-                {/* Create Project */}
                 <div className="glass-card rounded-2xl p-6">
                   <h2 className="text-base font-black mb-4 text-white">Create New Project</h2>
                   <div className="flex gap-3">
@@ -399,7 +494,6 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                {/* Projects List */}
                 <div className="bg-white rounded-lg shadow">
                   <div className="p-6 border-b">
                     <h2 className="text-lg font-semibold">Projects ({projects.length})</h2>
@@ -497,7 +591,6 @@ export default function DashboardPage() {
             {/* System Health Tab */}
             {activeTab === "health" && health && (
               <div className="space-y-6">
-                {/* Overall Status */}
                 <div className="bg-white rounded-lg shadow p-6">
                   <h2 className="text-lg font-semibold mb-4">System Status</h2>
                   <div className="flex items-center gap-3">
@@ -507,7 +600,6 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                {/* Integrations */}
                 <div className="bg-white rounded-lg shadow p-6">
                   <h2 className="text-lg font-semibold mb-4">Integration Status</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -523,7 +615,6 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                {/* Phase Status */}
                 <div className="bg-white rounded-lg shadow p-6">
                   <h2 className="text-lg font-semibold mb-4">Phase Status</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -545,7 +636,6 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                {/* Feedback Section */}
                 <div className="bg-white rounded-lg shadow p-6">
                   <h2 className="text-lg font-semibold mb-4">Submit Feedback</h2>
                   <div className="space-y-4">
@@ -675,7 +765,7 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* AI Company Builder Tab */}
+            {/* AI Tools Tab */}
             {activeTab === "ai-tools" && (
               <div className="space-y-6">
                 <div className="bg-white rounded-lg shadow p-6">
@@ -684,225 +774,239 @@ export default function DashboardPage() {
                     These tools help you validate business ideas, plan products, and build AI-powered companies.
                     Note: Some features require authentication.
                   </p>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Idea Validator */}
-                    <div className="border rounded-lg p-4">
-                      <h3 className="font-medium mb-2">💡 Idea Validator</h3>
-                      <p className="text-sm text-gray-600 mb-3">Validate and analyze business ideas with market research</p>
-                      <button
-                        onClick={() => testEndpoint({
-                          name: "Validate Idea",
-                          method: "POST",
-                          endpoint: "/api/validate-idea",
-                          description: ""
-                        })}
-                        className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
-                      >
-                        Test Endpoint
-                      </button>
-                    </div>
-
-                    {/* Build Company */}
-                    <div className="border rounded-lg p-4">
-                      <h3 className="font-medium mb-2">🏢 Build Company</h3>
-                      <p className="text-sm text-gray-600 mb-3">Full AI company builder with validation, planning, and growth</p>
-                      <button
-                        onClick={() => testEndpoint({
-                          name: "Build Company",
-                          method: "POST",
-                          endpoint: "/api/build-company",
-                          description: ""
-                        })}
-                        className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
-                      >
-                        Test Endpoint
-                      </button>
-                    </div>
-
-                    {/* Swarm */}
-                    <div className="border rounded-lg p-4">
-                      <h3 className="font-medium mb-2">🐝 Agent Swarm</h3>
-                      <p className="text-sm text-gray-600 mb-3">Multi-agent collaboration for complex tasks</p>
-                      <button
-                        onClick={() => testEndpoint({
-                          name: "Swarm",
-                          method: "POST",
-                          endpoint: "/api/swarm",
-                          description: ""
-                        })}
-                        className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
-                      >
-                        Test Endpoint
-                      </button>
-                    </div>
-
-                    {/* Growth Engine */}
-                    <div className="border rounded-lg p-4">
-                      <h3 className="font-medium mb-2">📈 Growth Engine</h3>
-                      <p className="text-sm text-gray-600 mb-3">Generate growth strategies and marketing plans</p>
-                      <button
-                        onClick={() => testEndpoint({
-                          name: "Growth",
-                          method: "POST",
-                          endpoint: "/api/growth",
-                          description: ""
-                        })}
-                        className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
-                      >
-                        Test Endpoint
-                      </button>
-                    </div>
-
-                    {/* Monetization */}
-                    <div className="border rounded-lg p-4">
-                      <h3 className="font-medium mb-2">💰 Monetization</h3>
-                      <p className="text-sm text-gray-600 mb-3">Create pricing tiers and revenue models</p>
-                      <button
-                        onClick={() => testEndpoint({
-                          name: "Monetization",
-                          method: "POST",
-                          endpoint: "/api/monetization",
-                          description: ""
-                        })}
-                        className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
-                      >
-                        Test Endpoint
-                      </button>
-                    </div>
-
-                    {/* Self Improve */}
-                    <div className="border rounded-lg p-4">
-                      <h3 className="font-medium mb-2">🔄 Self Improvement</h3>
-                      <p className="text-sm text-gray-600 mb-3">Trigger AI self-improvement and learning</p>
-                      <button
-                        onClick={() => testEndpoint({
-                          name: "Self Improve",
-                          method: "POST",
-                          endpoint: "/api/self-improve",
-                          description: ""
-                        })}
-                        className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
-                      >
-                        Test Endpoint
-                      </button>
-                    </div>
-
-                    {/* Learning Store */}
-                    <div className="border rounded-lg p-4">
-                      <h3 className="font-medium mb-2">📚 Learning Store</h3>
-                      <p className="text-sm text-gray-600 mb-3">View and manage AI learning patterns</p>
-                      <button
-                        onClick={() => testEndpoint({
-                          name: "Learning",
-                          method: "GET",
-                          endpoint: "/api/learning",
-                          description: ""
-                        })}
-                        className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
-                      >
-                        Test Endpoint
-                      </button>
-                    </div>
-
-                    {/* Marketplace */}
-                    <div className="border rounded-lg p-4">
-                      <h3 className="font-medium mb-2">🛒 Marketplace</h3>
-                      <p className="text-sm text-gray-600 mb-3">Browse and purchase templates/modules</p>
-                      <button
-                        onClick={() => testEndpoint({
-                          name: "Marketplace",
-                          method: "GET",
-                          endpoint: "/api/marketplace",
-                          description: ""
-                        })}
-                        className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
-                      >
-                        Test Endpoint
-                      </button>
-                    </div>
-
-                    {/* Hype Agent */}
-                    <div className="border rounded-lg p-4">
-                      <h3 className="font-medium mb-2">📢 Hype Agent</h3>
-                      <p className="text-sm text-gray-600 mb-3">Launch viral growth campaigns</p>
-                      <button
-                        onClick={() => testEndpoint({
-                          name: "Hype",
-                          method: "POST",
-                          endpoint: "/api/hype",
-                          description: ""
-                        })}
-                        className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
-                      >
-                        Test Endpoint
-                      </button>
-                    </div>
-
-                    {/* Compliance */}
-                    <div className="border rounded-lg p-4">
-                      <h3 className="font-medium mb-2">🛡️ Compliance Vault</h3>
-                      <p className="text-sm text-gray-600 mb-3">Run automated compliance audits</p>
-                      <button
-                        onClick={() => testEndpoint({
-                          name: "Compliance",
-                          method: "POST",
-                          endpoint: "/api/compliance",
-                          description: ""
-                        })}
-                        className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
-                      >
-                        Test Endpoint
-                      </button>
-                    </div>
-
-                    {/* Diplomat */}
-                    <div className="border rounded-lg p-4">
-                      <h3 className="font-medium mb-2">💼 Diplomat Agent</h3>
-                      <p className="text-sm text-gray-600 mb-3">Audit and negotiate vendor relations</p>
-                      <button
-                        onClick={() => testEndpoint({
-                          name: "Diplomat",
-                          method: "GET",
-                          endpoint: "/api/diplomat",
-                          description: ""
-                        })}
-                        className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
-                      >
-                        Test Endpoint
-                      </button>
-                    </div>
+                    {[
+                      { icon: "💡", title: "Idea Validator", desc: "Validate and analyze business ideas with market research", endpoint: "/api/validate-idea", name: "Validate Idea", method: "POST" },
+                      { icon: "🏢", title: "Build Company", desc: "Full AI company builder with validation, planning, and growth", endpoint: "/api/build-company", name: "Build Company", method: "POST" },
+                      { icon: "🐝", title: "Agent Swarm", desc: "Multi-agent collaboration for complex tasks", endpoint: "/api/swarm", name: "Swarm", method: "POST" },
+                      { icon: "📈", title: "Growth Engine", desc: "Generate growth strategies and marketing plans", endpoint: "/api/growth", name: "Growth", method: "POST" },
+                      { icon: "💰", title: "Monetization", desc: "Create pricing tiers and revenue models", endpoint: "/api/monetization", name: "Monetization", method: "POST" },
+                      { icon: "🔄", title: "Self Improvement", desc: "Trigger AI self-improvement and learning", endpoint: "/api/self-improve", name: "Self Improve", method: "POST" },
+                      { icon: "📚", title: "Learning Store", desc: "View and manage AI learning patterns", endpoint: "/api/learning", name: "Learning", method: "GET" },
+                      { icon: "🛒", title: "Marketplace", desc: "Browse and purchase templates/modules", endpoint: "/api/marketplace", name: "Marketplace", method: "GET" },
+                      { icon: "📢", title: "Hype Agent", desc: "Launch viral growth campaigns", endpoint: "/api/hype", name: "Hype", method: "POST" },
+                      { icon: "🛡️", title: "Compliance Vault", desc: "Run automated compliance audits", endpoint: "/api/compliance", name: "Compliance", method: "POST" },
+                      { icon: "💼", title: "Diplomat Agent", desc: "Audit and negotiate vendor relations", endpoint: "/api/diplomat", name: "Diplomat", method: "GET" },
+                    ].map(tool => (
+                      <div key={tool.endpoint} className="border rounded-lg p-4">
+                        <h3 className="font-medium mb-2">{tool.icon} {tool.title}</h3>
+                        <p className="text-sm text-gray-600 mb-3">{tool.desc}</p>
+                        <button
+                          onClick={() => testEndpoint({ name: tool.name, method: tool.method, endpoint: tool.endpoint, description: "" })}
+                          className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+                        >
+                          Test Endpoint
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
-                {/* Analytics Section */}
                 <div className="bg-white rounded-lg shadow p-6">
                   <h2 className="text-lg font-semibold mb-4">Analytics & Metrics</h2>
                   <div className="flex gap-4">
                     <button
-                      onClick={() => testEndpoint({
-                        name: "Analytics",
-                        method: "GET",
-                        endpoint: "/api/analytics",
-                        description: ""
-                      })}
+                      onClick={() => testEndpoint({ name: "Analytics", method: "GET", endpoint: "/api/analytics", description: "" })}
                       className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
                     >
                       View Analytics
                     </button>
                     <button
-                      onClick={() => testEndpoint({
-                        name: "Feedback",
-                        method: "GET",
-                        endpoint: "/api/feedback",
-                        description: ""
-                      })}
+                      onClick={() => testEndpoint({ name: "Feedback", method: "GET", endpoint: "/api/feedback", description: "" })}
                       className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
                     >
                       View Feedback
                     </button>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Enterprise Tab (Phases 8-18) */}
+            {activeTab === "enterprise" && (
+              <div className="space-y-8">
+                {/* Enterprise Sub-navigation */}
+                <div className="glass-card rounded-2xl p-4">
+                  <div className="flex flex-wrap gap-2">
+                    {([
+                      { id: "overview", label: "Overview", icon: "🗂️" },
+                      { id: "economy", label: "Agent Economy", icon: "💹" },
+                      { id: "governance", label: "Governance", icon: "🛡️" },
+                      { id: "vc", label: "VC Portal", icon: "🚀" },
+                      { id: "diplomat", label: "Diplomat", icon: "💼" },
+                      { id: "hive", label: "Hive Mind", icon: "🧠" },
+                      { id: "ma", label: "M&A Room", icon: "🤝" },
+                      { id: "rd", label: "R&D Lab", icon: "🔬" },
+                    ] as { id: EnterpriseView; label: string; icon: string }[]).map(view => (
+                      <button
+                        key={view.id}
+                        onClick={() => setEnterpriseView(view.id)}
+                        className={`rounded-xl px-4 py-2 text-xs font-bold tracking-wide whitespace-nowrap transition-all ${
+                          enterpriseView === view.id
+                            ? "bg-brand-500 text-white shadow-lg shadow-brand-500/30"
+                            : "border border-white/10 bg-white/5 text-muted-foreground hover:text-white"
+                        }`}
+                      >
+                        {view.icon} {view.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Overview */}
+                {enterpriseView === "overview" && (
+                  <div className="space-y-6">
+                    <div className="text-center mb-8">
+                      <h2 className="text-3xl font-black uppercase tracking-tighter text-white mb-2">Enterprise Suite</h2>
+                      <p className="text-muted-foreground text-sm">Phases 8–18: The autonomous AI empire toolkit</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                      {ENTERPRISE_FEATURES.map(feature => {
+                        const colors = COLOR_MAP[feature.color];
+                        return (
+                          <div
+                            key={feature.phase}
+                            className={`p-6 rounded-3xl border border-white/10 bg-white/5 transition-all group ${colors.border}`}
+                          >
+                            <div className="flex items-center gap-3 mb-4">
+                              <div className={`w-12 h-12 rounded-2xl ${colors.icon} flex items-center justify-center text-2xl`}>
+                                {feature.icon}
+                              </div>
+                              <div>
+                                <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md border ${colors.badge}`}>
+                                  {feature.phase}
+                                </span>
+                                <h3 className="text-base font-black text-white uppercase tracking-tight mt-1">{feature.title}</h3>
+                              </div>
+                            </div>
+
+                            <ul className="space-y-2 mb-5">
+                              {feature.features.map(f => (
+                                <li key={f} className="flex items-center gap-2 text-xs text-muted-foreground">
+                                  <div className="w-1 h-1 rounded-full bg-white/30 flex-shrink-0" />
+                                  {f}
+                                </li>
+                              ))}
+                            </ul>
+
+                            {feature.view ? (
+                              <button
+                                onClick={() => setEnterpriseView(feature.view!)}
+                                className="w-full py-2.5 rounded-xl border border-white/10 bg-white/5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-white/10 transition-all"
+                              >
+                                Open Dashboard →
+                              </button>
+                            ) : (
+                              <div className="w-full py-2.5 rounded-xl border border-white/5 bg-white/3 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-center">
+                                Elite Plan Required
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Agent Economy (Phase 10) */}
+                {enterpriseView === "economy" && (
+                  <div className="glass-card rounded-3xl border border-white/10 overflow-hidden">
+                    <div className="p-6 border-b border-white/10 flex items-center gap-3">
+                      <span className="text-2xl">💹</span>
+                      <div>
+                        <h2 className="text-xl font-black uppercase tracking-tight text-white">Agent Economy</h2>
+                        <p className="text-xs text-muted-foreground">Phase 10 — Credit system & skills marketplace</p>
+                      </div>
+                    </div>
+                    <EconomyDashboard orgId="00000000-0000-0000-0000-000000000000" />
+                  </div>
+                )}
+
+                {/* Governance (Phase 12) */}
+                {enterpriseView === "governance" && (
+                  <div className="glass-card rounded-3xl border border-white/10 overflow-hidden">
+                    <div className="p-6 border-b border-white/10 flex items-center gap-3">
+                      <span className="text-2xl">🛡️</span>
+                      <div>
+                        <h2 className="text-xl font-black uppercase tracking-tight text-white">Governance Gates</h2>
+                        <p className="text-xs text-muted-foreground">Phase 12 — Human-in-the-loop approvals & risk management</p>
+                      </div>
+                    </div>
+                    <ApprovalsTab />
+                  </div>
+                )}
+
+                {/* VC Portal (Phase 13) */}
+                {enterpriseView === "vc" && (
+                  <div className="glass-card rounded-3xl border border-white/10 overflow-hidden">
+                    <div className="p-6 border-b border-white/10 flex items-center gap-3">
+                      <span className="text-2xl">🚀</span>
+                      <div>
+                        <h2 className="text-xl font-black uppercase tracking-tight text-white">Autonomous VC</h2>
+                        <p className="text-xs text-muted-foreground">Phase 13 — AI investment engine & portfolio management</p>
+                      </div>
+                    </div>
+                    <InvestorPortal />
+                  </div>
+                )}
+
+                {/* Diplomat (Phase 14) */}
+                {enterpriseView === "diplomat" && (
+                  <div className="glass-card rounded-3xl border border-white/10 overflow-hidden">
+                    <div className="p-6 border-b border-white/10 flex items-center gap-3">
+                      <span className="text-2xl">💼</span>
+                      <div>
+                        <h2 className="text-xl font-black uppercase tracking-tight text-white">Agentic Diplomacy</h2>
+                        <p className="text-xs text-muted-foreground">Phase 14 — Autonomous vendor negotiation & cost optimization</p>
+                      </div>
+                    </div>
+                    <DiplomatDashboard />
+                  </div>
+                )}
+
+                {/* Hive Mind (Phase 15) */}
+                {enterpriseView === "hive" && (
+                  <div className="glass-card rounded-3xl border border-white/10 overflow-hidden">
+                    <div className="p-6 border-b border-white/10 flex items-center gap-3">
+                      <span className="text-2xl">🧠</span>
+                      <div>
+                        <h2 className="text-xl font-black uppercase tracking-tight text-white">Hive Mind</h2>
+                        <p className="text-xs text-muted-foreground">Phase 15 — Collective intelligence & cross-org learning</p>
+                      </div>
+                    </div>
+                    <HiveDashboard />
+                  </div>
+                )}
+
+                {/* M&A Room (Phase 16) */}
+                {enterpriseView === "ma" && (
+                  <div className="glass-card rounded-3xl border border-white/10 overflow-hidden">
+                    <div className="p-6 border-b border-white/10 flex items-center gap-3">
+                      <span className="text-2xl">🤝</span>
+                      <div>
+                        <h2 className="text-xl font-black uppercase tracking-tight text-white">M&A Deal Room</h2>
+                        <p className="text-xs text-muted-foreground">Phase 16 — Autonomous project consolidation & strategic mergers</p>
+                      </div>
+                    </div>
+                    <MADealRoom />
+                  </div>
+                )}
+
+                {/* R&D Lab (Phase 18) */}
+                {enterpriseView === "rd" && (
+                  <div className="glass-card rounded-3xl border border-white/10 overflow-hidden">
+                    <div className="p-6 border-b border-white/10 flex items-center gap-3">
+                      <span className="text-2xl">🔬</span>
+                      <div>
+                        <h2 className="text-xl font-black uppercase tracking-tight text-white">R&D Tech Scouting</h2>
+                        <p className="text-xs text-muted-foreground">Phase 18 — Emerging tech radar & automated adoption pipeline</p>
+                      </div>
+                    </div>
+                    <RDLab />
+                  </div>
+                )}
               </div>
             )}
           </>
