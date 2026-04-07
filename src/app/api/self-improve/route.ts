@@ -9,9 +9,9 @@ import { security } from "@/lib/security";
 
 export async function GET(req: NextRequest) {
   try {
-    // 1. Check API Key for security (only admin/authorized can trigger self-improvement)
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader || !security.validateApiKey(authHeader.replace("Bearer ", ""))) {
+    // Check for API key in either x-api-key header or Authorization header
+    const apiKey = req.headers.get('x-api-key') || req.headers.get('authorization')?.replace('Bearer ', '');
+    if (!apiKey || !security.validateApiKey(apiKey)) {
       return NextResponse.json({ error: "Unauthorized access" }, { status: 401 });
     }
 
@@ -34,9 +34,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    // 1. Check API Key for security
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader || !security.validateApiKey(authHeader.replace("Bearer ", ""))) {
+    // Check for API key in either x-api-key header or Authorization header
+    const apiKey = req.headers.get('x-api-key') || req.headers.get('authorization')?.replace('Bearer ', '');
+    if (!apiKey || !security.validateApiKey(apiKey)) {
       return NextResponse.json({ error: "Unauthorized access" }, { status: 401 });
     }
 
