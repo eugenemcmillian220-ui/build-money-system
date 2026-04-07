@@ -47,13 +47,24 @@ export async function GET(): Promise<Response> {
       },
     },
     phases: {
-      phase1: "ready", // Single component generation
-      phase2: "ready", // Multi-file generation
-      phase3: "ready", // Database persistence
-      phase4: "ready", // Deployment & export
-      phase5: "ready", // Production systems
-      phase6: "ready", // AI company builder
-      phase7: "ready", // Marketplace & billing
+      phase1: "ready",
+      phase2: "ready",
+      phase3: "ready",
+      phase4: "ready",
+      phase5: "ready",
+      phase6: "ready",
+      phase7: "ready",
+      phase8: "ready",
+      phase9: "ready",
+      phase10: "ready",
+      phase11: "ready",
+      phase12: "ready",
+      phase13: "ready",
+      phase14: "ready",
+      phase15: "ready",
+      phase16: "ready",
+      phase17: "ready",
+      phase18: "ready",
     },
   };
 

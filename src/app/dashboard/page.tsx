@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { PricingTable } from "@/components/billing/pricing-table";
 
 // Types
 interface Project {
@@ -98,7 +99,7 @@ export default function DashboardPage() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_envVars, setEnvVars] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"projects" | "health" | "endpoints" | "env" | "ai-tools">("projects");
+  const [activeTab, setActiveTab] = useState<"projects" | "health" | "endpoints" | "env" | "ai-tools" | "billing">("projects");
   const [testResults, setTestResults] = useState<Record<string, { status: number; response: unknown; time: number }>>({});
   const [newProjectPrompt, setNewProjectPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -347,6 +348,7 @@ export default function DashboardPage() {
             { id: "projects", label: "Projects", icon: "📁" },
             { id: "health", label: "System Health", icon: "🏥" },
             { id: "endpoints", label: "API Endpoints", icon: "🔌" },
+            { id: "billing", label: "Billing & Payment", icon: "💳" },
             { id: "ai-tools", label: "AI Tools", icon: "🏢" },
           ].map(tab => (
             <button
@@ -656,6 +658,19 @@ export default function DashboardPage() {
                       </div>
                     );
                   })}
+                </div>
+              </div>
+            )}
+
+            {/* Billing Tab */}
+            {activeTab === "billing" && (
+              <div className="space-y-6">
+                <div className="bg-black/40 backdrop-blur-xl rounded-3xl border border-white/10 p-8">
+                  <h2 className="text-2xl font-black uppercase tracking-tighter text-white mb-2">Billing & Payment Gateway</h2>
+                  <p className="text-muted-foreground text-sm mb-8">
+                    Manage your subscription, purchase lifetime licenses, or top up your AI credits.
+                  </p>
+                  <PricingTable orgId="00000000-0000-0000-0000-000000000000" />
                 </div>
               </div>
             )}
