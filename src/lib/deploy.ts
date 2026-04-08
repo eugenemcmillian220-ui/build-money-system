@@ -55,21 +55,23 @@ export async function createVercelDeploy(
     const axiosModule = await import("axios");
     const axios = axiosModule.default;
     
-    // Convert files to Vercel format (base64 encoded)
-    const vercelFiles: Record<string, VercelFile> = {};
-    
+    // Convert files to Vercel format (array of objects)
+    const vercelFiles: any[] = [];
+
     for (const [path, content] of Object.entries(files)) {
-      vercelFiles[path] = {
+      vercelFiles.push({
+        file: path,
         data: Buffer.from(content).toString("base64"),
         encoding: "base64",
-      };
+      });
     }
 
     // Add package.json if not present
     if (!files["package.json"]) {
-      vercelFiles["package.json"] = {
+      vercelFiles.push({
+        file: "package.json",
         data: Buffer.from(JSON.stringify({
-          name: name || `ai-app-${projectId.slice(0, 8)}`,
+          name: name?.toLowerCase().replace(/\s+/g, "-") || `ai-app-${projectId.slice(0, 8)}`,
           version: "1.0.0",
           private: true,
           scripts: {
@@ -93,12 +95,13 @@ export async function createVercelDeploy(
           },
         }, null, 2)).toString("base64"),
         encoding: "base64",
-      };
+      });
     }
 
     // Add next.config.js if not present
     if (!files["next.config.js"] && !files["next.config.ts"]) {
-      vercelFiles["next.config.js"] = {
+      vercelFiles.push({
+        file: "next.config.js",
         data: Buffer.from(`/** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'export',
@@ -108,15 +111,21 @@ const nextConfig = {
 module.exports = nextConfig
 `).toString("base64"),
         encoding: "base64",
-      };
+      });
     }
+
 
     const teamParam = serverEnv.VERCEL_TEAM_ID ? `?teamId=${serverEnv.VERCEL_TEAM_ID}` : "";
     
+    const deploymentName = (name || `ai-app-${projectId.slice(0, 8)}`)
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9._-]/g, "");
+
     const response = await axios.post<VercelDeploymentResponse>(
       `${VERCEL_API_BASE}/v13/deployments${teamParam}`,
       {
-        name: name || `ai-app-${projectId.slice(0, 8)}`,
+        name: deploymentName,
         files: vercelFiles,
         framework: "nextjs",
         target: "production",
