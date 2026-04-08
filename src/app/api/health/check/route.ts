@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { keyManager } from "@/lib/key-manager";
 
 export const runtime = "nodejs";
 
@@ -15,39 +16,26 @@ export async function GET() {
     },
   };
 
-  const allPassed = Object.values(checks.checks).every(c => c.pass);
-
+  const allPassed = Object.values(checks.checks).every((c) => c.pass);
   checks.status = allPassed ? "ready" : "issues_found";
 
   return NextResponse.json(checks);
 }
 
 function checkEnvironment() {
-  const required = [
-    "NEXT_PUBLIC_SUPABASE_URL",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
-  ];
+  const required = ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"];
 
-  const optional = [
-    "OPENROUTER_API_KEY",
-    "STRIPE_SECRET_KEY",
-    "VERCEL_TOKEN",
-    "GITHUB_TOKEN",
-  ];
-
-  const missing = required.filter(key => !process.env[key]);
-  const configured = required.filter(key => !!process.env[key]);
+  const missing = required.filter((key) => !process.env[key]);
+  const configured = required.filter((key) => !!process.env[key]);
 
   return {
     name: "Environment Variables",
     pass: missing.length === 0,
-    message: missing.length === 0
-      ? "All required environment variables configured"
-      : `Missing: ${missing.join(", ")}`,
-    details: {
-      required: { configured, missing },
-      optional: optional.filter(key => !!process.env[key]),
-    },
+    message:
+      missing.length === 0
+        ? "All required environment variables configured"
+        : `Missing: ${missing.join(", ")}`,
+    details: { required: { configured, missing } },
   };
 }
 
@@ -59,45 +47,44 @@ function checkDatabase() {
   return {
     name: "Database (Supabase)",
     pass: hasUrl && hasAnonKey && hasServiceKey,
-    message: hasUrl && hasAnonKey
-      ? "Supabase configured" + (hasServiceKey ? " with service role" : " (no service role)")
-      : "Supabase not configured",
-    details: {
-      url: hasUrl,
-      anonKey: hasAnonKey,
-      serviceKey: hasServiceKey,
-    },
+    message:
+      hasUrl && hasAnonKey
+        ? "Supabase configured" + (hasServiceKey ? " with service role" : " (no service role)")
+        : "Supabase not configured",
+    details: { url: hasUrl, anonKey: hasAnonKey, serviceKey: hasServiceKey },
   };
 }
 
 function checkLLM() {
-  const providers = {
-    openrouter: !!process.env.OPENROUTER_API_KEY,
-    gemini: !!process.env.GEMINI_API_KEY,
-    groq: !!process.env.GROQ_API_KEY,
-    deepseek: !!process.env.DEEPSEEK_API_KEY,
-    openai: !!process.env.OPENAI_API_KEY,
-  };
+  const providers = (
+    ["openrouter", "groq", "gemini", "openai", "deepseek", "cerebras", "cloudflare"] as const
+  ).reduce(
+    (acc, p) => {
+      acc[p] = keyManager.isConfigured(p);
+      return acc;
+    },
+    {} as Record<string, boolean>,
+  );
 
-  const availableProviders = Object.entries(providers).filter(([_, configured]) => configured);
-  const configured = availableProviders.length > 0;
+  const available = Object.entries(providers).filter(([, v]) => v);
+  const configured = available.length > 0;
 
   return {
     name: "LLM Providers",
     pass: configured,
     message: configured
-      ? `${availableProviders.length} provider(s) configured: ${availableProviders.map(([p]) => p).join(", ")}`
-      : "No LLM providers configured",
+      ? `${available.length} provider(s) configured: ${available.map(([p]) => p).join(", ")}`
+      : "No LLM providers configured. Add at least one API key.",
     details: {
-      primary: providers.openrouter ? "OpenRouter" : availableProviders[0]?.[0] || "none",
-      available: Object.keys(providers).filter(p => providers[p as keyof typeof providers]),
-      count: availableProviders.length,
+      providers,
+      count: available.length,
+      multiKeyRotation: true,
     },
   };
 }
 
 function checkDeployment() {
-  const hasVercel = !!process.env.VERCEL_TOKEN && !!process.env.VERCEL_PROJECT_ID;
+  const hasVercel = !!process.env.VERCEL_TOKEN;
   const hasGitHub = !!process.env.GITHUB_TOKEN;
 
   return {
@@ -107,10 +94,7 @@ function checkDeployment() {
       hasVercel ? "Vercel deployment configured" : "Vercel not configured",
       hasGitHub ? "GitHub export configured" : "GitHub not configured",
     ].join(", "),
-    details: {
-      vercel: hasVercel,
-      github: hasGitHub,
-    },
+    details: { vercel: hasVercel, github: hasGitHub },
   };
 }
 
@@ -124,14 +108,12 @@ function checkIntegrations() {
     slack: !!process.env.SLACK_TOKEN,
   };
 
-  const configured = Object.entries(integrations).filter(([_, c]) => c).length;
+  const count = Object.values(integrations).filter(Boolean).length;
 
   return {
     name: "Integrations",
-    pass: true, // Integrations are optional
-    message: configured > 0
-      ? `${configured} integration(s) configured`
-      : "No integrations configured (optional)",
+    pass: true,
+    message: count > 0 ? `${count} integration(s) configured` : "No integrations configured (optional)",
     details: integrations,
   };
 }

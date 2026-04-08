@@ -3,7 +3,7 @@
  * Real LLM-powered growth strategy generation (replaces hardcoded channel lists)
  */
 
-import { generateText } from "./openrouter";
+import { callLLM, cleanJson } from "./llm";
 
 export interface Channel {
   name: string;
@@ -71,9 +71,8 @@ Return ONLY a JSON object (no markdown):
 Include 3-5 channels, 8 content calendar items (week 1-4, 2 per week), 3 viral mechanics, 3 milestones, 3 partnerships.`;
 
     try {
-      const response = await generateText(prompt);
-      const cleaned = response.replace(/^```json\n?/g, "").replace(/\n?```$/g, "").trim();
-      const parsed = JSON.parse(cleaned) as Omit<GrowthStrategy, "idea" | "generatedAt">;
+      const response = await callLLM([{ role: "user", content: prompt }], { temperature: 0.5 });
+      const parsed = JSON.parse(cleanJson(response)) as Omit<GrowthStrategy, "idea" | "generatedAt">;
       return { idea, ...parsed, generatedAt: new Date().toISOString() };
     } catch {
       return this.fallbackStrategy(idea);

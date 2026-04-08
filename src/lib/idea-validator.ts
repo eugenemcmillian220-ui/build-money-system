@@ -1,9 +1,9 @@
 /**
  * Idea Validator Module - Phase 5/6 Upgrade
- * Real LLM-powered business idea validation (replaces string-length heuristics)
+ * Real LLM-powered business idea validation
  */
 
-import { generateText } from "./openrouter";
+import { callLLM, cleanJson } from "./llm";
 
 export interface IdeaValidationResult {
   idea: string;
@@ -59,8 +59,8 @@ Scoring guide:
 - 0-19: Not viable as described`;
 
     try {
-      const response = await generateText(prompt);
-      const cleaned = response.replace(/^```json\n?/g, "").replace(/\n?```$/g, "").trim();
+      const response = await callLLM([{ role: "user", content: prompt }], { temperature: 0.4 });
+      const cleaned = cleanJson(response);
       const parsed = JSON.parse(cleaned) as Omit<IdeaValidationResult, "idea" | "timestamp">;
 
       return {
@@ -69,7 +69,6 @@ Scoring guide:
         timestamp: new Date().toISOString(),
       };
     } catch {
-      // Graceful fallback if LLM unavailable
       return {
         idea,
         score: 50,
@@ -98,9 +97,8 @@ Return ONLY JSON (no markdown):
 }`;
 
     try {
-      const response = await generateText(prompt);
-      const cleaned = response.replace(/^```json\n?/g, "").replace(/\n?```$/g, "").trim();
-      return JSON.parse(cleaned) as MarketAnalysis;
+      const response = await callLLM([{ role: "user", content: prompt }], { temperature: 0.4 });
+      return JSON.parse(cleanJson(response)) as MarketAnalysis;
     } catch {
       return {
         segments: ["Early adopters", "SMBs", "Enterprise"],
@@ -124,9 +122,8 @@ Return ONLY a JSON array (no markdown):
 ]`;
 
     try {
-      const response = await generateText(prompt);
-      const cleaned = response.replace(/^```json\n?/g, "").replace(/\n?```$/g, "").trim();
-      return JSON.parse(cleaned) as Risk[];
+      const response = await callLLM([{ role: "user", content: prompt }], { temperature: 0.4 });
+      return JSON.parse(cleanJson(response)) as Risk[];
     } catch {
       return [
         {
