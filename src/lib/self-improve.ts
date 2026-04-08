@@ -1,6 +1,6 @@
 import { FeedbackLoop, feedbackLoop } from "./feedback-loop";
 import { LearningStore, learningStore } from "./learning-store";
-import { generateText } from "./openrouter";
+import { callLLM, cleanJson } from "./llm";
 
 /**
  * Self-Improvement Engine - Phase 5 Upgrade
@@ -101,8 +101,8 @@ Return JSON:
   ]
 }`;
 
-        const aiAnalysis = await generateText(analysisPrompt);
-        const cleaned = aiAnalysis.replace(/^```json\n?/g, "").replace(/\n?```$/g, "").trim();
+        const aiAnalysis = await callLLM([{ role: "user", content: analysisPrompt }], { temperature: 0.3 });
+        const cleaned = cleanJson(aiAnalysis);
         const parsed = JSON.parse(cleaned) as {
           systemAnalysis: string;
           recommendations: string[];

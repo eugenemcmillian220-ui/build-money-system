@@ -1,8 +1,7 @@
-import { serverEnv } from "@/lib/env";
 import { FileMap, AppSpec, AgentConfig, defaultAgentConfig, ChatMessage } from "./types";
 import { MemoryContext } from "./memory-store";
-
 import { llmRouter, LLMProvider } from "./llm-router";
+import { keyManager } from "./key-manager";
 
 const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
 
@@ -12,15 +11,6 @@ interface OpenRouterRequestBody {
   stream?: boolean;
   temperature?: number;
   max_tokens?: number;
-}
-
-function buildHeaders(): Record<string, string> {
-  return {
-    Authorization: `Bearer ${serverEnv.OPENROUTER_API_KEY}`,
-    "Content-Type": "application/json",
-    "HTTP-Referer": serverEnv.NEXT_PUBLIC_SITE_URL ?? "https://localhost:3000",
-    "X-Title": "AI App Builder",
-  };
 }
 
 export class LLMError extends Error {
@@ -62,18 +52,18 @@ export async function callLLM(
 ): Promise<string> {
   const fullConfig = { ...defaultAgentConfig, ...config };
 
-  // If a specific model is requested (like GPT-4o), try it first via OpenRouter
   if (config.model && !config.model.includes(":free")) {
     try {
       return await callProvider("openrouter", config.model, messages, fullConfig);
     } catch (e) {
-      console.warn(`[LLM] Primary provider failed, falling back to free rotation:`, e);
+      console.warn(`[LLM] Primary provider failed, falling back to rotation:`, e);
     }
   }
 
-  // Fallback / Free Rotation Logic
   let lastError: Error | null = null;
-  for (let i = 0; i < 3; i++) {
+  const maxAttempts = 4;
+
+  for (let i = 0; i < maxAttempts; i++) {
     try {
       const req = llmRouter.getNextRequest(messages, fullConfig);
       return await callProvider(req.provider, req.model, messages, fullConfig);
@@ -92,26 +82,35 @@ async function callProvider(
   messages: ChatMessage[],
   config: AgentConfig
 ): Promise<string> {
-  const { url, headers, body } = llmRouter.getFetchParams({ provider, model, messages, config });
+  const { url, headers, body, apiKey } = llmRouter.getFetchParams({ provider, model, messages, config });
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(body),
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+    });
+  } catch (cause) {
+    keyManager.reportError(provider, apiKey);
+    throw new LLMError(`Failed to reach ${provider} API`, undefined, cause);
+  }
 
   if (!response.ok) {
     const text = await response.text().catch(() => "");
+    keyManager.reportError(provider, apiKey);
     throw new LLMError(`LLM API (${provider}) returned ${response.status}: ${text}`, response.status);
   }
 
+  keyManager.reportSuccess(provider, apiKey);
+
   const json = await response.json();
-  
+
   let content = "";
   if (provider === "gemini") {
-    content = json.candidates?.[0]?.content?.parts?.[0]?.text;
+    content = json.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
   } else {
-    content = json.choices?.[0]?.message?.content;
+    content = json.choices?.[0]?.message?.content ?? "";
   }
 
   if (!content) {
@@ -127,6 +126,11 @@ export async function* streamLLM(
 ): AsyncIterable<string> {
   const fullConfig = { ...defaultAgentConfig, ...config };
 
+  const apiKey = keyManager.getKey("openrouter");
+  if (!apiKey) {
+    throw new LLMError("No OpenRouter API key configured for streaming");
+  }
+
   const body: OpenRouterRequestBody = {
     model: fullConfig.model,
     messages,
@@ -139,24 +143,30 @@ export async function* streamLLM(
   try {
     response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
       method: "POST",
-      headers: buildHeaders(),
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL ?? "https://localhost:3000",
+        "X-Title": "AI App Builder",
+      },
       body: JSON.stringify(body),
     });
   } catch (cause) {
+    keyManager.reportError("openrouter", apiKey);
     throw new LLMError("Failed to reach LLM API", undefined, cause);
   }
 
   if (!response.ok) {
     const text = await response.text().catch(() => "");
-    throw new LLMError(
-      `LLM API returned ${response.status}: ${text}`,
-      response.status,
-    );
+    keyManager.reportError("openrouter", apiKey);
+    throw new LLMError(`LLM API returned ${response.status}: ${text}`, response.status);
   }
 
   if (!response.body) {
     throw new LLMError("LLM API returned no response body");
   }
+
+  keyManager.reportSuccess("openrouter", apiKey);
 
   const decoder = new TextDecoder();
   const reader = response.body.getReader();
@@ -192,13 +202,11 @@ export async function* streamLLM(
   }
 }
 
-/**
- * Plan phase: Generate a structured spec from user prompt
- */
 export async function planSpec(prompt: string, context: MemoryContext[] = []): Promise<AppSpec> {
-  const contextText = context.length > 0 
-    ? `\n\nRelevant context from previous projects:\n${JSON.stringify(context, null, 2)}`
-    : "";
+  const contextText =
+    context.length > 0
+      ? `\n\nRelevant context from previous projects:\n${JSON.stringify(context, null, 2)}`
+      : "";
 
   const systemPrompt = `You are an expert software architect. Given a user request, create a detailed specification for a Next.js 15 application.${contextText}
 
@@ -220,7 +228,7 @@ Rules:
 
   const messages: ChatMessage[] = [
     { role: "system", content: systemPrompt },
-    { role: "user", content: `User request: ${prompt}\n\nGenerate the app specification:` }
+    { role: "user", content: `User request: ${prompt}\n\nGenerate the app specification:` },
   ];
 
   const content = await callLLM(messages, { temperature: 0.7, maxTokens: 8192 });
@@ -240,9 +248,6 @@ Rules:
   }
 }
 
-/**
- * Build phase: Generate files from spec
- */
 export async function buildFromSpec(spec: AppSpec): Promise<FileMap> {
   const systemPrompt = `You are an expert React/Next.js developer. Generate complete, production-ready code based on the app specification.
 
@@ -257,7 +262,7 @@ Rules:
   const specJson = JSON.stringify(spec, null, 2);
   const messages: ChatMessage[] = [
     { role: "system", content: systemPrompt },
-    { role: "user", content: `App Specification:\n${specJson}\n\nGenerate all files:` }
+    { role: "user", content: `App Specification:\n${specJson}\n\nGenerate all files:` },
   ];
 
   const content = await callLLM(messages, { temperature: 0.7, maxTokens: 16384 });
@@ -265,9 +270,6 @@ Rules:
   return parsed.files;
 }
 
-/**
- * Fix phase: Fix errors in generated files
- */
 export async function fixFiles(files: FileMap, error?: string): Promise<FileMap> {
   const systemPrompt = `You are an expert debugger. Fix any syntax errors, runtime issues, or React/Next.js anti-patterns in the provided files.
 
@@ -296,7 +298,7 @@ Rules:
 
   const messages: ChatMessage[] = [
     { role: "system", content: systemPrompt },
-    { role: "user", content: `Current Files:\n${filesList}${errorContext}\n\nReturn fixed files:` }
+    { role: "user", content: `Current Files:\n${filesList}${errorContext}\n\nReturn fixed files:` },
   ];
 
   const content = await callLLM(messages, { temperature: 0.2, maxTokens: 16384 });
@@ -304,9 +306,6 @@ Rules:
   return parsed.files;
 }
 
-/**
- * Test phase: Validate files and return errors if any
- */
 export async function testFiles(files: FileMap): Promise<{ success: boolean; errors?: string[] }> {
   const errors: string[] = [];
 
@@ -342,10 +341,6 @@ export async function testFiles(files: FileMap): Promise<{ success: boolean; err
   return { success: errors.length === 0, errors: errors.length > 0 ? errors : undefined };
 }
 
-/**
- * Surgical Fix: Only send files that have known errors, not the whole project.
- * Saves ~70% tokens vs sending all files on every fix pass.
- */
 export async function fixBrokenFiles(
   allFiles: FileMap,
   brokenFilePaths: string[],
@@ -381,6 +376,5 @@ Rules:
   const content = await callLLM(messages, { temperature: 0.1, maxTokens: 8192 });
   const parsed = parseMultiFileJson(content);
 
-  // Merge fixed files back into the original set
   return { ...allFiles, ...parsed.files };
 }

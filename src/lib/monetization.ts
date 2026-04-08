@@ -3,7 +3,7 @@
  * Real LLM-powered pricing and revenue model generation
  */
 
-import { generateText } from "./openrouter";
+import { callLLM, cleanJson } from "./llm";
 
 export interface PricingTier {
   name: string;
@@ -66,9 +66,8 @@ Return ONLY a JSON object (no markdown):
 Create 3 tiers (Free/Starter/Pro or similar). Price the Pro tier between $29-99/month based on value delivered.`;
 
     try {
-      const response = await generateText(prompt);
-      const cleaned = response.replace(/^```json\n?/g, "").replace(/\n?```$/g, "").trim();
-      const parsed = JSON.parse(cleaned) as Omit<MonetizationPlan, "generatedAt">;
+      const response = await callLLM([{ role: "user", content: prompt }], { temperature: 0.5 });
+      const parsed = JSON.parse(cleanJson(response)) as Omit<MonetizationPlan, "generatedAt">;
       return { ...parsed, generatedAt: new Date().toISOString() };
     } catch {
       return this.fallbackPlan(idea);

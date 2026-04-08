@@ -3,7 +3,7 @@
  * Real LLM-powered team simulation (replaces hardcoded string outputs)
  */
 
-import { generateText } from "./openrouter";
+import { callLLM } from "./llm";
 
 export type TeamRole = "pm" | "engineer" | "designer" | "marketer" | "analyst";
 
@@ -114,7 +114,7 @@ ${inputStr}
 Provide your professional output now. Be specific, actionable, and thorough.`;
 
     try {
-      const result = await generateText(prompt);
+      const result = await callLLM([{ role: "user", content: prompt }], { temperature: 0.6 });
       const artifacts = this.extractArtifacts(role, result);
 
       return {

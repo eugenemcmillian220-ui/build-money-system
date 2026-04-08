@@ -1,8 +1,12 @@
 import { z } from "zod";
 
 const serverEnvSchema = z.object({
+  // OpenRouter - supports comma-separated multi-key rotation
   OPENROUTER_API_KEY: z.string().optional(),
+  OPENROUTER_API_KEYS: z.string().optional(),
   OPENROUTER_MODEL: z.string().optional().default("meta-llama/llama-3.3-70b-instruct:free"),
+
+  // Supabase
   NEXT_PUBLIC_SUPABASE_URL: z
     .string()
     .url("NEXT_PUBLIC_SUPABASE_URL must be a valid URL")
@@ -12,22 +16,66 @@ const serverEnvSchema = z.object({
     .min(1, "NEXT_PUBLIC_SUPABASE_ANON_KEY is required")
     .optional(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+
+  // Site
   NEXT_PUBLIC_SITE_URL: z.string().url().optional(),
+
+  // GitHub & Vercel deployment
   GITHUB_TOKEN: z.string().optional(),
   VERCEL_TOKEN: z.string().optional(),
   VERCEL_TEAM_ID: z.string().optional(),
+
+  // Admin
   ADMIN_API_KEYS: z.string().optional(),
+
+  // AI providers - single key (legacy) or multi-key (comma-separated)
   GEMINI_API_KEY: z.string().optional(),
+  GEMINI_API_KEYS: z.string().optional(),
   GROQ_API_KEY: z.string().optional(),
+  GROQ_API_KEYS: z.string().optional(),
+  OPENAI_API_KEY: z.string().optional(),
+  OPENAI_API_KEYS: z.string().optional(),
   DEEPSEEK_API_KEY: z.string().optional(),
+  DEEPSEEK_API_KEYS: z.string().optional(),
   CEREBRAS_API_KEY: z.string().optional(),
+  CEREBRAS_API_KEYS: z.string().optional(),
   CLOUDFLARE_API_KEY: z.string().optional(),
+  CLOUDFLARE_API_KEYS: z.string().optional(),
   CLOUDFLARE_ACCOUNT_ID: z.string().optional(),
+
+  // Stripe
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
-  OPENAI_API_KEY: z.string().optional(),
+
+  // Stripe price IDs
+  STRIPE_BASIC_MINI_MONTHLY_PRICE_ID: z.string().optional(),
+  STRIPE_BASIC_MINI_YEARLY_PRICE_ID: z.string().optional(),
+  STRIPE_BASIC_STARTER_MONTHLY_PRICE_ID: z.string().optional(),
+  STRIPE_BASIC_STARTER_YEARLY_PRICE_ID: z.string().optional(),
+  STRIPE_BASIC_PRO_MONTHLY_PRICE_ID: z.string().optional(),
+  STRIPE_BASIC_PRO_YEARLY_PRICE_ID: z.string().optional(),
+  STRIPE_BASIC_PREMIUM_MONTHLY_PRICE_ID: z.string().optional(),
+  STRIPE_BASIC_PREMIUM_YEARLY_PRICE_ID: z.string().optional(),
+  STRIPE_ELITE_STARTER_MONTHLY_PRICE_ID: z.string().optional(),
+  STRIPE_ELITE_STARTER_YEARLY_PRICE_ID: z.string().optional(),
+  STRIPE_ELITE_PRO_MONTHLY_PRICE_ID: z.string().optional(),
+  STRIPE_ELITE_PRO_YEARLY_PRICE_ID: z.string().optional(),
+  STRIPE_ELITE_ENTERPRISE_MONTHLY_PRICE_ID: z.string().optional(),
+  STRIPE_ELITE_ENTERPRISE_YEARLY_PRICE_ID: z.string().optional(),
+  STRIPE_LIFETIME_STARTER_PRICE_ID: z.string().optional(),
+  STRIPE_LIFETIME_PRO_PRICE_ID: z.string().optional(),
+  STRIPE_ON_PREM_PERPETUAL_PRICE_ID: z.string().optional(),
+  STRIPE_CREDITS_5K_PRICE_ID: z.string().optional(),
+  STRIPE_CREDITS_10K_PRICE_ID: z.string().optional(),
+  STRIPE_CREDITS_25K_PRICE_ID: z.string().optional(),
+  STRIPE_CREDITS_50K_PRICE_ID: z.string().optional(),
+  STRIPE_CREDITS_100K_PRICE_ID: z.string().optional(),
+
+  // Services
   E2B_API_KEY: z.string().optional(),
   CRON_SECRET: z.string().optional(),
+
+  // Social
   X_API_KEY: z.string().optional(),
   X_API_SECRET: z.string().optional(),
   X_ACCESS_TOKEN: z.string().optional(),
@@ -54,7 +102,6 @@ type ServerEnv = z.infer<typeof serverEnvSchema>;
 type ClientEnv = z.infer<typeof clientEnvSchema>;
 
 // ⚠️ Do NOT cache serverEnv — always read fresh from process.env
-// so that updated Vercel env vars take effect without requiring a redeploy.
 function getServerEnv(): ServerEnv {
   if (
     process.env.NEXT_PHASE === "phase-production-build" ||
@@ -106,7 +153,6 @@ function validateClientEnv(): ClientEnv {
   return cachedClientEnv;
 }
 
-// serverEnv: fresh proxy on every access — never stale
 export const serverEnv = new Proxy({} as ServerEnv, {
   get(_target, prop) {
     if (typeof prop !== "string") return undefined;

@@ -1,12 +1,10 @@
-import { serverEnv } from "@/lib/env";
+import { keyManager } from "./key-manager";
 
 const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
-
-// Free-tier fallback chain: try the configured model first, then free alternatives
 const FREE_MODEL_FALLBACK = "meta-llama/llama-3.3-70b-instruct:free";
 
 function getModel(): string {
-  return serverEnv.OPENROUTER_MODEL ?? FREE_MODEL_FALLBACK;
+  return process.env.OPENROUTER_MODEL ?? FREE_MODEL_FALLBACK;
 }
 
 export class OpenRouterError extends Error {
@@ -35,19 +33,18 @@ interface OpenRouterRequestBody {
 }
 
 function buildHeaders(): Record<string, string> {
-  // Always read fresh — no module-level caching
-  const apiKey = serverEnv.OPENROUTER_API_KEY;
+  const apiKey = keyManager.getKey("openrouter");
 
   if (!apiKey) {
     throw new OpenRouterError(
-      "OPENROUTER_API_KEY is not set. Add it in Vercel → Settings → Environment Variables and redeploy."
+      "No OpenRouter API key configured. Add OPENROUTER_API_KEY or OPENROUTER_API_KEYS to environment variables."
     );
   }
 
   return {
     Authorization: `Bearer ${apiKey}`,
     "Content-Type": "application/json",
-    "HTTP-Referer": serverEnv.NEXT_PUBLIC_SITE_URL ?? "https://localhost:3000",
+    "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL ?? "https://localhost:3000",
     "X-Title": "AI App Builder",
   };
 }
@@ -55,28 +52,22 @@ function buildHeaders(): Record<string, string> {
 async function handleBadResponse(response: Response, label = "OpenRouter"): Promise<never> {
   const text = await response.text().catch(() => "");
 
-  // 402 = Payment Required → key has no credits, switch model hint
   if (response.status === 402) {
     throw new OpenRouterError(
-      `${label} 402: Insufficient credits on this API key. ` +
-      `Either top-up your OpenRouter account or set OPENROUTER_MODEL=meta-llama/llama-3.3-70b-instruct:free ` +
-      `in Vercel env vars to use a free model. Raw: ${text}`,
+      `${label} 402: Insufficient credits. ` +
+        `Top-up your OpenRouter account or set OPENROUTER_MODEL=meta-llama/llama-3.3-70b-instruct:free. Raw: ${text}`,
       402,
     );
   }
 
-  // 401 = bad key
   if (response.status === 401) {
     throw new OpenRouterError(
-      `${label} 401: Invalid API key. Check OPENROUTER_API_KEY in Vercel environment variables.`,
+      `${label} 401: Invalid API key. Check OPENROUTER_API_KEY in environment variables.`,
       401,
     );
   }
 
-  throw new OpenRouterError(
-    `${label} returned ${response.status}: ${text}`,
-    response.status,
-  );
+  throw new OpenRouterError(`${label} returned ${response.status}: ${text}`, response.status);
 }
 
 export async function generateText(prompt: string): Promise<string> {
@@ -110,9 +101,7 @@ export async function generateText(prompt: string): Promise<string> {
   return content;
 }
 
-export async function generateTextStream(
-  prompt: string
-): Promise<ReadableStream<Uint8Array>> {
+export async function generateTextStream(prompt: string): Promise<ReadableStream<Uint8Array>> {
   const body: OpenRouterRequestBody = {
     model: getModel(),
     messages: [{ role: "user", content: prompt }],
@@ -151,14 +140,19 @@ export async function generateTextStream(
             const trimmed = line.trim();
             if (!trimmed.startsWith("data: ")) continue;
             const data = trimmed.slice(6);
-            if (data === "[DONE]") { controller.close(); return; }
+            if (data === "[DONE]") {
+              controller.close();
+              return;
+            }
             try {
               const parsed = JSON.parse(data) as {
                 choices: Array<{ delta: { content?: string } }>;
               };
               const delta = parsed.choices[0]?.delta?.content;
               if (delta) controller.enqueue(encoder.encode(delta));
-            } catch { /* skip malformed */ }
+            } catch {
+              // skip malformed chunks
+            }
           }
         }
         controller.close();
@@ -307,10 +301,16 @@ export async function generateMultiFileAppStream(
           if (delta) {
             accumulated += delta;
             let partialFiles: MultiFileResponse | undefined;
-            try { partialFiles = parseMultiFileJson(accumulated); } catch { /* not valid JSON yet */ }
+            try {
+              partialFiles = parseMultiFileJson(accumulated);
+            } catch {
+              // not valid JSON yet
+            }
             onChunk(accumulated, partialFiles);
           }
-        } catch { /* skip malformed */ }
+        } catch {
+          // skip malformed chunks
+        }
       }
     }
   } finally {
