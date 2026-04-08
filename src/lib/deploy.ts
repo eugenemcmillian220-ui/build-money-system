@@ -122,6 +122,40 @@ module.exports = nextConfig
       .replace(/\s+/g, "-")
       .replace(/[^a-z0-9._-]/g, "");
 
+    // Optional: Link to GitHub if repo info is provided in env
+    const githubRepo = env.GITHUB_REPO; // format: "owner/repo"
+    if (githubRepo) {
+      try {
+        await axios.post(`${VERCEL_API_BASE}/v9/projects/${deploymentName}${teamParam}`, {
+          link: {
+            type: "github",
+            repo: githubRepo,
+          }
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        console.log(`   ✅ Linked project ${deploymentName} to GitHub: ${githubRepo}`);
+      } catch (e) {
+        // Project might not exist yet, or other error. 
+        // We'll try to create it with the link if it doesn't exist.
+        try {
+          await axios.post(`${VERCEL_API_BASE}/v9/projects${teamParam}`, {
+            name: deploymentName,
+            framework: "nextjs",
+            link: {
+              type: "github",
+              repo: githubRepo,
+            }
+          }, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          console.log(`   ✅ Created and linked project ${deploymentName} to GitHub: ${githubRepo}`);
+        } catch (e2) {
+          console.warn(`   ⚠️ Could not link project to GitHub: ${e2 instanceof Error ? e2.message : "Unknown error"}`);
+        }
+      }
+    }
+
     const response = await axios.post<VercelDeploymentResponse>(
       `${VERCEL_API_BASE}/v13/deployments${teamParam}`,
       {
