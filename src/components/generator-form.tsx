@@ -298,7 +298,7 @@ export function GeneratorForm() {
             </button>
           ) : (
             <div className="group relative h-48 w-full overflow-hidden rounded-2xl border border-white/10">
-              <Image src={imageUrl} alt="Design reference" className="h-full w-full object-cover" fill unoptimized />
+              <Image src={imageUrl} alt="Design reference" fill className="object-cover" unoptimized />
               <div className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 transition-opacity group-hover:opacity-100">
                 <button
                   onClick={() => setImageUrl(null)}

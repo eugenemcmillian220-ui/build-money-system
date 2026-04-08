@@ -21,7 +21,7 @@ export async function POST(request: Request): Promise<Response> {
 
     // 1. Extract pattern (Anonymization)
     const pattern = await hiveMind.extractPattern(problem, solution, type);
-    
+
     if (pattern) {
       // 2. Persist to Global Knowledge Base
       await hiveMind.contribute(pattern, orgId);
@@ -49,6 +49,6 @@ export async function GET(request: Request): Promise<Response> {
     const relevant = await hiveMind.recall(problem, tags);
     return Response.json({ success: true, results: relevant });
   } catch {
-    return Response.json({ error: "Failed to recall from Hive Mind" }, { status: 500 });
+    return Response.json({ error: "Hive sync failed" }, { status: 500 });
   }
 }

@@ -34,6 +34,6 @@ export async function GET(request: Request): Promise<Response> {
     const status = await governance.checkActionStatus(actionId);
     return Response.json({ actionId, status });
   } catch {
-    return Response.json({ error: "Failed to check status" }, { status: 500 });
+    return Response.json({ error: "Governance action failed" }, { status: 500 });
   }
 }

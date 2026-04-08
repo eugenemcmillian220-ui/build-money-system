@@ -84,14 +84,19 @@ export class LLMRouter {
    */
   getFetchParams(req: ProviderRequest): { url: string; headers: Record<string, string>; body: unknown; apiKey: string } {
     const { provider, model, messages, config } = req;
+    
+    const apiKey = keyManager.getKey(provider) ?? "";
+
+    if (!apiKey && provider !== "cloudflare") {
+      throw new Error(`API key for ${provider} not found.`);
+    }
+
     let url = "";
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     let body: unknown;
 
     const temp = config?.temperature ?? 0.7;
     const maxTokens = config?.maxTokens ?? 4096;
-
-    const apiKey = keyManager.getKey(provider) ?? "";
 
     switch (provider) {
       case "openrouter":

@@ -84,6 +84,10 @@ const serverEnvSchema = z.object({
   LINKEDIN_CLIENT_SECRET: z.string().optional(),
   DISCORD_TOKEN: z.string().optional(),
   SLACK_TOKEN: z.string().optional(),
+  GROQ_KEYS: z.string().optional(),
+  GEMINI_KEYS: z.string().optional(),
+  OPENAI_KEYS: z.string().optional(),
+  OPENROUTER_KEYS: z.string().optional(),
 });
 
 const clientEnvSchema = z.object({
