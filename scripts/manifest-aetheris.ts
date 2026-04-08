@@ -15,6 +15,7 @@ async function manifest() {
   const files: Record<string, string> = {
     "app/page.tsx": fs.readFileSync("/workspace/aetheris-ai/app/page.tsx", "utf-8"),
     "supabase/schema.sql": fs.readFileSync("/workspace/aetheris-ai/supabase/schema.sql", "utf-8"),
+    ".env.example": fs.readFileSync("/workspace/aetheris-ai/.env.example", "utf-8"),
   };
 
   console.log("📦 Project Files Prepared.");

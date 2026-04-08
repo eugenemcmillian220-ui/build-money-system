@@ -20,11 +20,6 @@ export class VercelError extends Error {
 
 const VERCEL_API_BASE = "https://api.vercel.com";
 
-interface VercelFile {
-  data: string;
-  encoding: "base64";
-}
-
 interface VercelDeploymentResponse {
   id: string;
   url: string;
@@ -56,7 +51,7 @@ export async function createVercelDeploy(
     const axios = axiosModule.default;
     
     // Convert files to Vercel format (array of objects)
-    const vercelFiles: any[] = [];
+    const vercelFiles: { file: string; data: string; encoding: string }[] = [];
 
     for (const [path, content] of Object.entries(files)) {
       vercelFiles.push({
@@ -79,19 +74,19 @@ export async function createVercelDeploy(
             build: "next build",
             start: "next start",
           },
+          engines: {
+            node: "22.x"
+          },
           dependencies: {
-            next: "^15.2.4",
-            react: "^19.0.0",
-            "react-dom": "^19.0.0",
-            "stripe": "^17.0.0",
-            "@supabase/supabase-js": "^2.45.0",
-            "lucide-react": "^0.450.0",
-            "zod": "^3.23.0"
+            next: "latest",
+            react: "latest",
+            "react-dom": "latest"
           },
           devDependencies: {
-            "@types/node": "^22.14.0",
-            "@types/react": "^19.0.0",
-            typescript: "^5.8.2",
+            typescript: "latest",
+            "@types/node": "latest",
+            "@types/react": "latest",
+            "@types/react-dom": "latest"
           },
         }, null, 2)).toString("base64"),
         encoding: "base64",
@@ -103,11 +98,7 @@ export async function createVercelDeploy(
       vercelFiles.push({
         file: "next.config.js",
         data: Buffer.from(`/** @type {import('next').NextConfig} */
-const nextConfig = {
-  output: 'export',
-  distDir: 'dist',
-}
-
+const nextConfig = {}
 module.exports = nextConfig
 `).toString("base64"),
         encoding: "base64",
@@ -135,7 +126,7 @@ module.exports = nextConfig
           headers: { Authorization: `Bearer ${token}` }
         });
         console.log(`   ✅ Linked project ${deploymentName} to GitHub: ${githubRepo}`);
-      } catch (e) {
+      } catch {
         // Project might not exist yet, or other error. 
         // We'll try to create it with the link if it doesn't exist.
         try {

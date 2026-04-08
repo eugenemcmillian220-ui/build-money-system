@@ -10,8 +10,14 @@ export async function GET(request: Request) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      return NextResponse.redirect(`${origin}${next}`);
+      const isLocalEnv = process.env.NODE_ENV === "development";
+      if (isLocalEnv) {
+        return NextResponse.redirect(`${origin}${next}`);
+      } else {
+        return NextResponse.redirect(`${process.env.NEXT_PUBLIC_SITE_URL ?? origin}${next}`);
+      }
     }
+    console.error("Auth callback error:", error.message);
   }
 
   return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`);
