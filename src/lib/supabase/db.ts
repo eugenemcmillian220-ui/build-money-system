@@ -31,6 +31,7 @@ export interface DatabaseProject {
   status?: ProjectStatus;
   deployment?: DeploymentInfo;
   github_repo?: string;
+  manifest?: any;
   created_at: string;
   updated_at: string;
 }
@@ -62,13 +63,14 @@ function toDatabaseProject(project: Project): DatabaseProject {
     name: project.description?.split("\n")[0].slice(0, 100) || "Untitled Project",
     description: project.description || "",
     prompt: project.prompt,
-    org_id: project.id, // Placeholder or proper typed orgId if available
+    org_id: project.orgId,
     files: project.files,
     schema: project.schema,
     integrations: project.integrations,
     status: project.status,
     deployment: project.deployment,
     github_repo: project.githubRepo,
+    manifest: project.manifest,
     created_at: project.createdAt,
     updated_at: new Date().toISOString(),
   };
@@ -91,6 +93,7 @@ function fromDatabaseProject(dbProject: DatabaseProject): Project {
     status: dbProject.status,
     deployment: dbProject.deployment,
     githubRepo: dbProject.github_repo,
+    manifest: dbProject.manifest,
   };
 }
 
@@ -266,6 +269,7 @@ CREATE TABLE IF NOT EXISTS projects (
   status JSONB,
   deployment JSONB,
   github_repo TEXT,
+  manifest JSONB,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

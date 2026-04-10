@@ -44,17 +44,15 @@ export default function ProjectsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="animate-spin text-brand-500" size={40} />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
-      <Sidebar />
-      <main className="lg:ml-64 p-8 md:p-12">
-        <div className="max-w-7xl mx-auto space-y-12">
+    <div className="p-8 md:p-12">
+      <div className="max-w-7xl mx-auto space-y-12">
           <header>
             <h1 className="text-4xl font-black uppercase tracking-tighter italic mb-2">Manifested Empires</h1>
             <p className="text-muted-foreground font-bold italic">Review and manage your sovereign codebase assets.</p>
@@ -62,7 +60,6 @@ export default function ProjectsPage() {
 
           <ProjectList projects={projects} onDelete={handleDelete} />
         </div>
-      </main>
     </div>
   );
 }

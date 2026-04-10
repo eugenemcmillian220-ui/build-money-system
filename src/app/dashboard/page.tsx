@@ -74,18 +74,18 @@ export default function DashboardPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ prompt, orgId: org.id, options }),
     });
-    
+
     if (!res.ok) {
       const data = await res.json();
       throw new Error(data.error || "Manifestation failed");
     }
-    
+
     await fetchDashboardData(); // Refresh list
   };
 
   const handleDeleteProject = async (id: string) => {
     if (!confirm("Are you sure you want to delete this empire?")) return;
-    
+
     const { error } = await supabase.from("projects").delete().eq("id", id);
     if (error) {
       alert(`Delete failed: ${error.message}`);
@@ -96,7 +96,7 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
           <Loader2 className="animate-spin text-brand-500 mx-auto" size={40} />
           <p className="text-xs font-black uppercase tracking-[0.3em] text-muted-foreground">Synchronizing Neural Link...</p>
@@ -106,11 +106,9 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white selection:bg-brand-500/30">
-      <Sidebar />
+    <div className="p-4 md:p-8 lg:p-12">
+      <div className="max-w-7xl mx-auto space-y-12">
 
-      <main className="lg:ml-64 p-4 md:p-8 lg:p-12">
-        <div className="max-w-7xl mx-auto space-y-12">
           
           {/* Header */}
           <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
@@ -204,7 +202,6 @@ export default function DashboardPage() {
           </div>
 
         </div>
-      </main>
     </div>
   );
 }

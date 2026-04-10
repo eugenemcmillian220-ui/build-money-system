@@ -32,19 +32,21 @@ export function ProjectList({ projects, onDelete }: ProjectListProps) {
       {projects.map((project) => (
         <div key={project.id} className="bg-white/5 border border-white/10 rounded-[2.5rem] p-8 hover:border-brand-500/30 transition-all group">
           <div className="flex justify-between items-start mb-6">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <h3 className="text-xl font-black uppercase tracking-tighter text-white">{project.name || "Untitled Empire"}</h3>
-                {project.manifest?.mode && (
-                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-widest ${
-                    project.manifest?.mode === "elite" ? "bg-brand-500/10 text-brand-400 border border-brand-500/20" : "bg-white/10 text-white/50"
-                  }`}>
-                    {project.manifest.mode}
-                  </span>
-                )}
+            <Link href={`/dashboard/projects/${project.id}`} className="hover:opacity-80 transition-opacity flex-1">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <h3 className="text-xl font-black uppercase tracking-tighter text-white">{project.name || "Untitled Empire"}</h3>
+                  {project.manifest?.mode && (
+                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-widest ${
+                      project.manifest?.mode === "elite" ? "bg-brand-500/10 text-brand-400 border border-brand-500/20" : "bg-white/10 text-white/50"
+                    }`}>
+                      {project.manifest.mode}
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground line-clamp-2 max-w-md">{project.description}</p>
               </div>
-              <p className="text-sm text-muted-foreground line-clamp-2 max-w-md">{project.description}</p>
-            </div>
+            </Link>
             <div className="flex gap-2">
               {project.deployment?.url && (
                 <a href={project.deployment.url} target="_blank" className="p-2 bg-white/5 rounded-xl hover:bg-brand-500 hover:text-white transition-all">
