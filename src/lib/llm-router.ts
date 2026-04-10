@@ -12,9 +12,9 @@ export interface ProviderRequest {
 
 export const FREE_MODELS: Record<LLMProvider, string[]> = {
   openrouter: [
-    "qwen/qwen3-coder-480b-a35b-instruct:free",
     "meta-llama/llama-3.3-70b-instruct:free",
-    "openrouter/free",
+    "google/gemini-2.0-flash-exp:free",
+    "deepseek/deepseek-r1:free",
   ],
   gemini: [
     "gemini-2.0-flash",
@@ -24,7 +24,7 @@ export const FREE_MODELS: Record<LLMProvider, string[]> = {
   groq: [
     "meta-llama/llama-4-scout-17b-16e-instruct",
     "llama-3.3-70b-versatile",
-    "llama3-8b-8192",
+    "llama-3.1-8b-instant",
   ],
   openai: [
     "gpt-4o-mini",
