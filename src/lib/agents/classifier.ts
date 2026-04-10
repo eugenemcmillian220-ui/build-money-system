@@ -31,7 +31,7 @@ Return JSON ONLY:
 
   try {
     return JSON.parse(response);
-  } catch (e) {
+  } catch {
     console.error("Classifier parse failed:", response);
     return {
       mode: "universal",

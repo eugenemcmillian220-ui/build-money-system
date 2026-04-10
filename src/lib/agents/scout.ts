@@ -23,7 +23,7 @@ Return JSON ONLY:
 
   try {
     return JSON.parse(response);
-  } catch (e) {
+  } catch {
     return {
       strategyMarkdown: "# Default Strategy\nBuild fast, iterate quickly.",
       recommendedStack: ["Next.js", "Tailwind", "Supabase"],

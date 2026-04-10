@@ -25,7 +25,7 @@ Return JSON ONLY:
 
   try {
     return JSON.parse(response);
-  } catch (e) {
+  } catch {
     return {
       readme: "# New Project\nDocumentation pending.",
       architecture: "Next.js App Router Architecture.",
