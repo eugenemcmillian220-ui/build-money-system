@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { Route } from "next";
 import { usePathname } from "next/navigation";
 import { 
   LayoutDashboard, 
@@ -61,7 +62,7 @@ export function Sidebar() {
               return (
                 <Link
                   key={item.name}
-                  href={item.href}
+                  href={item.href as Route}
                   className={`
                     flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all
                     ${isActive ? "bg-white text-black shadow-lg" : "text-muted-foreground hover:text-white hover:bg-white/5"}
