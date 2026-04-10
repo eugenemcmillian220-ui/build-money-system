@@ -1,6 +1,6 @@
 # 🧠 CODEBASE.md — Build Money System
 > **Canonical AI Context File** — Read this before making changes.
-> Last updated: 2026-04-10 | Phase 20 Active
+> Last updated: 2026-04-10 | Phase 20 Active | Unified Dashboard Restored
 
 ---
 
@@ -42,17 +42,20 @@ src/
       projects/            ← CRUD for projects (use this, NOT /api/project/)
       health/              ← GET: platform health check
     auth/callback/         ← Supabase OAuth callback handler
-    dashboard/             ← Main authenticated app shell
+    dashboard/             ← Main authenticated app shell (Unified with Sidebar)
+      terminal/            ← Neural Terminal sub-page
+      projects/            ← Manifested Empires management
+      billing/             ← Empire Economy & Pricing
+      governance/          ← Audit logs & IP Vault
     login/ signup/         ← Auth pages
   components/
-    dashboard/             ← Sidebar, ProjectList, AiTerminal, billing cards
+    dashboard/             ← Sidebar, ProjectList, AiTerminal, SystemStatus
     billing/
       pricing-table.tsx    ← THE canonical pricing UI (uses BILLING_TIERS from stripe.ts)
     marketplace/           ← Skill cards and category filters
   lib/
     stripe.ts              ← ✅ CANONICAL: BILLING_TIERS, LIFETIME_LICENSES, CREDIT_PACKS, StripeService
     billing-engine.ts      ← Webhook-side billing logic (credit grants on payment events)
-    billing.ts             ← Legacy billing interface (used only by /api/billing/route.ts)
     economy.ts             ← AgentEconomy: credit balance, transactions, agent hiring
     llm.ts                 ← callLLM(), planSpec(), buildFromSpec() — instrumented with Arize OTel
     llm-router.ts          ← LLMRouter: provider rotation (Groq→Gemini→OpenRouter→OpenAI)
@@ -65,7 +68,7 @@ src/
       client.ts            ← Browser Supabase client
       server.ts            ← Server-side Supabase client (SSR-safe)
       db.ts                ← supabaseAdmin (service role), project CRUD helpers
-    agents/
+    agents/                ← Phase 20 Sovereign Agents
       classifier.ts        ← Classifies prompt intent → mode + protocol
       scout.ts             ← Pre-generation research agent (The Scout)
       chronicler.ts        ← Post-generation doc writer (The Chronicler)
@@ -79,7 +82,6 @@ scripts/                   ← Operational one-time scripts (not production code
   sync-all-env.ts          ← Push env vars to Vercel
   inject-placeholders.ts   ← Inject Stripe price IDs to Vercel
   deploy-platform.ts       ← Full platform deployment runner
-  migrate-billing-tables.sql ← Supabase schema migrations
   sync-stripe-vercel.ts    ← Sync Stripe IDs → Vercel env vars
 
 supabase/
@@ -156,7 +158,6 @@ GITHUB_TOKEN=ghp_...
 
 ## ⚠️ Known Constraints
 - `/api/project/[id]` is **removed** — use `/api/projects/[id]`
-- `billing.ts` is legacy — canonical billing logic is in `stripe.ts` + `billing-engine.ts`
 - All LLM calls go through `callLLM()` in `llm.ts` — do not call providers directly
 - OTel tracing is initialized in `src/instrumentation.ts` (server-side only)
 - `_archive/` is `.gitignore`d — nothing in there is production code
