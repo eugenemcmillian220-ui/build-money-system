@@ -1,11 +1,16 @@
 import { callLLM } from "../llm";
 import { Project } from "../types";
 
+export interface SocialPost {
+  platform: string;
+  hook: string;
+}
+
 export interface LaunchAssets {
   twitterThread: { hook: string; posts: string[] };
   productHunt: { tagline: string; description: string; makerComment: string };
   seoArticle: { title: string; content: string; keywords: string[] };
-  socialPosts?: any[];
+  socialPosts?: SocialPost[];
 }
 
 export async function runHerald(project: Project): Promise<LaunchAssets> {
@@ -29,7 +34,7 @@ Return JSON ONLY:
       ...parsed,
       socialPosts: [{ platform: "X", hook: parsed.twitterThread?.hook }]
     };
-  } catch (e) {
+  } catch {
     return {
       twitterThread: { hook: "Exciting new launch!", posts: ["Check it out!"] },
       productHunt: { tagline: "Next-gen AI app", description: "Built with Build Money System", makerComment: "Hello world!" },

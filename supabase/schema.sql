@@ -1212,3 +1212,109 @@ CREATE TABLE IF NOT EXISTS rd_test_projects (
 
 CREATE INDEX IF NOT EXISTS idx_research_trends_category ON research_trends(category);
 CREATE INDEX IF NOT EXISTS idx_research_trends_status ON research_trends(adoption_status);
+
+-- =============================================================================
+-- ADDITIONAL BILLING TABLES
+-- =============================================================================
+
+-- Lifetime licenses tracking
+CREATE TABLE IF NOT EXISTS lifetime_licenses (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+  license_id VARCHAR(50) NOT NULL,
+  license_name VARCHAR(255) NOT NULL,
+  purchase_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  stripe_session_id TEXT,
+  monthly_credits INTEGER DEFAULT 0,
+  status VARCHAR(20) DEFAULT 'active',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(org_id, license_id)
+);
+
+-- Affiliate program
+CREATE TABLE IF NOT EXISTS affiliates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+  affiliate_code VARCHAR(50) UNIQUE NOT NULL,
+  total_earnings DECIMAL(12, 2) DEFAULT 0.00,
+  pending_payout DECIMAL(12, 2) DEFAULT 0.00,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Affiliate commissions
+CREATE TABLE IF NOT EXISTS affiliate_commissions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  affiliate_org_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+  referred_org_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+  transaction_type VARCHAR(50) NOT NULL,
+  transaction_amount INTEGER NOT NULL,
+  commission_amount INTEGER NOT NULL,
+  commission_rate DECIMAL(5, 4) NOT NULL,
+  status VARCHAR(20) DEFAULT 'pending',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Marketplace transactions
+CREATE TABLE IF NOT EXISTS marketplace_transactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  buyer_org_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+  seller_org_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+  transaction_id VARCHAR(255) NOT NULL,
+  gross_amount INTEGER NOT NULL,
+  commission_amount INTEGER NOT NULL,
+  commission_rate DECIMAL(5, 4) NOT NULL,
+  seller_amount INTEGER NOT NULL,
+  description TEXT,
+  status VARCHAR(20) DEFAULT 'completed',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- RPC function to increment affiliate earnings
+CREATE OR REPLACE FUNCTION increment_affiliate_earnings(
+  p_affiliate_id UUID,
+  p_amount DECIMAL
+)
+RETURNS VOID AS $
+BEGIN
+  UPDATE affiliates
+  SET 
+    total_earnings = total_earnings + p_amount,
+    pending_payout = pending_payout + p_amount
+  WHERE id = p_affiliate_id;
+END;
+$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- RPC function to increment org balance (for economy)
+CREATE OR REPLACE FUNCTION increment_org_balance(
+  org_id UUID,
+  amount DECIMAL
+)
+RETURNS VOID AS $
+BEGIN
+  UPDATE organizations
+  SET credit_balance = credit_balance + amount
+  WHERE id = org_id;
+END;
+$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Add RLS policies for billing tables
+ALTER TABLE lifetime_licenses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE affiliates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE affiliate_commissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE marketplace_transactions ENABLE ROW LEVEL SECURITY;
+
+-- Policies: Users can only see their own org's data
+CREATE POLICY "Users can view own lifetime licenses" ON lifetime_licenses
+  FOR SELECT USING (EXISTS (SELECT 1 FROM org_members WHERE org_id = lifetime_licenses.org_id AND user_id = auth.uid()));
+
+CREATE POLICY "Users can view own affiliate data" ON affiliates
+  FOR SELECT USING (EXISTS (SELECT 1 FROM org_members WHERE org_id = affiliates.org_id AND user_id = auth.uid()));
+
+CREATE POLICY "Users can view own commissions" ON affiliate_commissions
+  FOR SELECT USING (EXISTS (SELECT 1 FROM org_members WHERE org_id = affiliate_commissions.affiliate_org_id AND user_id = auth.uid()));
+
+CREATE POLICY "Users can view own marketplace transactions" ON marketplace_transactions
+  FOR SELECT USING (
+    EXISTS (SELECT 1 FROM org_members WHERE org_id = marketplace_transactions.buyer_org_id AND user_id = auth.uid()) OR
+    EXISTS (SELECT 1 FROM org_members WHERE org_id = marketplace_transactions.seller_org_id AND user_id = auth.uid())
+  );

@@ -44,7 +44,7 @@ Return JSON ONLY:
 
   try {
     return JSON.parse(response);
-  } catch (e) {
+  } catch {
     return {
       score: 100,
       vulnerabilities: [],

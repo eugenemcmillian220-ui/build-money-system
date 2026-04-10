@@ -10,3 +10,6 @@ export function createClient() {
 
   return createBrowserClient(supabaseUrl, supabaseAnonKey);
 }
+
+// Singleton instance for client-side usage
+export const supabase = createClient();

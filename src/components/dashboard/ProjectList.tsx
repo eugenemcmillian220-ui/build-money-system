@@ -4,10 +4,8 @@ import { Project } from "@/lib/types";
 import { 
   Package, 
   ExternalLink, 
-  Github, 
+  Code2, 
   Trash2, 
-  Globe, 
-  Twitter, 
   TrendingUp,
   BarChart3,
   ShieldCheck,
@@ -84,7 +82,7 @@ export function ProjectList({ projects, onDelete }: ProjectListProps) {
             <div className="bg-black/40 rounded-2xl p-4 border border-white/5">
               <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest mb-1">Repo</p>
               <div className="flex items-center gap-2">
-                <Github size={14} className="text-muted-foreground" />
+                <Code2 size={14} className="text-muted-foreground" />
                 <span className="text-[10px] font-black uppercase tracking-widest text-white/80 truncate">{project.githubRepo?.split("/").pop() || "local"}</span>
               </div>
             </div>

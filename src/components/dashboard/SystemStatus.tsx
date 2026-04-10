@@ -1,6 +1,6 @@
 "use client";
 
-import { ShieldCheck, Zap, Server, Database, Activity } from "lucide-react";
+import { ShieldCheck, Zap, Database, Activity } from "lucide-react";
 
 export function SystemStatus() {
   const systems = [

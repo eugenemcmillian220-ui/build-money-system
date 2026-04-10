@@ -16,9 +16,22 @@ import {
   AlertTriangle
 } from "lucide-react";
 
+interface Org {
+  id: string;
+  billing_tier?: string;
+  credit_balance?: number;
+}
+
+interface ManifestOptions {
+  mode?: string;
+  protocol?: string;
+  theme?: string;
+  primaryColor?: string;
+}
+
 export default function DashboardPage() {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [org, setOrg] = useState<any>(null);
+  const [org, setOrg] = useState<Org | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,7 +72,7 @@ export default function DashboardPage() {
     }
   }
 
-  const handleManifest = async (prompt: string, options: any) => {
+  const handleManifest = async (prompt: string, options: ManifestOptions) => {
     const res = await fetch("/api/manifest", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
