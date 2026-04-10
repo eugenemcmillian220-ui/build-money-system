@@ -1,7 +1,7 @@
 "use client";
 
 import { Sidebar } from "@/components/dashboard/Sidebar";
-import { ShieldCheck, Lock, Eye, History } from "lucide-react";
+import { ShieldCheck, Lock, History } from "lucide-react";
 
 export default function GovernancePage() {
   return (
@@ -48,7 +48,7 @@ export default function GovernancePage() {
                 <div key={i} className="flex items-center justify-between py-4 border-b border-white/5 last:border-0">
                   <div className="flex items-center gap-4">
                     <div className="w-2 h-2 rounded-full bg-brand-500" />
-                    <p className="text-xs font-bold text-white/80 uppercase tracking-tight italic">Agent "Scout" initiated research pass for new project.</p>
+                    <p className="text-xs font-bold text-white/80 uppercase tracking-tight italic">Agent &quot;Scout&quot; initiated research pass for new project.</p>
                   </div>
                   <span className="text-[10px] font-black text-muted-foreground">2H AGO</span>
                 </div>

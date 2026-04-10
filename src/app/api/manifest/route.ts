@@ -86,8 +86,8 @@ USER REQUEST: "${prompt}"
         files,
         id: "temp",
         createdAt: new Date().toISOString(),
-        manifest: { strategy: strategy.strategyMarkdown, docs, mode, protocol }
-      } as Project));
+        manifest: { strategy: strategy.strategyMarkdown, docs: docs as unknown as Record<string, unknown>, mode, protocol }
+      } as unknown as Project));
 
       // STEP 9: PERSISTENCE
       const projectData: Partial<Project> = {

@@ -41,11 +41,11 @@ export function startSpan(
 export async function traced<T>(
   name: string,
   attributes: Record<string, string | number | boolean>,
-  fn: () => Promise<T>
+  fn: (span: Span) => Promise<T>
 ): Promise<T> {
   const span = startSpan(name, attributes);
   try {
-    const result = await fn();
+    const result = await fn(span);
     span.end();
     return result;
   } catch (error) {

@@ -6,8 +6,14 @@ import { PricingTable } from "@/components/billing/pricing-table";
 import { supabase } from "@/lib/supabase/client";
 import { Loader2 } from "lucide-react";
 
+interface Org {
+  id: string;
+  billing_tier?: string;
+  credit_balance?: number;
+}
+
 export default function BillingPage() {
-  const [org, setOrg] = useState<any>(null);
+  const [org, setOrg] = useState<Org | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

@@ -6,8 +6,19 @@ import { AiTerminal } from "@/components/dashboard/AiTerminal";
 import { supabase } from "@/lib/supabase/client";
 import { Loader2 } from "lucide-react";
 
+interface Org {
+  id: string;
+}
+
+interface ManifestOptions {
+  mode?: string;
+  protocol?: string;
+  theme?: string;
+  primaryColor?: string;
+}
+
 export default function TerminalPage() {
-  const [org, setOrg] = useState<any>(null);
+  const [org, setOrg] = useState<Org | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -26,7 +37,7 @@ export default function TerminalPage() {
     fetchOrg();
   }, []);
 
-  const handleManifest = async (prompt: string, options: any) => {
+  const handleManifest = async (prompt: string, options: ManifestOptions) => {
     const res = await fetch("/api/manifest", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

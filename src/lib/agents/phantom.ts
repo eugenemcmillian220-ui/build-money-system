@@ -26,7 +26,7 @@ Return JSON ONLY:
 
   try {
     return JSON.parse(response);
-  } catch (e) {
+  } catch {
     return {
       uxScore: 0,
       frictionPoints: ["Unable to parse simulation result."],

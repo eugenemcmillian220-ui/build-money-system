@@ -74,9 +74,9 @@ export interface ProjectManifest {
   mode: string;
   protocol: string;
   strategy?: string;
-  docs?: any;
-  simulation?: any;
-  launch?: any;
+  docs?: unknown;
+  simulation?: unknown;
+  launch?: unknown;
   visuals?: {
     theme: "dark" | "light" | "system";
     primaryColor: string;
@@ -100,6 +100,7 @@ export interface ProjectManifest {
 
 export interface Project extends GenerationResult {
   id: string;
+  name?: string;
   createdAt: string;
   orgId?: string;
   status?: ProjectStatus;
