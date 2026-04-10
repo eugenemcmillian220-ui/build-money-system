@@ -1,5 +1,5 @@
 import { callLLM } from "../llm";
-import { FileMap } from "../types";
+import { FileMap, chroniclerResultSchema } from "../types";
 
 export interface ProjectDocs {
   readme: string;
@@ -24,8 +24,10 @@ Return JSON ONLY:
   ], { temperature: 0.2 });
 
   try {
-    return JSON.parse(response);
+    const data = JSON.parse(response);
+    return chroniclerResultSchema.parse(data);
   } catch {
+    console.error("Chronicler parse failed, falling back to defaults.");
     return {
       readme: "# New Project\nDocumentation pending.",
       architecture: "Next.js App Router Architecture.",

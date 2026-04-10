@@ -1,5 +1,5 @@
 import { callLLM } from "../llm";
-import { Project } from "../types";
+import { Project, phantomResultSchema } from "../types";
 
 export interface SimulationResult {
   uxScore: number;
@@ -25,8 +25,10 @@ Return JSON ONLY:
   ], { temperature: 0.4 });
 
   try {
-    return JSON.parse(response);
+    const data = JSON.parse(response);
+    return phantomResultSchema.parse(data);
   } catch {
+    console.error("Phantom parse failed, falling back to defaults.");
     return {
       uxScore: 0,
       frictionPoints: ["Unable to parse simulation result."],

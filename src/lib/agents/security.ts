@@ -1,5 +1,5 @@
 import { callLLM } from "../llm";
-import { FileMap } from "../types";
+import { FileMap, securityResultSchema } from "../types";
 
 export interface SecurityAuditResult {
   score: number;
@@ -43,8 +43,10 @@ Return JSON ONLY:
   ], { temperature: 0.1 });
 
   try {
-    return JSON.parse(response);
+    const data = JSON.parse(response);
+    return securityResultSchema.parse(data) as SecurityAuditResult;
   } catch {
+    console.error("Security parse failed, falling back to defaults.");
     return {
       score: 100,
       vulnerabilities: [],

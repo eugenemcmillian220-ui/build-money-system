@@ -38,6 +38,7 @@ export default function TerminalPage() {
   }, []);
 
   const handleManifest = async (prompt: string, options: ManifestOptions) => {
+    if (!org) throw new Error("Organization not loaded");
     const res = await fetch("/api/manifest", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

@@ -74,9 +74,15 @@ export interface ProjectManifest {
   mode: string;
   protocol: string;
   strategy?: string;
-  docs?: unknown;
-  simulation?: unknown;
-  launch?: unknown;
+  docs?: any;
+  simulation?: {
+    uxScore?: number;
+    [key: string]: any;
+  };
+  launch?: {
+    isReady?: boolean;
+    [key: string]: any;
+  };
   visuals?: {
     theme: "dark" | "light" | "system";
     primaryColor: string;
@@ -258,6 +264,69 @@ export function extractMainComponent(files: FileMap): string | null {
   
   return tsxFiles.length > 0 ? files[tsxFiles[0]] : null;
 }
+
+// ─── Phase 19/20: Agent Output Schemas ────────────────────────────────────────
+
+export const intentClassificationSchema = z.object({
+  mode: z.enum(["elite", "universal", "nano"]),
+  protocol: z.string(),
+  infrastructure: z.object({
+    database: z.enum(["supabase", "neon", "turso"]),
+    auth: z.enum(["supabase", "clerk", "better-auth"]),
+    payments: z.enum(["stripe", "lemon-squeezy", "coinbase"]),
+  }),
+});
+
+export const scoutResultSchema = z.object({
+  strategyMarkdown: z.string(),
+  recommendedStack: z.array(z.string()),
+  competitorInsights: z.string(),
+});
+
+export const chroniclerResultSchema = z.object({
+  readme: z.string(),
+  architecture: z.string(),
+  apiDocs: z.string(),
+});
+
+export const heraldResultSchema = z.object({
+  twitterThread: z.object({
+    hook: z.string(),
+    posts: z.array(z.string()),
+  }),
+  productHunt: z.object({
+    tagline: z.string(),
+    description: z.string(),
+    makerComment: z.string(),
+  }),
+  seoArticle: z.object({
+    title: z.string(),
+    content: z.string(),
+    keywords: z.array(z.string()),
+  }),
+  socialPosts: z.array(z.object({
+    platform: z.string(),
+    hook: z.string(),
+  })).optional(),
+});
+
+export const phantomResultSchema = z.object({
+  uxScore: z.number().min(0).max(100),
+  frictionPoints: z.array(z.string()),
+  recommendations: z.array(z.string()),
+});
+
+export const securityResultSchema = z.object({
+  score: z.number().min(0).max(100),
+  vulnerabilities: z.array(z.object({
+    severity: z.enum(["low", "medium", "high", "critical"]),
+    type: z.string(),
+    description: z.string(),
+    file: z.string().optional(),
+    fix: z.string().optional(),
+  })),
+  recommendations: z.array(z.string()),
+});
 
 // ─── Phase 6: Autonomous AI Company Builder ──────────────────────────────────
 

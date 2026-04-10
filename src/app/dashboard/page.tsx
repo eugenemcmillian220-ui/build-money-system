@@ -72,7 +72,8 @@ export default function DashboardPage() {
     }
   }
 
-  const handleManifest = async (prompt: string, options: ManifestOptions) => {
+  const handleManifest = async (prompt: string, options: any) => {
+    if (!org) throw new Error("Organization not loaded");
     const res = await fetch("/api/manifest", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

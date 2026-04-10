@@ -8,13 +8,32 @@ import { PHASE_19_SYSTEM_PROMPT } from "@/lib/prompts/phase-19";
 import { Project } from "@/lib/types";
 import { saveProjectDB } from "@/lib/supabase/db";
 import { startSpan, traced } from "@/lib/telemetry";
-
+import { rateLimit } from "@/lib/rate-limit";
 import { runSecurityAudit } from "@/lib/agents/security";
 
 export async function POST(request: NextRequest) {
+  // Rate Limit
+  const ip = request.headers.get("x-forwarded-for") || "unknown";
+  const { success, limit, remaining, reset } = rateLimit(ip, 5, 60000); // 5 requests per minute
+
+  if (!success) {
+    return NextResponse.json(
+      { error: "Too many requests. Neural bridge cooling down." },
+      { 
+        status: 429,
+        headers: {
+          "X-RateLimit-Limit": limit.toString(),
+          "X-RateLimit-Remaining": remaining.toString(),
+          "X-RateLimit-Reset": reset.toString(),
+        }
+      }
+    );
+  }
+
   return traced("manifestationPipeline", {}, async (span) => {
     try {
-      const { prompt, orgId, options } = await request.json();
+      const body = await request.json().catch(() => ({}));
+      const { prompt, orgId, options } = body;
 
       if (!prompt) {
         return NextResponse.json({ error: "Prompt is required" }, { status: 400 });

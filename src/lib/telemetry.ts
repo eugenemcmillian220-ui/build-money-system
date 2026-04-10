@@ -1,8 +1,4 @@
-/**
- * OpenTelemetry-compatible tracing wrapper
- * Uses console-based spans in development, ready for @vercel/otel in production
- * Add OTEL_EXPORTER_OTLP_ENDPOINT to env vars to enable full tracing
- */
+import { trace, SpanStatusCode, type Span as OTelSpan } from "@opentelemetry/api";
 
 export interface Span {
   name: string;
@@ -15,6 +11,8 @@ export function startSpan(
   name: string,
   attributes: Record<string, string | number | boolean> = {}
 ): Span {
+  const tracer = trace.getTracer("sovereign-forge-os");
+  const otelSpan = tracer.startSpan(name, { attributes });
   const startTime = Date.now();
 
   return {
@@ -22,6 +20,13 @@ export function startSpan(
     startTime,
     attributes,
     end(error?: Error) {
+      if (error) {
+        otelSpan.setStatus({ code: SpanStatusCode.ERROR, message: error.message });
+        otelSpan.recordException(error);
+      } else {
+        otelSpan.setStatus({ code: SpanStatusCode.OK });
+      }
+      
       const duration = Date.now() - startTime;
       if (process.env.NODE_ENV === "development") {
         if (error) {
@@ -30,7 +35,8 @@ export function startSpan(
           console.log(`[trace] ${name} completed in ${duration}ms`, attributes);
         }
       }
-      // In production with @vercel/otel configured, spans are exported to your OTLP endpoint
+      
+      otelSpan.end();
     },
   };
 }

@@ -1,5 +1,6 @@
 import { callLLM } from "../llm";
 import { ManifestMode } from "../prompts/phase-19";
+import { intentClassificationSchema } from "../types";
 
 export interface IntentClassification {
   mode: ManifestMode;
@@ -30,9 +31,10 @@ Return JSON ONLY:
   ], { temperature: 0.1 });
 
   try {
-    return JSON.parse(response);
+    const data = JSON.parse(response);
+    return intentClassificationSchema.parse(data) as IntentClassification;
   } catch {
-    console.error("Classifier parse failed:", response);
+    console.error("Classifier parse failed, falling back to defaults.");
     return {
       mode: "universal",
       protocol: "saas",

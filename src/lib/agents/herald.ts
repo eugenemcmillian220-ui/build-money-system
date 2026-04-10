@@ -1,5 +1,5 @@
 import { callLLM } from "../llm";
-import { Project } from "../types";
+import { Project, heraldResultSchema } from "../types";
 
 export interface SocialPost {
   platform: string;
@@ -30,11 +30,13 @@ Return JSON ONLY:
 
   try {
     const parsed = JSON.parse(response);
-    return {
+    const data = heraldResultSchema.parse({
       ...parsed,
-      socialPosts: [{ platform: "X", hook: parsed.twitterThread?.hook }]
-    };
+      socialPosts: [{ platform: "X", hook: parsed.twitterThread?.hook || "" }]
+    });
+    return data as LaunchAssets;
   } catch {
+    console.error("Herald parse failed, falling back to defaults.");
     return {
       twitterThread: { hook: "Exciting new launch!", posts: ["Check it out!"] },
       productHunt: { tagline: "Next-gen AI app", description: "Built with Build Money System", makerComment: "Hello world!" },

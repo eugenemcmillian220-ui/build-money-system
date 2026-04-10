@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
-  const session = event.data.object as Stripe.Checkout.Session;
+  const session = event.data.object as any;
 
   if (event.type === "checkout.session.completed") {
     const metadata = session.metadata;
@@ -36,6 +36,14 @@ export async function POST(req: Request) {
     const { orgId, type, credits, tier, licenseId } = metadata;
 
     if (!orgId) return NextResponse.json({ status: "no_org_id" });
+
+    // Link customer ID to organization
+    if (session.customer) {
+      await supabaseAdmin
+        .from("organizations")
+        .update({ stripe_customer_id: session.customer as string })
+        .eq("id", orgId);
+    }
 
     // 1. Update Organization Balance & Tier
     if (type === "topup" && credits) {
@@ -84,6 +92,19 @@ export async function POST(req: Request) {
       transaction_type: "top_up",
       description: `Financial Injection: ${type}`,
     });
+  }
+
+  if (event.type === "customer.subscription.deleted") {
+    const subscription = event.data.object as Stripe.Subscription;
+    const customerId = subscription.customer as string;
+
+    // Reset tier to none on cancellation
+    await supabaseAdmin
+      .from("organizations")
+      .update({ billing_tier: "none" })
+      .eq("stripe_customer_id", customerId);
+    
+    console.log(`Subscription deleted for customer: ${customerId}`);
   }
 
   return NextResponse.json({ received: true });

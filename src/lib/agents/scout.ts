@@ -1,4 +1,5 @@
 import { callLLM } from "../llm";
+import { scoutResultSchema } from "../types";
 
 export interface ScoutStrategy {
   strategyMarkdown: string;
@@ -22,8 +23,10 @@ Return JSON ONLY:
   ], { temperature: 0.3 });
 
   try {
-    return JSON.parse(response);
+    const data = JSON.parse(response);
+    return scoutResultSchema.parse(data);
   } catch {
+    console.error("Scout parse failed, falling back to defaults.");
     return {
       strategyMarkdown: "# Default Strategy\nBuild fast, iterate quickly.",
       recommendedStack: ["Next.js", "Tailwind", "Supabase"],
