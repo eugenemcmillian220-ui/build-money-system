@@ -84,6 +84,8 @@ const PHASES = [
   { num: "16", name: "M&A", desc: "Strategic Consolidation" },
   { num: "17", name: "Legal", desc: "Corporate Suite & IP" },
   { num: "18", name: "R&D", desc: "Autonomous Tech Scouting" },
+  { num: "19", name: "Forge", desc: "Intent-Based Synthesis" },
+  { num: "20", name: "Sovereign", desc: "Phantom UX & Herald Launch" },
 ];
 
 
@@ -98,7 +100,7 @@ export default function LandingPage() {
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-7 lg:px-8">
         <div className="flex items-center gap-2 font-black text-2xl tracking-tighter">
           <span className="h-9 w-9 rounded-xl bg-brand-500 flex items-center justify-center text-white font-black">A</span>
-          <span className="text-gradient">AppBuilder</span>
+          <span className="text-gradient">Sovereign Forge</span>
         </div>
         <div className="flex items-center gap-6">
           <Link
@@ -129,7 +131,7 @@ export default function LandingPage() {
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-500 opacity-75" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-500" />
           </span>
-          18-Phase Autonomous AI Empire
+          20-Phase Sovereign AI Empire
         </div>
 
         <h1 className="mx-auto max-w-5xl text-6xl font-black tracking-tight sm:text-8xl lg:text-9xl">
@@ -222,8 +224,8 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border/50 py-10 text-center text-xs tracking-widest text-muted-foreground">
-        BUILT WITH NEXT.JS 15 · REACT 19 · TAILWIND CSS v4 · SUPABASE · OPENROUTER
+      <footer className="border-t border-border/50 py-10 text-center text-xs tracking-widest text-muted-foreground uppercase font-black">
+        Sovereign Forge OS v2.2 · Built with Next.js 15 · React 19 · Tailwind CSS v4 · Supabase · Arize AI
       </footer>
     </main>
   );
