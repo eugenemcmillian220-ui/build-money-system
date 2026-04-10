@@ -5,10 +5,8 @@ import { ShieldCheck, Lock, History } from "lucide-react";
 
 export default function GovernancePage() {
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
-      <Sidebar />
-      <main className="lg:ml-64 p-8 md:p-12">
-        <div className="max-w-7xl mx-auto space-y-12">
+    <div className="p-8 md:p-12">
+      <div className="max-w-7xl mx-auto space-y-12">
           <header>
             <h1 className="text-4xl font-black uppercase tracking-tighter italic mb-2">Empire Governance</h1>
             <p className="text-muted-foreground font-bold italic">Audit logs, permission overrides, and sovereign security vaults.</p>
@@ -56,7 +54,6 @@ export default function GovernancePage() {
             </div>
           </div>
         </div>
-      </main>
     </div>
   );
 }

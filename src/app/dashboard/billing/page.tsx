@@ -34,17 +34,15 @@ export default function BillingPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="animate-spin text-brand-500" size={40} />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
-      <Sidebar />
-      <main className="lg:ml-64 p-8 md:p-12">
-        <div className="max-w-7xl mx-auto space-y-12">
+    <div className="p-8 md:p-12">
+      <div className="max-w-7xl mx-auto space-y-12">
           <header>
             <h1 className="text-4xl font-black uppercase tracking-tighter italic mb-2">Empire Economy</h1>
             <p className="text-muted-foreground font-bold italic">Manage your neural credits and sovereign tier.</p>
@@ -55,7 +53,6 @@ export default function BillingPage() {
             currentTier={org?.billing_tier}
           />
         </div>
-      </main>
     </div>
   );
 }
