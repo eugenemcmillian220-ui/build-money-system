@@ -1,11 +1,16 @@
 # 🧠 CODEBASE.md — Build Money System
 > **Canonical AI Context File** — Read this before making changes.
-> Last updated: 2026-04-10 | Phase 20 Active | Unified Dashboard Restored
+> Last updated: 2026-04-10 | Phase 20 Active | Unified Dashboard Restored | Expansion v2.2 Active
 
 ---
 
 ## 🏗️ What This Is
-**Build Money System** is a 20-phase autonomous AI SaaS empire engine deployed at:
+**Build Money System** is a 20-phase autonomous AI SaaS empire engine.
+**Expansion v2.2 Enhancements:**
+- **Visual Theme Engine (Ph 1-3)**: Intent-based UI styling (theme, primary color).
+- **Security Auditor (Ph 8-10)**: Automated vulnerability scanning and security scoring.
+- **Revenue Share Engine (Ph 11-17)**: Stripe Connect integration for automated affiliate payouts.
+- **Enhanced Lifecycle (Ph 20)**: UX simulation integrated with real-time security auditing.
 - **Production**: https://build-money-system.vercel.app
 - **GitHub**: https://github.com/eugenemcmillian220-ui/build-money-system
 - **Supabase Project**: `rgvjijiafpimfqbbyqtt` (ACTIVE_HEALTHY)

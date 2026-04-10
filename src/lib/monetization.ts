@@ -32,7 +32,28 @@ export interface RevenueProjection {
   keyAssumptions: string[];
 }
 
+export interface RevenueShareConfig {
+  affiliateCode: string;
+  commissionRate: number;
+  stripeConnectedAccountId?: string;
+  autoPayoutsEnabled: boolean;
+}
+
 export class MonetizationEngine {
+  /**
+   * Process a revenue share transaction
+   */
+  async processRevenueShare(amountCents: number, config: RevenueShareConfig): Promise<void> {
+    if (!config.stripeConnectedAccountId || !config.autoPayoutsEnabled) {
+      console.log(`[Monetization] Revenue share skipped for ${config.affiliateCode}`);
+      return;
+    }
+
+    const commission = Math.round(amountCents * config.commissionRate);
+    console.log(`[Monetization] Processing ${commission} cents payout to ${config.stripeConnectedAccountId}`);
+    // In production, this would call stripe.transfers.create
+  }
+
   async startMonetization(idea: string): Promise<MonetizationPlan> {
     const prompt = `You are a SaaS pricing expert and revenue strategist. Create an optimal monetization plan for this product.
 

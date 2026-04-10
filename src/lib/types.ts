@@ -70,6 +70,34 @@ export interface DeploymentInfo {
   updatedAt?: string;
 }
 
+export interface ProjectManifest {
+  mode: string;
+  protocol: string;
+  strategy?: string;
+  docs?: any;
+  simulation?: any;
+  launch?: any;
+  visuals?: {
+    theme: "dark" | "light" | "system";
+    primaryColor: string;
+    fontFamily: string;
+  };
+  security?: {
+    score: number;
+    auditLog: string[];
+    lastScanAt: string;
+  };
+  monetization?: {
+    affiliateCut: number;
+    revenueShareActive: boolean;
+  };
+  lifecycle?: {
+    blueprintId?: string;
+    uxDrift?: number;
+    lastSimulationAt?: string;
+  };
+}
+
 export interface Project extends GenerationResult {
   id: string;
   createdAt: string;
@@ -77,6 +105,7 @@ export interface Project extends GenerationResult {
   status?: ProjectStatus;
   deployment?: DeploymentInfo;
   githubRepo?: string;
+  manifest?: ProjectManifest;
   metadata?: Record<string, unknown>;
 }
 
@@ -97,6 +126,10 @@ export interface AppSpec {
   integrations: string[];
   schema?: string;
   fileStructure: string[];
+  visuals?: {
+    theme: string;
+    primaryColor: string;
+  };
 }
 
 

@@ -223,7 +223,8 @@ Rules:
   "components": [{ "name": "LoginForm", "description": "Auth form", "props": {} }],
   "integrations": ["supabase", "stripe"],
   "schema": "SQL schema here",
-  "fileStructure": ["app/layout.tsx", "app/page.tsx", "lib/supabase.ts"]
+  "fileStructure": ["app/layout.tsx", "app/page.tsx", "lib/supabase.ts"],
+  "visuals": { "theme": "dark", "primaryColor": "#f59e0b" }
 }`;
 
   const messages: ChatMessage[] = [
@@ -254,6 +255,7 @@ export async function buildFromSpec(spec: AppSpec): Promise<FileMap> {
 Rules:
 - Use Next.js 15 with App Router and React 19 patterns.
 - Use shadcn/ui aesthetic with Tailwind CSS v4.
+- Apply the visual theme and primary color specified in the App Specification.
 - Implement full-stack logic: Supabase Auth, Server Actions, and DB queries.
 - Ensure 'use client' is used correctly.
 - Return ONLY valid JSON in this structure: {"files": {"path": "content"}}.

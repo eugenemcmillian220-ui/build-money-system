@@ -9,7 +9,9 @@ import {
   Globe, 
   Twitter, 
   TrendingUp,
-  BarChart3
+  BarChart3,
+  ShieldCheck,
+  Palette
 } from "lucide-react";
 
 interface ProjectListProps {
@@ -57,7 +59,7 @@ export function ProjectList({ projects, onDelete }: ProjectListProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div className="bg-black/40 rounded-2xl p-4 border border-white/5">
               <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest mb-1">UX Score</p>
               <div className="flex items-center gap-2">
@@ -66,10 +68,17 @@ export function ProjectList({ projects, onDelete }: ProjectListProps) {
               </div>
             </div>
             <div className="bg-black/40 rounded-2xl p-4 border border-white/5">
-              <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest mb-1">Status</p>
+              <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest mb-1">Security</p>
               <div className="flex items-center gap-2">
-                <Globe size={14} className="text-brand-400" />
-                <span className="text-[10px] font-black uppercase tracking-widest text-white/80 truncate">Active</span>
+                <ShieldCheck size={14} className={project.manifest?.security?.score && project.manifest.security.score > 80 ? "text-green-400" : "text-amber-400"} />
+                <span className="text-lg font-black text-white">{project.manifest?.security?.score || "--"}</span>
+              </div>
+            </div>
+            <div className="bg-black/40 rounded-2xl p-4 border border-white/5">
+              <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest mb-1">Theme</p>
+              <div className="flex items-center gap-2">
+                <Palette size={14} style={{ color: project.manifest?.visuals?.primaryColor || "#fff" }} />
+                <span className="text-[10px] font-black uppercase tracking-widest text-white/80 truncate">{project.manifest?.visuals?.theme || "dark"}</span>
               </div>
             </div>
             <div className="bg-black/40 rounded-2xl p-4 border border-white/5">

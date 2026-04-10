@@ -9,6 +9,8 @@ import { Project } from "@/lib/types";
 import { saveProjectDB } from "@/lib/supabase/db";
 import { startSpan, traced } from "@/lib/telemetry";
 
+import { runSecurityAudit } from "@/lib/agents/security";
+
 export async function POST(request: NextRequest) {
   return traced("manifestationPipeline", {}, async (span) => {
     try {
@@ -29,12 +31,33 @@ export async function POST(request: NextRequest) {
       span.attributes["project.mode"] = mode;
       span.attributes["project.protocol"] = protocol;
 
-      // STEP 2: THE SCOUT
+      // STEP 2: THE SCOUT (Pre-generation Research)
       const strategy = await traced("agent.scout", { "agent.role": "Scout" }, () => runScoutAgent(prompt, protocol));
 
-      // STEP 3: THE DEVELOPER (Generate Files)
-      const finalPrompt = `${PHASE_19_SYSTEM_PROMPT}\n\nBUILD CONTEXT:\nMode: ${mode.toUpperCase()}\nProtocol: ${protocol.toUpperCase()}\n\nSTRATEGY:\n${strategy.strategyMarkdown}\n\nUSER REQUEST: "${prompt}"`;
+      // STEP 3: THE ARCHITECT (Visual Engine Expansion)
+      // For simulation, we assume Developer will handle the prompt. 
+      // In Ph 1-3, we now inject visual tokens.
+      const visualTokens = {
+        theme: options?.theme || "dark",
+        primaryColor: options?.primaryColor || "#f59e0b",
+        fontFamily: "Inter, sans-serif"
+      };
 
+      const finalPrompt = `
+${PHASE_19_SYSTEM_PROMPT}
+
+BUILD CONTEXT:
+Mode: ${mode.toUpperCase()}
+Protocol: ${protocol.toUpperCase()}
+Visual Theme: ${visualTokens.theme} (Primary: ${visualTokens.primaryColor})
+
+STRATEGY:
+${strategy.strategyMarkdown}
+
+USER REQUEST: "${prompt}"
+      `;
+
+      // STEP 4: THE DEVELOPER (Generate Files)
       const res = await traced("agent.developer", { "agent.role": "Developer" }, async () => {
         const fetchRes = await fetch(`${request.nextUrl.origin}/api/generate`, {
           method: "POST",
@@ -48,13 +71,16 @@ export async function POST(request: NextRequest) {
       const genData = res;
       const files = genData.result?.files;
 
-      // STEP 4: THE CHRONICLER
+      // STEP 5: THE CHRONICLER
       const docs = await traced("agent.chronicler", { "agent.role": "Chronicler" }, () => runChroniclerAgent(files));
 
-      // STEP 5: THE PHANTOM
+      // STEP 6: PHASE 8-10 - THE SECURITY AUDITOR
+      const security = await traced("agent.security", { "agent.role": "Security" }, () => runSecurityAudit(files));
+
+      // STEP 7: PHASE 20 - THE PHANTOM
       const simulation = await traced("agent.phantom", { "agent.role": "Phantom" }, () => runPhantom({ files, id: "temp", createdAt: new Date().toISOString() } as Project));
 
-      // STEP 6: THE HERALD
+      // STEP 8: PHASE 20 - THE HERALD
       const launch = await traced("agent.herald", { "agent.role": "Herald" }, () => runHerald({
         description: genData.result.description || prompt,
         files,
@@ -63,14 +89,31 @@ export async function POST(request: NextRequest) {
         manifest: { strategy: strategy.strategyMarkdown, docs, mode, protocol }
       } as Project));
 
-      // STEP 7: PERSISTENCE
+      // STEP 9: PERSISTENCE
       const projectData: Partial<Project> = {
         id: crypto.randomUUID(),
         files,
         description: genData.result.description || prompt,
         orgId,
         createdAt: new Date().toISOString(),
-        manifest: { mode, protocol, strategy: strategy.strategyMarkdown, docs, simulation, launch },
+        manifest: {
+          mode,
+          protocol,
+          strategy: strategy.strategyMarkdown,
+          docs,
+          simulation,
+          launch,
+          visuals: visualTokens,
+          security: {
+            score: security.score,
+            auditLog: security.vulnerabilities.map(v => `${v.severity.toUpperCase()}: ${v.type} - ${v.description}`),
+            lastScanAt: new Date().toISOString()
+          },
+          monetization: {
+            affiliateCut: 0.20,
+            revenueShareActive: true
+          }
+        },
       };
 
       const savedProject = await saveProjectDB(projectData as Project);
@@ -78,7 +121,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, project: savedProject });
 
     } catch (error) {
-      console.error("[Phase 19] Build Failed:", error);
+      console.error("[Manifestation] Build Failed:", error);
       span.end(error as Error);
       return NextResponse.json({ error: (error as Error).message }, { status: 500 });
     }

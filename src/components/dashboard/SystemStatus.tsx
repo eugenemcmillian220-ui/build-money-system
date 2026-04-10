@@ -6,8 +6,8 @@ export function SystemStatus() {
   const systems = [
     { name: "Neural Link", status: "Optimal", icon: Zap, color: "text-brand-400" },
     { name: "Sovereign DB", status: "Healthy", icon: Database, color: "text-green-400" },
+    { name: "Security Auditor", status: "Auditing", icon: ShieldCheck, color: "text-blue-400" },
     { name: "Agent Swarm", status: "Active", icon: Activity, color: "text-amber-400" },
-    { name: "Forge Engine", status: "Standby", icon: Server, color: "text-blue-400" },
   ];
 
   return (
