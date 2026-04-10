@@ -69,7 +69,35 @@ AI App Builder is a comprehensive platform with 10 production-ready phases:
 - Node.js 20.19+ or 22.13+
 - npm or yarn or pnpm
 - Supabase account
-- OpenRouter API key
+- At least one LLM provider API key (Groq, Gemini, OpenAI, or OpenRouter)
+
+### Multi-Key Rotation
+
+**🚀 New Feature**: Automatic multi-key rotation for high availability and load distribution across all LLM providers.
+
+```bash
+# Use multiple keys for automatic rotation and failover
+GROQ_API_KEYS=gsk_key1,gsk_key2,gsk_key3
+GEMINI_API_KEYS=AIza-key1,AIza-key2,AIza-key3
+OPENAI_API_KEYS=sk-proj-key1,sk-proj-key2,sk-proj-key3
+OPENROUTER_API_KEYS=sk-or-v1-key1,sk-or-v1-key2,sk-or-v1-key3
+```
+
+**Features:**
+- ✅ Automatic round-robin key rotation
+- ✅ Error tracking with 60s cooldown after 3 errors
+- ✅ Automatic provider failover
+- ✅ Support for comma and newline separated keys
+- ✅ Up to 5x throughput with multiple keys
+
+**Documentation:**
+- [Quick Start Guide](MULTI_KEY_QUICKSTART.md) - 5 minute setup
+- [Full Documentation](MULTI_KEY_ROTATION.md) - Complete reference
+
+**Test Suite:**
+```bash
+npx tsx tests/key-rotation-standalone.ts
+```
 
 ### Installation
 
@@ -99,15 +127,33 @@ NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
-# OpenRouter AI API
-OPENROUTER_API_KEY=sk-or-v1-your-key-here
+# AI/LLM Providers (at least one required)
+# Supports multi-key rotation with PROVIDER_API_KEYS (plural)
+GROQ_API_KEYS=gsk_key1,gsk_key2,gsk_key3
+GEMINI_API_KEYS=AIza-key1,AIza-key2,AIza-key3
+OPENAI_API_KEYS=sk-proj-key1,sk-proj-key2,sk-proj-key3
+OPENROUTER_API_KEYS=sk-or-v1-key1,sk-or-v1-key2,sk-or-v1-key3
+
+# Or use single keys (no rotation):
+# GROQ_API_KEY=gsk_...
+# GEMINI_API_KEY=AIza_...
+# OPENAI_API_KEY=sk-proj-...
+# OPENROUTER_API_KEY=sk-or-v1-...
 ```
+
+**📖 Multi-Key Rotation:** See [MULTI_KEY_QUICKSTART.md](MULTI_KEY_QUICKSTART.md) for detailed configuration guide.
 
 ### Optional (Recommended)
 
 ```bash
 # Application URL
 NEXT_PUBLIC_SITE_URL=https://your-app.vercel.app
+
+# Additional AI Providers (with multi-key support)
+DEEPSEEK_API_KEYS=deepseek-key1,deepseek-key2
+CEREBRAS_API_KEYS=cerebras-key1,cerebras-key2
+CLOUDFLARE_API_KEYS=cf-key1,cf-key2
+CLOUDFLARE_ACCOUNT_ID=your-account-id
 
 # GitHub Export (for Phase 4)
 GITHUB_TOKEN=ghp_your_github_token
