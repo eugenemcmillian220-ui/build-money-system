@@ -1,7 +1,7 @@
 import { callLLM } from "../llm";
 import { Project, phantomResultSchema } from "../types";
 
-export interface SimulationResult {
+export interface SimulationResult extends Record<string, unknown> {
   uxScore: number;
   frictionPoints: string[];
   recommendations: string[];

@@ -6,8 +6,9 @@ import { AiTerminal } from "@/components/dashboard/AiTerminal";
 import { ProjectList } from "@/components/dashboard/ProjectList";
 import { SystemStatus } from "@/components/dashboard/SystemStatus";
 import { supabase } from "@/lib/supabase/client";
-import { Project } from "@/lib/types";
-import { 
+import { Project, ManifestOptions } from "@/lib/types";
+import {
+
   Zap, 
   BarChart3, 
   Users, 
@@ -66,7 +67,7 @@ export default function DashboardPage() {
     }
   }
 
-  const handleManifest = async (prompt: string, options: Record<string, unknown>) => {
+  const handleManifest = async (prompt: string, options: ManifestOptions) => {
     if (!org) throw new Error("Organization not loaded");
     const res = await fetch("/api/manifest", {
       method: "POST",

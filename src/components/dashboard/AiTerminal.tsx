@@ -2,13 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Terminal as TerminalIcon, Send, Loader2 } from "lucide-react";
-
-interface ManifestOptions {
-  mode?: string;
-  protocol?: string;
-  theme?: string;
-  primaryColor?: string;
-}
+import { ManifestOptions } from "@/lib/types";
 
 interface AiTerminalProps {
   onManifest: (prompt: string, options: ManifestOptions) => Promise<void>;

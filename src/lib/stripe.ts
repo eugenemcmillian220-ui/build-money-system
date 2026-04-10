@@ -3,7 +3,10 @@ import { z } from "zod";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_placeholder", {
   apiVersion: "2024-06-20",
+  typescript: true,
 });
+
+const STRIPE_ACCOUNT_ID = process.env.STRIPE_ACCOUNT_ID;
 
 export const priceSchema = z.object({
   amount: z.number().int().min(100),

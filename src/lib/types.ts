@@ -55,6 +55,13 @@ export const llmResponseSchema = z.object({
   integrations: z.array(z.string()).optional(),
 });
 
+export interface ManifestOptions extends Record<string, unknown> {
+  mode?: string;
+  protocol?: string;
+  theme?: string;
+  primaryColor?: string;
+}
+
 export interface ProjectStatus {
   phase: AgentPhase;
   currentPass: number;

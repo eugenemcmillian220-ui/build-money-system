@@ -6,7 +6,7 @@ export interface SocialPost {
   hook: string;
 }
 
-export interface LaunchAssets {
+export interface LaunchAssets extends Record<string, unknown> {
   twitterThread: { hook: string; posts: string[] };
   productHunt: { tagline: string; description: string; makerComment: string };
   seoArticle: { title: string; content: string; keywords: string[] };

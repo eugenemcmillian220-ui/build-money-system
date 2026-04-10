@@ -1,7 +1,7 @@
 import { callLLM } from "../llm";
 import { FileMap, chroniclerResultSchema } from "../types";
 
-export interface ProjectDocs {
+export interface ProjectDocs extends Record<string, unknown> {
   readme: string;
   architecture: string;
   apiDocs: string;

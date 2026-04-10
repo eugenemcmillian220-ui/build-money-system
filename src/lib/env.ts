@@ -21,9 +21,15 @@ const serverEnvSchema = z.object({
   NEXT_PUBLIC_SITE_URL: z.string().url().optional(),
 
   // GitHub & Vercel deployment
-  GITHUB_TOKEN: z.string().optional(),
-  VERCEL_TOKEN: z.string().optional(),
+  GITHUB_ACCESS_TOKEN: z.string().optional(),
+  GITHUB_USERNAME: z.string().optional(),
+  GITHUB_REPO: z.string().optional(),
+  GITHUB_DEFAULT_BRANCH: z.string().optional().default("main"),
+  GITHUB_TOKEN: z.string().optional(), // Legacy
+  VERCEL_ACCESS_TOKEN: z.string().optional(),
+  VERCEL_PROJECT_ID: z.string().optional(),
   VERCEL_TEAM_ID: z.string().optional(),
+  VERCEL_TOKEN: z.string().optional(), // Legacy
 
   // Admin
   ADMIN_API_KEYS: z.string().optional(),
@@ -46,6 +52,7 @@ const serverEnvSchema = z.object({
   // Stripe
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  STRIPE_ACCOUNT_ID: z.string().optional(),
 
   // Stripe price IDs
   STRIPE_BASIC_MINI_MONTHLY_PRICE_ID: z.string().optional(),

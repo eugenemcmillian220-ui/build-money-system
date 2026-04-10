@@ -27,16 +27,17 @@ export async function exportToGitHub(
   files: FileMap,
   description?: string
 ): Promise<GitHubExportResult> {
-  const token = serverEnv.GITHUB_TOKEN;
-  
+  const token = serverEnv.GITHUB_ACCESS_TOKEN || serverEnv.GITHUB_TOKEN;
+
   if (!token) {
     return {
       success: false,
       repoUrl: "",
       repoName,
-      error: "GitHub token not configured. Set GITHUB_TOKEN environment variable.",
+      error: "GitHub access token not configured. Set GITHUB_ACCESS_TOKEN environment variable.",
     };
   }
+
 
   try {
     const { Octokit } = await import("@octokit/rest");
@@ -243,7 +244,7 @@ npm run dev
  * Check if GitHub integration is available
  */
 export function isGitHubAvailable(): boolean {
-  return !!serverEnv.GITHUB_TOKEN;
+  return !!(serverEnv.GITHUB_ACCESS_TOKEN || serverEnv.GITHUB_TOKEN);
 }
 
 /**
@@ -251,4 +252,44 @@ export function isGitHubAvailable(): boolean {
  */
 export function getGitHubRepoUrl(owner: string, repo: string): string {
   return `https://github.com/${owner}/${repo}`;
+}
+
+/**
+ * Create or update a file in a GitHub repository following the SHA requirement
+ */
+export async function createOrUpdateFile(
+  owner: string,
+  repo: string,
+  path: string,
+  content: string,
+  message: string,
+  branch: string = serverEnv.GITHUB_DEFAULT_BRANCH || "main"
+): Promise<string> {
+  const token = serverEnv.GITHUB_ACCESS_TOKEN || serverEnv.GITHUB_TOKEN;
+  if (!token) throw new GitHubError("GitHub token missing");
+
+  const { Octokit } = await import("@octokit/rest");
+  const octokit = new Octokit({ auth: token });
+
+  let sha: string | undefined;
+  try {
+    const { data } = await octokit.repos.getContent({ owner, repo, path, ref: branch });
+    if (!Array.isArray(data)) {
+      sha = data.sha;
+    }
+  } catch {
+    // File doesn't exist yet
+  }
+
+  const { data: result } = await octokit.repos.createOrUpdateFileContents({
+    owner,
+    repo,
+    path,
+    message,
+    content: Buffer.from(content).toString("base64"),
+    sha,
+    branch,
+  });
+
+  return result.content?.sha || "";
 }
