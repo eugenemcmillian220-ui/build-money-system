@@ -1,4 +1,4 @@
-import { trace, SpanStatusCode, type Span as OTelSpan } from "@opentelemetry/api";
+import { trace, SpanStatusCode } from "@opentelemetry/api";
 
 export interface Span {
   name: string;

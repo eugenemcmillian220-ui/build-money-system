@@ -74,14 +74,14 @@ export interface ProjectManifest {
   mode: string;
   protocol: string;
   strategy?: string;
-  docs?: any;
+  docs?: Record<string, unknown>;
   simulation?: {
     uxScore?: number;
-    [key: string]: any;
+    [key: string]: unknown;
   };
   launch?: {
     isReady?: boolean;
-    [key: string]: any;
+    [key: string]: unknown;
   };
   visuals?: {
     theme: "dark" | "light" | "system";

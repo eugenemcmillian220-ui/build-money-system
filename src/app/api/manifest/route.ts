@@ -7,7 +7,7 @@ import { runHerald } from "@/lib/agents/herald";
 import { PHASE_19_SYSTEM_PROMPT } from "@/lib/prompts/phase-19";
 import { Project } from "@/lib/types";
 import { saveProjectDB } from "@/lib/supabase/db";
-import { startSpan, traced } from "@/lib/telemetry";
+import { traced } from "@/lib/telemetry";
 import { rateLimit } from "@/lib/rate-limit";
 import { runSecurityAudit } from "@/lib/agents/security";
 

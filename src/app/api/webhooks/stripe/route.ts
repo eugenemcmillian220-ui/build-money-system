@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
-  const session = event.data.object as any;
+  const session = event.data.object as Stripe.Checkout.Session;
 
   if (event.type === "checkout.session.completed") {
     const metadata = session.metadata;
