@@ -717,6 +717,7 @@ CREATE TABLE IF NOT EXISTS organizations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name VARCHAR(255) NOT NULL,
   slug VARCHAR(100) UNIQUE NOT NULL,
+  owner_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   logo_url TEXT,
   primary_color VARCHAR(20),
   plan_id VARCHAR(50) DEFAULT 'none',
@@ -1212,3 +1213,34 @@ CREATE TABLE IF NOT EXISTS rd_test_projects (
 
 CREATE INDEX IF NOT EXISTS idx_research_trends_category ON research_trends(category);
 CREATE INDEX IF NOT EXISTS idx_research_trends_status ON research_trends(adoption_status);
+
+-- ── Phase 10: Agent Economy RPCs ──
+
+-- Function to increment organization credit balance (for top-ups/grants)
+CREATE OR REPLACE FUNCTION increment_org_balance(org_id UUID, amount NUMERIC)
+RETURNS VOID AS $$
+BEGIN
+  UPDATE organizations
+  SET credit_balance = COALESCE(credit_balance, 0) + amount
+  WHERE id = org_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to decrement organization credit balance (for usage)
+CREATE OR REPLACE FUNCTION decrement_org_balance(org_id UUID, amount NUMERIC)
+RETURNS BOOLEAN AS $$
+DECLARE
+  current_balance NUMERIC;
+BEGIN
+  SELECT credit_balance INTO current_balance FROM organizations WHERE id = org_id;
+  
+  IF current_balance >= amount THEN
+    UPDATE organizations
+    SET credit_balance = credit_balance - amount
+    WHERE id = org_id;
+    RETURN TRUE;
+  ELSE
+    RETURN FALSE;
+  END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

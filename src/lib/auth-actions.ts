@@ -17,13 +17,15 @@ async function ensurePersonalOrg(supabase: SupabaseClient, user: User, email: st
     const slug = email.split("@")[0].replace(/[^a-zA-Z0-9]/g, "").toLowerCase() + "-" + Math.random().toString(36).slice(2, 5);
     const { data: newOrg } = await supabase
       .from("organizations")
-      .insert({ 
-        name: "Personal Workspace", 
+      .insert({
+        name: "Personal Workspace",
         slug,
+        owner_id: user.id,
         metadata: { created_by: user.id }
       })
       .select()
       .single();
+
 
     if (newOrg) {
       await supabase.from("org_members").insert({

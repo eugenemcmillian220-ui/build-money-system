@@ -88,6 +88,21 @@ const serverEnvSchema = z.object({
   GEMINI_KEYS: z.string().optional(),
   OPENAI_KEYS: z.string().optional(),
   OPENROUTER_KEYS: z.string().optional(),
+
+  // Arize AI / OTel
+  ARIZE_API_KEY: z.string().optional(),
+  ARIZE_SPACE_ID: z.string().optional(),
+  OTEL_EXPORTER_OTLP_ENDPOINT: z.string().optional(),
+  OTEL_EXPORTER_OTLP_HEADERS: z.string().optional(),
+
+  // Analytics & Monitoring
+  NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
+  NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
+  NEXT_PUBLIC_POSTHOG_HOST: z.string().optional(),
+
+  // Management
+  SUPABASE_ACCESS_TOKEN: z.string().optional(),
+  SUPABASE_MANAGEMENT_API_KEY: z.string().optional(),
 });
 
 const clientEnvSchema = z.object({
@@ -100,6 +115,9 @@ const clientEnvSchema = z.object({
     .min(1, "NEXT_PUBLIC_SUPABASE_ANON_KEY is required")
     .optional(),
   NEXT_PUBLIC_SITE_URL: z.string().url().optional(),
+  NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
+  NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
+  NEXT_PUBLIC_POSTHOG_HOST: z.string().optional(),
 });
 
 type ServerEnv = z.infer<typeof serverEnvSchema>;
