@@ -98,28 +98,57 @@ class KeyManager {
     let keys: string[] = [];
     switch (provider) {
       case "openrouter":
-        keys = parseKeys(process.env.OPENROUTER_KEYS ?? process.env.OPENROUTER_API_KEYS ?? process.env.OPENROUTER_API_KEY);
+        keys = this.parseKeysWithFallback(
+          process.env.OPENROUTER_KEYS,
+          process.env.OPENROUTER_API_KEY
+        );
         break;
       case "groq":
-        keys = parseKeys(process.env.GROQ_KEYS ?? process.env.GROQ_API_KEYS ?? process.env.GROQ_API_KEY);
+        keys = this.parseKeysWithFallback(
+          process.env.GROQ_KEYS,
+          process.env.GROQ_API_KEY
+        );
         break;
       case "gemini":
-        keys = parseKeys(process.env.GEMINI_KEYS ?? process.env.GEMINI_API_KEYS ?? process.env.GEMINI_API_KEY);
+        keys = this.parseKeysWithFallback(
+          process.env.GEMINI_KEYS,
+          process.env.GEMINI_API_KEY
+        );
         break;
       case "openai":
-        keys = parseKeys(process.env.OPENAI_KEYS ?? process.env.OPENAI_API_KEYS ?? process.env.OPENAI_API_KEY);
+        keys = this.parseKeysWithFallback(
+          process.env.OPENAI_KEYS,
+          process.env.OPENAI_API_KEY
+        );
         break;
       case "deepseek":
-        keys = parseKeys(process.env.DEEPSEEK_API_KEYS ?? process.env.DEEPSEEK_API_KEY);
+        keys = this.parseKeysWithFallback(
+          process.env.DEEPSEEK_API_KEYS,
+          process.env.DEEPSEEK_API_KEY
+        );
         break;
       case "cerebras":
-        keys = parseKeys(process.env.CEREBRAS_API_KEYS ?? process.env.CEREBRAS_API_KEY);
+        keys = this.parseKeysWithFallback(
+          process.env.CEREBRAS_API_KEYS,
+          process.env.CEREBRAS_API_KEY
+        );
         break;
       case "cloudflare":
-        keys = parseKeys(process.env.CLOUDFLARE_API_KEYS ?? process.env.CLOUDFLARE_API_KEY);
+        keys = this.parseKeysWithFallback(
+          process.env.CLOUDFLARE_API_KEYS,
+          process.env.CLOUDFLARE_API_KEY
+        );
         break;
     }
     return new ProviderKeyPool(keys);
+  }
+
+  private parseKeysWithFallback(multiKeyEnv: string | undefined, singleKeyEnv: string | undefined): string[] {
+    const multiKeys = parseKeys(multiKeyEnv);
+    if (multiKeys.length > 0) {
+      return multiKeys;
+    }
+    return parseKeys(singleKeyEnv);
   }
 
   /**
