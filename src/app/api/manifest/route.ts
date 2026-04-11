@@ -124,7 +124,7 @@ USER REQUEST: "${prompt}"
           launch,
           visuals: visualTokens,
           security: {
-            score: security.score,
+            ...security,
             auditLog: security.vulnerabilities.map(v => `${v.severity.toUpperCase()}: ${v.type} - ${v.description}`),
             lastScanAt: new Date().toISOString()
           },
