@@ -1,400 +1,130 @@
-# AI App Builder
+# 🧠 Sovereign Forge OS (v2.3)
+### The World's First 20-Phase Autonomous AI Business Empire Engine
 
-A production-ready autonomous AI platform that builds, deploys, monitors, and optimizes full-stack applications from natural language prompts.
+Sovereign Forge OS is an elite, production-hardened platform that transforms natural language prompts into autonomous, revenue-generating SaaS empires. It doesn't just write code—it engineers, secures, legalizes, and manages entire business lifecycles using a swarm of 17 specialized AI agents.
 
-## Overview
+---
 
-AI App Builder is a comprehensive platform with 10 production-ready phases:
+## 🚀 The 20-Phase Sovereign Lifecycle
 
-- **Phase 1**: Single component generation
-- **Phase 2**: Multi-file app generation with live preview
-- **Phase 3**: Database persistence with Supabase
-- **Phase 4**: Deployment to Vercel and export to GitHub
-- **Phase 5**: Production systems (security, feedback, self-improvement)
-- **Phase 6**: Autonomous AI company builder
-- **Phase 7**: Autonomous deployment, revenue optimization, and task scheduling
-- **Phase 8**: AI Development Operating System (Sandbox, Multi-Tenancy, Memory, Mobile, Collab, Search, White-label)
-- **Phase 9**: Autonomous Enterprise Layer (Vision-to-Code, Compliance Vault, PII Scanning, SRE)
-- **Phase 10**: Multi-Agent Economy & Marketplace (Credit System, Agent Ledger, Skills Marketplace)
-- **Phase 11**: Autonomous Growth Lab (Hype Agent, Social Automation, SEO Loops, Viral Scaling)
-- **Phase 12**: Autonomous Governance & Edge Scale (HITL Approval, Global Orchestration, Multi-region Deployment)
-- **Phase 13**: Autonomous VC Layer (Funding Agent, Credit Injection, RevShare Models)
-- **Phase 14**: Agentic Diplomacy & B2B Negotiation (Vendor Relations, Auto-Negotiation, Savings Ledger)
-- **Phase 15**: The Hive Mind Loop (Collective Learning, Anonymized Pattern Synthesis, Global KB)
-- **Phase 16**: Autonomous M&A (Synergy Detection, Technical Due Diligence, Automated Mergers)
-- **Phase 17**: Autonomous Legal & Corporate Suite (Entity Formation, Contracts, IP Vault)
-- **Phase 18**: Autonomous R&D (Tech Scouting, Automated Adoption, R&D Lab)
-- **Experimental Path C**: Self-Evolving Applications (Autonomous Visual Feedback Loop)
+| Phase | Designation | Mission | Status |
+| :--- | :--- | :--- | :--- |
+| **01-03** | **Foundation** | Component Gen, Multi-file Architecture, SQL Forge | ✅ |
+| **04** | **Hardening** | The Sentinel: Autonomous Pen-Testing & Hardening | ✅ |
+| **05-07** | **Operations** | Self-Improving Loops, Autonomous Company Builder, Self-Healing | ✅ |
+| **08-10** | **Enterprise** | Multi-Tenancy, Vision-to-Code, Agent Economy & ROI | ✅ |
+| **11-12** | **Governance** | Viral Hype Engine, Autonomous Governance (DAO/HITL) | ✅ |
+| **13-14** | **Diplomacy** | Staking & RevShare, B2B Diplomat (Vendor Negotiation) | ✅ |
+| **15-16** | **Expansion** | Hive Mind Collective Intelligence, Autonomous M&A Broker | ✅ |
+| **17** | **Sovereignty** | The Legal Vault: Autonomous Patent & IP Drafting | ✅ |
+| **18** | **Innovation** | The Trend Hunter: R&D Scouting & Tech Adoption | ✅ |
+| **19** | **Manifest** | Intent-Based Synthesis & Voice Command Synthesis | ✅ |
+| **20** | **Dominance** | The Autonomous CEO: Portfolio Meta-Management | ✅ |
 
-## Pricing (Premium Only — No Free Tier)
+---
 
-### Elite Empire (Phases 1–17)
-| Tier | Monthly | Annual (Save 20%) | Credits/mo | Key Focus |
-|---|---|---|---|---|
-| **Elite Starter** | $99 | $79/mo | 10,000 | Governance & Edge |
-| **Elite Pro** | $249 | $199/mo | 35,000 | VC & Diplomacy |
-| **Elite Enterprise** | $999 | $799/mo | 150,000 | Legal, Hive & M&A |
+## 🤖 The Sovereign Agent Swarm (17 Specialized Units)
 
-### Basic Foundation (Phases 1–3)
-| Tier | Monthly | Annual | Credits/mo |
-|---|---|---|---|
-| **Basic Mini** | $5 | $4/mo | 300 |
-| **Basic Starter** | $19 | $15/mo | 1,000 |
-| **Basic Pro** | $49 | $39/mo | 3,000 |
-| **Basic Premium** | $99 | $79/mo | 7,000 |
+1.  **The Classifier**: Intent dispatcher & high-level tech stack selector.
+2.  **The Scout**: Pre-generation technical R&D and competitor analysis.
+3.  **The Developer**: Primary engine for Next.js 15 / Tailwind v4 codebase generation.
+4.  **The Sentinel**: Autonomous penetration testing and virtual attack simulation.
+5.  **The SQL Forge**: Neural database migration and RLS policy engineering.
+6.  **The Chronicler**: Comprehensive system architecture and API documentation.
+7.  **The Security Auditor**: Deep vulnerability scanning and OWASP risk assessment.
+8.  **The Phantom**: AI user simulation for UX smoke testing and scoring.
+9.  **The Herald**: Viral marketing asset generation and Product Hunt strategy.
+10. **The Economy Auditor**: ROI calculation and staking readiness assessment.
+11. **The Empire Broker**: Strategic M&A synergy detection and vendor diplomacy.
+12. **The Legal Vault**: Autonomous drafting of patents, TOS, and Privacy Policies.
+13. **The Autonomous CEO**: Meta-agent for portfolio health and strategic tasks.
+14. **The Sculptor**: Real-time UI refinement and iterative codebase sculpting.
+15. **The Healer**: Self-healing error diagnosis and autonomous fix deployment.
+16. **The Interpreter**: Voice-to-Command synthesis for hands-free manifestation.
+17. **The Hive Mind**: Collective intelligence synthesis from across the empire.
 
-- **Credit Top-ups**: $20 for 5,000 extra credits (with bulk discounts).
-### Specialized Licensing
+---
 
-- **Lifetime Starter**: $790 (One-time)
-- **Lifetime Pro**: $2,390 (One-time)
-- **On-Prem Perpetual License**: $4,999 (Unlimited internal use, self-hosted)
+## 💎 Elite Economy & Intelligence
 
-- **Marketplace Commission**: 25% on all agent-to-agent transactions.
-- **Affiliate Program**: Earn 20% recurring commission on all referrals.
+*   **Neural Credits & Surge Pricing**: Dynamic manifestation costs based on system load and build complexity.
+*   **Staking & RevShare**: Automated investment logic allowing users to stake credits in high-potential empires for revenue shares.
+*   **Multi-Key Rotation Pool**: Unstoppable intelligence via round-robin rotation across Groq, Gemini, OpenAI, and OpenRouter.
+*   **Sovereign Observability**: Full OTel instrumentation via Arize AI, Sentry error tracking, and PostHog analytics.
 
-- **Frontend**: Next.js 15, React 19, Tailwind CSS v4
-- **Backend**: Next.js API Routes (Node.js runtime)
-- **Database**: Supabase (PostgreSQL with Row Level Security)
-- **AI/LLM**: OpenRouter API (supports models like GPT-4o-mini), OpenAI Embeddings (v3-small)
-- **Sandbox**: E2B Firecracker microVMs for live code execution
-- **Deployment**: Vercel (one-click deploy), GitHub (export)
-- **Language**: TypeScript with Zod validation
-- **Preview**: react-live for real-time component preview
+---
 
-## Quick Start
+## 📦 Tech Stack (Elite Specification)
 
-### Prerequisites
+*   **Framework**: Next.js 15 (App Router), React 19, TypeScript.
+*   **Styling**: Tailwind CSS v4 (Alpha/Stable) + Framer Motion.
+*   **Database**: Supabase (PostgreSQL + pgvector) with strict RLS.
+*   **Auth**: Supabase SSR Auth with Multi-Tenant Organization logic.
+*   **Payments**: Stripe Connect (Subscriptions, Top-ups, Payouts).
+*   **Infrastructure**: Vercel Edge Runtime + GitHub CI/CD Automation.
 
-- Node.js 20.19+ or 22.13+
-- npm or yarn or pnpm
-- Supabase account
-- At least one LLM provider API key (Groq, Gemini, OpenAI, or OpenRouter)
+---
 
-### Multi-Key Rotation
+## ⚡ Quick Start
 
-**🚀 New Feature**: Automatic multi-key rotation for high availability and load distribution across all LLM providers.
+### 1. Prerequisites
+*   Node.js 22.x (LTS)
+*   Supabase Account (Service Role Key required)
+*   Stripe Account (Secret Key required)
+*   LLM Keys (At least one: Groq, Gemini, OpenAI, or OpenRouter)
 
+### 2. Configuration
 ```bash
-# Use multiple keys for automatic rotation and failover
-GROQ_API_KEYS=gsk_key1,gsk_key2,gsk_key3
-GEMINI_API_KEYS=AIza-key1,AIza-key2,AIza-key3
-OPENAI_API_KEYS=sk-proj-key1,sk-proj-key2,sk-proj-key3
-OPENROUTER_API_KEYS=sk-or-v1-key1,sk-or-v1-key2,sk-or-v1-key3
-```
-
-**Features:**
-- ✅ Automatic round-robin key rotation
-- ✅ Error tracking with 60s cooldown after 3 errors
-- ✅ Automatic provider failover
-- ✅ Support for comma and newline separated keys
-- ✅ Up to 5x throughput with multiple keys
-
-**Documentation:**
-- [Quick Start Guide](MULTI_KEY_QUICKSTART.md) - 5 minute setup
-- [Full Documentation](MULTI_KEY_ROTATION.md) - Complete reference
-
-**Test Suite:**
-```bash
-npx tsx tests/key-rotation-standalone.ts
-```
-
-### Installation
-
-```bash
-# Clone repository
-git clone <repository-url>
-cd ai-app-builder
+# Clone the repository
+git clone https://github.com/eugenemcmillian220-ui/build-money-system.git
+cd build-money-system
 
 # Install dependencies
 npm install
 
-# Configure environment variables
+# Setup environment
 cp .env.example .env.local
-# Edit .env.local with your values
+# Inject your sovereign credentials
+```
 
-# Run development server
+### 3. Intelligence Pool Setup
+Forge OS supports **Multi-Key Rotation**. Provide multiple keys separated by commas:
+```bash
+OPENROUTER_API_KEYS=sk-or-v1-key1,sk-or-v1-key2
+GROQ_API_KEYS=gsk_key1,gsk_key2
+```
+
+### 4. Manifest the Empire
+```bash
+# Start the Command Center
 npm run dev
 ```
+Navigate to `http://localhost:3000/dashboard` to access the **Neural Terminal**.
 
-## Environment Variables
+---
 
-### Required
+## 🛡️ Sovereign Security & Compliance
+1.  **Input Sanitization**: Multi-layer sanitization for all manifestation prompts.
+2.  **Path Traversal Protection**: Zod-validated file paths for all generated code.
+3.  **Hardening pass**: Every build undergoes a Sentinel Hardening pass before deployment.
+4.  **Legal Vault**: Every empire includes a custom Legal Vault with generated patents and TOS.
 
+---
+
+## 🚀 Deployment
+Deploying the Forge OS or a Manifested Empire:
 ```bash
-# Supabase Database
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+# Sync environment to Vercel
+npx tsx src/lib/diagnostics.ts --sync
 
-# AI/LLM Providers (at least one required)
-# Supports multi-key rotation with PROVIDER_API_KEYS (plural)
-GROQ_API_KEYS=gsk_key1,gsk_key2,gsk_key3
-GEMINI_API_KEYS=AIza-key1,AIza-key2,AIza-key3
-OPENAI_API_KEYS=sk-proj-key1,sk-proj-key2,sk-proj-key3
-OPENROUTER_API_KEYS=sk-or-v1-key1,sk-or-v1-key2,sk-or-v1-key3
-
-# Or use single keys (no rotation):
-# GROQ_API_KEY=gsk_...
-# GEMINI_API_KEY=AIza_...
-# OPENAI_API_KEY=sk-proj-...
-# OPENROUTER_API_KEY=sk-or-v1-...
-```
-
-**📖 Multi-Key Rotation:** See [MULTI_KEY_QUICKSTART.md](MULTI_KEY_QUICKSTART.md) for detailed configuration guide.
-
-### Optional (Recommended)
-
-```bash
-# Application URL
-NEXT_PUBLIC_SITE_URL=https://your-app.vercel.app
-
-# Additional AI Providers (with multi-key support)
-DEEPSEEK_API_KEYS=deepseek-key1,deepseek-key2
-CEREBRAS_API_KEYS=cerebras-key1,cerebras-key2
-CLOUDFLARE_API_KEYS=cf-key1,cf-key2
-CLOUDFLARE_ACCOUNT_ID=your-account-id
-
-# GitHub Export (for Phase 4)
-GITHUB_TOKEN=ghp_your_github_token
-
-# Vercel Deployment (for Phase 4)
-VERCEL_TOKEN=your_vercel_token
-VERCEL_TEAM_ID=your_team_id  # Optional
-
-# Admin API Keys (for Phase 5 protected endpoints)
-ADMIN_API_KEYS=sk-admin-key-1,sk-admin-key-2
-
-# Stripe Payments (for Phase 6 billing)
-STRIPE_SECRET_KEY=sk_test_...
-
-# Phase 8 Features
-E2B_API_KEY=e2b_...              # Required for Sandbox
-OPENAI_API_KEY=sk-proj-...        # Required for Memory & Search
-CRON_SECRET=your_cron_secret      # Required for Cron loops
-```
-
-### Development
-
-```bash
-# Skip environment validation during build
-SKIP_ENV_VALIDATION=true
-```
-
-## Database Setup
-
-### 1. Create Supabase Project
-
-1. Go to [supabase.com](https://supabase.com)
-2. Create a new project
-3. Wait for the database to be ready
-4. Go to Settings → API to get your URL and keys
-
-### 2. Run Schema
-
-Copy the entire content of `supabase/schema.sql` and run it in:
-
-- Supabase SQL Editor (recommended), OR
-- `psql` command line connected to your database
-
-The schema creates:
-- `projects` table for generated apps
-- `deployments` table for deployment tracking
-- `feedback` table for user feedback
-- `learning_store` table for AI improvement data
-- Proper indexes and RLS policies
-- Storage buckets for project assets
-
-## API Endpoints
-
-### Core Generation
-
-- `POST /api/generate` - Generate code (single or multi-file)
-- `POST /api/generate-advanced` - Advanced generation with fixing passes
-
-### Project Management
-
-- `GET /api/projects` - List all projects
-- `POST /api/projects` - Create project
-- `GET /api/projects/[id]` - Get project
-- `PUT /api/projects/[id]` - Update project
-- `DELETE /api/projects/[id]` - Delete project
-
-### Deployment & Export
-
-- `POST /api/deploy` - Deploy to Vercel
-- `GET /api/deploy?deploymentId=xxx` - Get deployment status
-- `POST /api/github` - Export to GitHub
-- `GET /api/github` - Check GitHub status
-
-### Production Systems (Phase 5)
-
-- `GET /api/status` - System status
-- `GET /api/health` - Comprehensive health check
-- `GET/POST /api/self-improve` - Self-improvement system
-- `GET/POST /api/feedback` - Feedback collection
-- `GET/POST /api/learning` - Learning data management
-- `POST /api/debug` - Code analysis
-- `GET/POST /api/scaling` - Scaling management
-- `POST /api/swarm` - Agent swarm execution
-
-### AI Company Builder (Phase 6)
-
-- `POST /api/validate-idea` - Validate business idea
-- `POST /api/build-company` - Build complete company plan
-- `GET/POST /api/growth` - Growth strategies
-- `GET/POST /api/monetization` - Pricing and monetization
-- `GET/POST /api/marketplace` - Marketplace operations
-- `GET/POST /api/analytics` - Metrics tracking
-- `GET/POST /api/billing` - Subscription management
-
-### Autonomous Systems (Phase 7)
-
-- `POST/GET /api/auto-deploy` - Autonomous deployment with monitoring
-- `PUT /api/auto-deploy/heal` - Trigger auto-healing
-- `POST/GET /api/revenue-optimize` - Revenue optimization
-- `POST/GET/DELETE /api/schedule` - AI task scheduling
-- `POST/GET /api/fullstack` - Full-stack app generation
-
-## Testing
-
-Run phase-specific tests:
-
-```bash
-# Phase 5 tests
-npx tsx tests/phase5.test.ts
-
-# Phase 6 tests
-npx tsx tests/phase6.test.ts
-
-# Phase 7 tests
-npx tsx tests/phase7.test.ts
-```
-
-## Development
-
-```bash
-# Development server
-npm run dev
-
-# Build for production
+# Production Build
 npm run build
-
-# Start production server
-npm start
-
-# Type checking
-npm run typecheck
-
-# Linting
-npm run lint
 ```
 
-## Deployment
+---
 
-### Vercel (Recommended)
+## 📜 License
+Sovereign Forge OS is licensed under the MIT Elite License. See `LICENSE` for details.
 
-```bash
-# Install Vercel CLI
-npm i -g vercel
-
-# Deploy
-vercel
-```
-
-### Docker
-
-```bash
-# Build and run
-docker build -t ai-app-builder .
-docker run -p 3000:3000 --env-file .env ai-app-builder
-```
-
-## Security Features
-
-1. **Input Sanitization**: All user inputs sanitized through security layer
-2. **Path Traversal Prevention**: File paths validated to prevent `..` attacks
-3. **API Key Authentication**: Protected endpoints require valid API keys
-4. **Rate Limiting**: Configurable rate limiting per user/IP
-5. **Blocked Keywords**: Prevent injection attacks (eval, exec, etc.)
-6. **Row Level Security**: Database access controlled via Supabase RLS
-7. **Environment Variable Validation**: All env vars validated at startup
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Client (Browser)                    │
-│  React 19 · Next.js 15 · Tailwind CSS v4      │
-└─────────────────┬─────────────────────────────────────────┘
-                  │
-┌─────────────────▼─────────────────────────────────────────┐
-│         Next.js API Routes (26)                    │
-│  Route Handlers · Validation · Error Handling     │
-└─────────────────┬─────────────────────────────────────────┘
-                  │
-┌─────────────────▼─────────────────────────────────────────┐
-│              Core Library Modules                      │
-│  agent.ts  |  llm.ts  |  openrouter.ts  |  env.ts   │
-│  security.ts  |  feedback-loop.ts  |  learning-store.ts  │
-│  agent-swarm.ts  |  ai-debugger.ts  |  scaling.ts    │
-│  self-improve.ts  |  company-orchestrator.ts          │
-│  product-planner.ts  |  ai-team.ts  |  growth-engine.ts │
-│  monetization.ts  |  marketplace.ts  |  analytics.ts │
-│  billing.ts  |  idea-validator.ts                   │
-│  auto-deployer.ts  |  revenue-optimizer.ts            │
-│  ai-scheduler.ts  |  fullstack-generator.ts            │
-└─────────────────┬─────────────────────────────────────────┘
-                  │
-    ┌─────────────┼─────────────┐
-    │             │             │
-┌───▼────┐  ┌──▼────┐  ┌──▼────────┐
-│ Supabase│  │OpenRouter│  │Vercel/Git │
-│ (DB)   │  │(AI API) │  │Hub APIs   │
-└────────┘  └─────────┘  └───────────┘
-```
-
-## All Phases Status: ✅ PRODUCTION READY
-
-- Phase 1: ✅ Single component generation
-- Phase 2: ✅ Multi-file app generation
-- Phase 3: ✅ Database persistence
-- Phase 4: ✅ Deployment & export
-- Phase 5: ✅ Production systems
-- Phase 6: ✅ AI company builder
-- Phase 7: ✅ Autonomous deployment & revenue optimization
-- Phase 8: ✅ AI Development Operating System
-- Phase 9: ✅ Autonomous Enterprise Layer
-- Phase 10: ✅ Multi-Agent Economy & Marketplace
-- Phase 11: ✅ Autonomous Growth Lab
-- Phase 12: ✅ Autonomous Governance & Edge Scale
-- Phase 13: ✅ Autonomous VC Layer
-- Phase 14: ✅ Agentic Diplomacy & B2B Negotiation
-- Phase 15: ✅ The Hive Mind Loop
-- Phase 16: ✅ Autonomous M&A
-- Phase 17: ✅ Autonomous Legal & Corporate Suite
-- Phase 18: ✅ Autonomous R&D
-- Pricing: 💎 Premium-Only (No Free Tier)
-- Path C: 🧪 Self-Evolving Applications (Experimental)
-
-## Documentation
-
-- **[PHASES.md](PHASES.md)** - Complete phase-by-phase breakdown with status checks
-- **[PHASE7.md](PHASE7.md)** - Detailed Phase 7 features and API reference
-- **[Phase 8 Documentation](public/docs/phase8.html)** - Comprehensive guide for Phase 8 features
-- **[Phase 9 Documentation](public/docs/phase9.html)** - Autonomous Enterprise Layer documentation
-- **[Phase 10 Documentation](public/docs/phase10.html)** - Multi-Agent Economy & Marketplace
-- **[README_PRODUCTION.md](README_PRODUCTION.md)** - Full production deployment guide
-- **[PRODUCTION_READINESS.md](PRODUCTION_READINESS.md)** - Production readiness summary
-
-## License
-
-MIT License - See LICENSE file for details
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run tests and linting
-5. Submit a pull request
+---
+**Sovereign Forge OS v2.3** · *From Idea To Revenue. Autonomously.*
