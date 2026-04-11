@@ -294,7 +294,7 @@ export const chroniclerResultSchema = z.object({
   readme: z.string(),
   architecture: z.string(),
   apiDocs: z.string(),
-});
+}).passthrough();
 
 export const heraldResultSchema = z.object({
   twitterThread: z.object({
@@ -315,13 +315,13 @@ export const heraldResultSchema = z.object({
     platform: z.string(),
     hook: z.string(),
   })).optional(),
-});
+}).passthrough();
 
 export const phantomResultSchema = z.object({
   uxScore: z.number().min(0).max(100),
   frictionPoints: z.array(z.string()),
   recommendations: z.array(z.string()),
-});
+}).passthrough();
 
 export const securityResultSchema = z.object({
   score: z.number().min(0).max(100),
@@ -333,7 +333,7 @@ export const securityResultSchema = z.object({
     fix: z.string().optional(),
   })),
   recommendations: z.array(z.string()),
-});
+}).passthrough();
 
 // ─── Phase 6: Autonomous AI Company Builder ──────────────────────────────────
 
