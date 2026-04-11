@@ -1,7 +1,8 @@
 import Stripe from "stripe";
 import { z } from "zod";
+import { serverEnv } from "./env";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_placeholder", {
+const stripe = new Stripe(serverEnv.STRIPE_SECRET_KEY || "sk_test_placeholder", {
   apiVersion: "2024-06-20",
   typescript: true,
 });
@@ -51,8 +52,8 @@ export const BILLING_TIERS: Record<string, BillingTier> = {
     id: "basic_mini",
     name: "Basic Mini",
     category: "basic",
-    priceIdMonthly: process.env.STRIPE_BASIC_MINI_MONTHLY_PRICE_ID || "price_basic_mini_monthly",
-    priceIdYearly: process.env.STRIPE_BASIC_MINI_YEARLY_PRICE_ID || "price_basic_mini_yearly",
+    priceIdMonthly: serverEnv.STRIPE_BASIC_MINI_MONTHLY_PRICE_ID || "price_1TJqqEIYSZ7ijCe4HDlr9ZNN",
+    priceIdYearly: serverEnv.STRIPE_BASIC_MINI_YEARLY_PRICE_ID || "price_1TJqqEIYSZ7ijCe4UA9SHd9p",
     monthlyPrice: 5,
     yearlyPriceEffective: 4,
     creditsPerMonth: 300,
@@ -62,8 +63,8 @@ export const BILLING_TIERS: Record<string, BillingTier> = {
     id: "basic_starter",
     name: "Basic Starter",
     category: "basic",
-    priceIdMonthly: process.env.STRIPE_BASIC_STARTER_MONTHLY_PRICE_ID || "price_basic_starter_monthly",
-    priceIdYearly: process.env.STRIPE_BASIC_STARTER_YEARLY_PRICE_ID || "price_basic_starter_yearly",
+    priceIdMonthly: serverEnv.STRIPE_BASIC_STARTER_MONTHLY_PRICE_ID || "price_1TJqqFIYSZ7ijCe4jDrBv9Nw",
+    priceIdYearly: serverEnv.STRIPE_BASIC_STARTER_YEARLY_PRICE_ID || "price_1TJqqFIYSZ7ijCe4kQGzwuNq",
     monthlyPrice: 19,
     yearlyPriceEffective: 15,
     creditsPerMonth: 1000,
@@ -73,8 +74,8 @@ export const BILLING_TIERS: Record<string, BillingTier> = {
     id: "basic_pro",
     name: "Basic Pro",
     category: "basic",
-    priceIdMonthly: process.env.STRIPE_BASIC_PRO_MONTHLY_PRICE_ID || "price_basic_pro_monthly",
-    priceIdYearly: process.env.STRIPE_BASIC_PRO_YEARLY_PRICE_ID || "price_basic_pro_yearly",
+    priceIdMonthly: serverEnv.STRIPE_BASIC_PRO_MONTHLY_PRICE_ID || "price_1TJqqGIYSZ7ijCe4bBIebUhH",
+    priceIdYearly: serverEnv.STRIPE_BASIC_PRO_YEARLY_PRICE_ID || "price_1TJqqGIYSZ7ijCe4KX2anvPG",
     monthlyPrice: 49,
     yearlyPriceEffective: 39,
     creditsPerMonth: 3000,
@@ -84,8 +85,8 @@ export const BILLING_TIERS: Record<string, BillingTier> = {
     id: "basic_premium",
     name: "Basic Premium",
     category: "basic",
-    priceIdMonthly: process.env.STRIPE_BASIC_PREMIUM_MONTHLY_PRICE_ID || "price_basic_premium_monthly",
-    priceIdYearly: process.env.STRIPE_BASIC_PREMIUM_YEARLY_PRICE_ID || "price_basic_premium_yearly",
+    priceIdMonthly: serverEnv.STRIPE_BASIC_PREMIUM_MONTHLY_PRICE_ID || "price_1TJqqHIYSZ7ijCe4VHYYm0Nw",
+    priceIdYearly: serverEnv.STRIPE_BASIC_PREMIUM_YEARLY_PRICE_ID || "price_1TJqqHIYSZ7ijCe4lR7pudvl",
     monthlyPrice: 99,
     yearlyPriceEffective: 79,
     creditsPerMonth: 7000,
@@ -97,8 +98,8 @@ export const BILLING_TIERS: Record<string, BillingTier> = {
     id: "elite_starter",
     name: "Elite Starter",
     category: "elite",
-    priceIdMonthly: process.env.STRIPE_ELITE_STARTER_MONTHLY_PRICE_ID || "price_elite_starter_monthly",
-    priceIdYearly: process.env.STRIPE_ELITE_STARTER_YEARLY_PRICE_ID || "price_elite_starter_yearly",
+    priceIdMonthly: serverEnv.STRIPE_ELITE_STARTER_MONTHLY_PRICE_ID || "price_1TJqqHIYSZ7ijCe4z8HVodDy",
+    priceIdYearly: serverEnv.STRIPE_ELITE_STARTER_YEARLY_PRICE_ID || "price_1TJqqIIYSZ7ijCe4r0vh79Os",
     monthlyPrice: 99,
     yearlyPriceEffective: 79,
     creditsPerMonth: 10000,
@@ -109,8 +110,8 @@ export const BILLING_TIERS: Record<string, BillingTier> = {
     id: "elite_pro",
     name: "Elite Pro",
     category: "elite",
-    priceIdMonthly: process.env.STRIPE_ELITE_PRO_MONTHLY_PRICE_ID || "price_elite_pro_monthly",
-    priceIdYearly: process.env.STRIPE_ELITE_PRO_YEARLY_PRICE_ID || "price_elite_pro_yearly",
+    priceIdMonthly: serverEnv.STRIPE_ELITE_PRO_MONTHLY_PRICE_ID || "price_1TJqqIIYSZ7ijCe4Fthelby0",
+    priceIdYearly: serverEnv.STRIPE_ELITE_PRO_YEARLY_PRICE_ID || "price_1TJqqJIYSZ7ijCe4fcCo2r5F",
     monthlyPrice: 249,
     yearlyPriceEffective: 199,
     creditsPerMonth: 35000,
@@ -121,8 +122,8 @@ export const BILLING_TIERS: Record<string, BillingTier> = {
     id: "elite_enterprise",
     name: "Elite Enterprise",
     category: "elite",
-    priceIdMonthly: process.env.STRIPE_ELITE_ENTERPRISE_MONTHLY_PRICE_ID || "price_elite_enterprise_monthly",
-    priceIdYearly: process.env.STRIPE_ELITE_ENTERPRISE_YEARLY_PRICE_ID || "price_elite_enterprise_yearly",
+    priceIdMonthly: serverEnv.STRIPE_ELITE_ENTERPRISE_MONTHLY_PRICE_ID || "price_1TJqqJIYSZ7ijCe4p7SdoBU8",
+    priceIdYearly: serverEnv.STRIPE_ELITE_ENTERPRISE_YEARLY_PRICE_ID || "price_1TJqqJIYSZ7ijCe45d6Duxe8",
     monthlyPrice: 999,
     yearlyPriceEffective: 799,
     creditsPerMonth: 150000,
@@ -136,7 +137,7 @@ export const LIFETIME_LICENSES: Record<string, LifetimeLicense> = {
   "lifetime_starter": {
     id: "lifetime_starter",
     name: "Lifetime Starter",
-    priceId: process.env.STRIPE_LIFETIME_STARTER_PRICE_ID || "price_lifetime_starter",
+    priceId: serverEnv.STRIPE_LIFETIME_STARTER_PRICE_ID || "price_1TJK8iIYSZ7ijCe4gLUn5P2v",
     price: 790,
     description: "One-time payment, lifetime access to Basic features",
     features: ["Phases 1-3 Lifetime Access", "1,000 Credits/mo Forever", "All Basic Features", "No Recurring Fees"],
@@ -144,7 +145,7 @@ export const LIFETIME_LICENSES: Record<string, LifetimeLicense> = {
   "lifetime_pro": {
     id: "lifetime_pro",
     name: "Lifetime Pro",
-    priceId: process.env.STRIPE_LIFETIME_PRO_PRICE_ID || "price_lifetime_pro",
+    priceId: serverEnv.STRIPE_LIFETIME_PRO_PRICE_ID || "price_1TJK8iIYSZ7ijCe4SQkiEsRY",
     price: 2390,
     description: "One-time payment, lifetime access to Elite features",
     features: ["Phases 1-20 Lifetime Access", "5,000 Credits/mo Forever", "All Elite Features", "Priority Support Forever"],
@@ -152,7 +153,7 @@ export const LIFETIME_LICENSES: Record<string, LifetimeLicense> = {
   "onprem_perpetual": {
     id: "onprem_perpetual",
     name: "On-Prem Perpetual",
-    priceId: process.env.STRIPE_ON_PREM_PERPETUAL_PRICE_ID || "price_onprem_perpetual",
+    priceId: serverEnv.STRIPE_ON_PREM_PERPETUAL_PRICE_ID || "price_1TJK8jIYSZ7ijCe48f0JoDTb",
     price: 4999,
     description: "Self-hosted, unlimited internal use",
     features: ["Full Source Code Access", "Unlimited Internal Users", "Self-Hosted Deployment", "No Cloud Dependency", "1 Year Updates Included"],
@@ -183,7 +184,7 @@ export class StripeService {
    * Get the base URL for redirects
    */
   private getBaseUrl(): string {
-    if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
+    if (serverEnv.NEXT_PUBLIC_SITE_URL) return serverEnv.NEXT_PUBLIC_SITE_URL;
     if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
     if (typeof window !== "undefined") return window.location.origin;
     return "https://build-money-system-omd8.vercel.app";
