@@ -18,17 +18,23 @@ export class WhiteLabelManager {
    * Resolves configuration based on the current hostname
    */
   async resolveConfig(hostname: string): Promise<WhiteLabelConfig | null> {
-    const supabase = await createClient();
-    
-    const { data } = await supabase
-      .from("white_label_config")
-      .select("brand_name, logo_url, theme_config")
-      .eq("custom_domain", hostname)
-      .eq("is_active", true)
-      .single();
+    try {
+      const supabase = await createClient();
 
-    return data as WhiteLabelConfig | null;
+      const { data } = await supabase
+        .from("white_label_config")
+        .select("brand_name, logo_url, theme_config")
+        .eq("custom_domain", hostname)
+        .eq("is_active", true)
+        .single();
+
+      return data as WhiteLabelConfig | null;
+    } catch (err) {
+      console.warn("White label config resolution failed:", err);
+      return null;
+    }
   }
+
 
   /**
    * Sets up SSO for an organization

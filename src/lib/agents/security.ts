@@ -1,4 +1,4 @@
-import { callLLM } from "../llm";
+import { callLLMJson } from "../llm";
 import { FileMap, securityResultSchema } from "../types";
 
 export interface SecurityAuditResult {
@@ -37,16 +37,17 @@ Return JSON ONLY:
   "recommendations": ["...", "..."]
 }`;
 
-  const response = await callLLM([
-    { role: "system", content: systemPrompt },
-    { role: "user", content: "Perform deep security audit on the codebase." }
-  ], { temperature: 0.1 });
-
   try {
-    const data = JSON.parse(response);
-    return securityResultSchema.parse(data) as SecurityAuditResult;
-  } catch {
-    console.error("Security parse failed, falling back to defaults.");
+    return await callLLMJson(
+      [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: "Perform deep security audit on the codebase." }
+      ],
+      securityResultSchema,
+      { temperature: 0.1 }
+    ) as SecurityAuditResult;
+  } catch (err) {
+    console.error("Security parse failed, falling back to defaults.", err);
     return {
       score: 100,
       vulnerabilities: [],

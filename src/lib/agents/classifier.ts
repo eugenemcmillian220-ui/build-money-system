@@ -1,4 +1,4 @@
-import { callLLM } from "../llm";
+import { callLLMJson } from "../llm";
 import { ManifestMode } from "../prompts/phase-19";
 import { intentClassificationSchema } from "../types";
 
@@ -25,16 +25,17 @@ Return JSON ONLY:
   }
 }`;
 
-  const response = await callLLM([
-    { role: "system", content: systemPrompt },
-    { role: "user", content: prompt }
-  ], { temperature: 0.1 });
-
   try {
-    const data = JSON.parse(response);
-    return intentClassificationSchema.parse(data) as IntentClassification;
-  } catch {
-    console.error("Classifier parse failed, falling back to defaults.");
+    return await callLLMJson(
+      [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: prompt }
+      ],
+      intentClassificationSchema,
+      { temperature: 0.1 }
+    ) as IntentClassification;
+  } catch (err) {
+    console.error("Classifier parse failed, falling back to defaults.", err);
     return {
       mode: "universal",
       protocol: "saas",

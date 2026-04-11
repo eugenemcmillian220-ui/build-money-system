@@ -1,4 +1,4 @@
-import { callLLM } from "../llm";
+import { callLLMJson } from "../llm";
 import { Project, heraldResultSchema } from "../types";
 
 export interface SocialPost {
@@ -23,20 +23,18 @@ Return JSON ONLY:
   "seoArticle": { "title": "...", "content": "...", "keywords": ["...", "..."] }
 }`;
 
-  const response = await callLLM([
-    { role: "system", content: systemPrompt },
-    { role: "user", content: "Generate launch assets." }
-  ], { temperature: 0.7 });
-
   try {
-    const parsed = JSON.parse(response);
-    const data = heraldResultSchema.parse({
-      ...parsed,
-      socialPosts: [{ platform: "X", hook: parsed.twitterThread?.hook || "" }]
-    });
-    return data as LaunchAssets;
-  } catch {
-    console.error("Herald parse failed, falling back to defaults.");
+    const parsed = await callLLMJson(
+      [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: "Generate launch assets." }
+      ],
+      heraldResultSchema,
+      { temperature: 0.7 }
+    );
+    return parsed as LaunchAssets;
+  } catch (err) {
+    console.error("Herald parse failed, falling back to defaults.", err);
     return {
       twitterThread: { hook: "Exciting new launch!", posts: ["Check it out!"] },
       productHunt: { tagline: "Next-gen AI app", description: "Built with Build Money System", makerComment: "Hello world!" },

@@ -46,6 +46,22 @@ export function parseMultiFileJson(content: string): { files: FileMap } {
   }
 }
 
+export async function callLLMJson<T>(
+  messages: ChatMessage[],
+  schema: { parse: (data: any) => T },
+  config: Partial<AgentConfig> = {}
+): Promise<T> {
+  const content = await callLLM(messages, config);
+  const cleaned = cleanJson(content);
+  try {
+    const parsed = JSON.parse(cleaned);
+    return schema.parse(parsed);
+  } catch (e) {
+    console.error("LLM JSON Parse Error:", e, "Raw Content:", content);
+    throw new LLMError(`Failed to parse LLM response as JSON: ${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
 export async function callLLM(
   messages: ChatMessage[],
   config: Partial<AgentConfig> = {}

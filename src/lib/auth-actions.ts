@@ -15,7 +15,7 @@ async function ensurePersonalOrg(supabase: SupabaseClient, user: User, email: st
 
   if (!orgs || orgs.length === 0) {
     const slug = email.split("@")[0].replace(/[^a-zA-Z0-9]/g, "").toLowerCase() + "-" + Math.random().toString(36).slice(2, 5);
-    const { data: newOrg } = await supabase
+    const { data: newOrg, error: insertError } = await supabase
       .from("organizations")
       .insert({
         name: "Personal Workspace",
@@ -26,13 +26,18 @@ async function ensurePersonalOrg(supabase: SupabaseClient, user: User, email: st
       .select()
       .single();
 
+    if (insertError) {
+      console.error("Failed to create personal org:", insertError);
+      return;
+    }
 
     if (newOrg) {
-      await supabase.from("org_members").insert({
+      const { error: memberError } = await supabase.from("org_members").insert({
         org_id: newOrg.id,
         user_id: user.id,
         role: "owner"
       });
+      if (memberError) console.error("Failed to add user to org_members:", memberError);
     }
   }
 }
@@ -54,7 +59,7 @@ export async function login(formData: FormData) {
   }
 
   revalidatePath("/", "layout");
-  redirect((redirectTo || "/app") as Route);
+  redirect((redirectTo || "/dashboard") as Route);
 }
 
 export async function signup(formData: FormData) {

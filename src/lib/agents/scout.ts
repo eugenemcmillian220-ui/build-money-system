@@ -1,4 +1,4 @@
-import { callLLM } from "../llm";
+import { callLLMJson } from "../llm";
 import { scoutResultSchema } from "../types";
 
 export interface ScoutStrategy {
@@ -17,16 +17,17 @@ Return JSON ONLY:
   "competitorInsights": "..."
 }`;
 
-  const response = await callLLM([
-    { role: "system", content: systemPrompt },
-    { role: "user", content: prompt }
-  ], { temperature: 0.3 });
-
   try {
-    const data = JSON.parse(response);
-    return scoutResultSchema.parse(data);
-  } catch {
-    console.error("Scout parse failed, falling back to defaults.");
+    return await callLLMJson(
+      [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: prompt }
+      ],
+      scoutResultSchema,
+      { temperature: 0.3 }
+    );
+  } catch (err) {
+    console.error("Scout parse failed, falling back to defaults.", err);
     return {
       strategyMarkdown: "# Default Strategy\nBuild fast, iterate quickly.",
       recommendedStack: ["Next.js", "Tailwind", "Supabase"],

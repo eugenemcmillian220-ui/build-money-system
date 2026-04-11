@@ -1,4 +1,4 @@
-import { callLLM } from "../llm";
+import { callLLMJson } from "../llm";
 import { FileMap, chroniclerResultSchema } from "../types";
 
 export interface ProjectDocs extends Record<string, unknown> {
@@ -18,16 +18,17 @@ Return JSON ONLY:
   "apiDocs": "..."
 }`;
 
-  const response = await callLLM([
-    { role: "system", content: systemPrompt },
-    { role: "user", content: "Generate docs based on the codebase." }
-  ], { temperature: 0.2 });
-
   try {
-    const data = JSON.parse(response);
-    return chroniclerResultSchema.parse(data);
-  } catch {
-    console.error("Chronicler parse failed, falling back to defaults.");
+    return await callLLMJson(
+      [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: "Generate docs based on the codebase." }
+      ],
+      chroniclerResultSchema,
+      { temperature: 0.2 }
+    );
+  } catch (err) {
+    console.error("Chronicler parse failed, falling back to defaults.", err);
     return {
       readme: "# New Project\nDocumentation pending.",
       architecture: "Next.js App Router Architecture.",

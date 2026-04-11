@@ -1,4 +1,4 @@
-import { callLLM } from "../llm";
+import { callLLMJson } from "../llm";
 import { Project, phantomResultSchema } from "../types";
 
 export interface SimulationResult extends Record<string, unknown> {
@@ -19,16 +19,17 @@ Return JSON ONLY:
   "recommendations": ["...", "..."]
 }`;
 
-  const response = await callLLM([
-    { role: "system", content: systemPrompt },
-    { role: "user", content: "Simulate user interaction." }
-  ], { temperature: 0.4 });
-
   try {
-    const data = JSON.parse(response);
-    return phantomResultSchema.parse(data);
-  } catch {
-    console.error("Phantom parse failed, falling back to defaults.");
+    return await callLLMJson(
+      [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: "Simulate user interaction." }
+      ],
+      phantomResultSchema,
+      { temperature: 0.4 }
+    );
+  } catch (err) {
+    console.error("Phantom parse failed, falling back to defaults.", err);
     return {
       uxScore: 0,
       frictionPoints: ["Unable to parse simulation result."],

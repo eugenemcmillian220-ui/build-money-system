@@ -180,12 +180,23 @@ export const MARKETPLACE_CONFIG = {
  */
 export class StripeService {
   /**
+   * Get the base URL for redirects
+   */
+  private getBaseUrl(): string {
+    if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
+    if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+    if (typeof window !== "undefined") return window.location.origin;
+    return "https://build-money-system-omd8.vercel.app";
+  }
+
+  /**
    * Create a checkout session for one-time credit top-up
    */
   async createTopUpSession(orgId: string, packId: string, affiliateCode?: string): Promise<string> {
     const pack = CREDIT_PACKS.find(p => p.id === packId);
     if (!pack) throw new Error("Invalid credit pack");
 
+    const baseUrl = this.getBaseUrl();
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       mode: "payment",
@@ -203,8 +214,8 @@ export class StripeService {
         },
       ],
       metadata: { orgId, credits: pack.credits.toString(), type: "topup", packId, ...(affiliateCode && { affiliateCode }) },
-      success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/billing?success=true`,
-      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/billing?canceled=true`,
+      success_url: `${baseUrl}/dashboard/billing?success=true`,
+      cancel_url: `${baseUrl}/dashboard/billing?canceled=true`,
     });
 
     return session.url!;
@@ -223,6 +234,7 @@ export class StripeService {
     if (!plan) throw new Error("Invalid tier");
 
     const priceId = interval === "monthly" ? plan.priceIdMonthly : plan.priceIdYearly;
+    const baseUrl = this.getBaseUrl();
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
@@ -237,8 +249,8 @@ export class StripeService {
         metadata: { orgId, tier: tierId, interval, ...(affiliateCode && { affiliateCode }) },
       },
       metadata: { orgId, tier: tierId, type: "subscription", interval, ...(affiliateCode && { affiliateCode }) },
-      success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/billing?success=true`,
-      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/billing?canceled=true`,
+      success_url: `${baseUrl}/dashboard/billing?success=true`,
+      cancel_url: `${baseUrl}/dashboard/billing?canceled=true`,
     });
 
     return session.url!;
@@ -251,6 +263,7 @@ export class StripeService {
     const license = LIFETIME_LICENSES[licenseId];
     if (!license) throw new Error("Invalid lifetime license");
 
+    const baseUrl = this.getBaseUrl();
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       mode: "payment",
@@ -273,8 +286,8 @@ export class StripeService {
         type: "lifetime_license",
         ...(affiliateCode && { affiliateCode }),
       },
-      success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/billing?success=true&license=${licenseId}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/billing?canceled=true`,
+      success_url: `${baseUrl}/dashboard/billing?success=true&license=${licenseId}`,
+      cancel_url: `${baseUrl}/dashboard/billing?canceled=true`,
     });
 
     return session.url!;

@@ -99,6 +99,7 @@ CREATE TABLE projects (
   -- Metadata
   is_public BOOLEAN DEFAULT false,
   tags TEXT[] DEFAULT '{}',
+  manifest JSONB DEFAULT '{}',
   metadata JSONB DEFAULT '{}'
 );
 
@@ -717,6 +718,7 @@ CREATE TABLE IF NOT EXISTS organizations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name VARCHAR(255) NOT NULL,
   slug VARCHAR(100) UNIQUE NOT NULL,
+  owner_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   logo_url TEXT,
   primary_color VARCHAR(20),
   plan_id VARCHAR(50) DEFAULT 'none',
