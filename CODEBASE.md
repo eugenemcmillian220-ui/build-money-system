@@ -6,11 +6,11 @@
 
 ## 🏗️ What This Is
 **Build Money System** is a 20-phase autonomous AI SaaS empire engine.
-**Expansion v2.2 Enhancements:**
-- **Visual Theme Engine (Ph 1-3)**: Intent-based UI styling (theme, primary color).
-- **Security Auditor (Ph 8-10)**: Automated vulnerability scanning and security scoring.
-- **Revenue Share Engine (Ph 11-17)**: Stripe Connect integration for automated affiliate payouts.
-- **Enhanced Lifecycle (Ph 20)**: UX simulation integrated with real-time security auditing.
+**Expansion v2.3 (Elite Empire) Enhancements:**
+- **Sovereign Agent Swarm (Ph 1-20)**: 17 specialized agents for R&D, security, M&A, legal, and meta-management.
+- **Economic Intelligence**: Agent ROI tracking, Surge Pricing, and Staking/RevShare infrastructure.
+- **Autonomous Lifecycle**: Real-time UI refinement (Sculptor), self-healing error diagnosis (Healer), and design-to-code (Figma).
+- **IP & Compliance**: Autonomous patent drafting and custom legal vault generation.
 - **Production**: https://build-money-system.vercel.app
 - **GitHub**: https://github.com/eugenemcmillian220-ui/build-money-system
 - **Supabase Project**: `rgvjijiafpimfqbbyqtt` (ACTIVE_HEALTHY)
@@ -116,18 +116,43 @@ _archive/                  ← ⚠️ IGNORED — old code snapshots, do not imp
 
 ---
 
-## 🤖 Agent Pipeline (Phase 19-20)
+## 🤖 Agent Swarm (Phase 1-20)
+| Agent | Mission | Phase |
+|---|---|---|
+| **Classifier** | Intent dispatch & stack selector | 19 |
+| **Scout** | Pre-generation technical R&D | 18 |
+| **Developer** | Codebase generation & SQL Forge | 1-3 |
+| **Sentinel** | Auto Pen-Testing & Hardening | 4 |
+| **Chronicler** | Architecture & API documentation | 20 |
+| **Security** | Deep vulnerability audit | 8-10 |
+| **Phantom** | UX simulation & smoke testing | 20 |
+| **Herald** | Marketing & Viral Hype Engine | 11/20 |
+| **Economy** | ROI Auditor & Staking Engine | 10/13 |
+| **Broker** | B2B Diplomacy & M&A Broker | 14/16 |
+| **Legal** | IP Vault & Compliance Specialist | 17 |
+| **CEO** | Portfolio Meta-Management | 20 |
+| **Sculptor** | Real-time UI Refinement | 1 |
+| **Healer** | Self-Healing Error Diagnosis | 7 |
+| **Interpreter** | Voice transcript translation | 19 |
+| **Hive Mind** | Collective intelligence synthesis | 15 |
+
+### Manifestation Pipeline (`/api/manifest`)
 ```
 POST /api/manifest
-  → Classifier (intent mode + protocol)
-  → Scout (pre-research strategy)
-  → Developer (POST /api/generate → LLM → files)
-  → Chronicler (docs)
-  → Phantom (UX simulation score)
-  → Herald (marketing assets)
+  → Classifier
+  → Scout
+  → Developer (+ SQL Forge + Loops)
+  → Sentinel (Hardening)
+  → Chronicler
+  → Security Auditor
+  → Phantom (UX Score)
+  → Herald (Marketing + Hype)
+  → Economy Auditor (ROI + Staking)
+  → Empire Broker (M&A + Negotiation)
+  → Legal Vault (IP Drafts)
   → saveProjectDB()
 ```
-Each step is traced as an OTel span → visible in Arize AI dashboard.
+Each step is OTel instrumented and visible in Arize AI.
 
 ---
 

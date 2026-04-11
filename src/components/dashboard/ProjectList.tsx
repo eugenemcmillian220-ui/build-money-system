@@ -77,17 +77,17 @@ export function ProjectList({ projects, onDelete }: ProjectListProps) {
               </div>
             </div>
             <div className="bg-black/40 rounded-2xl p-4 border border-white/5">
-              <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest mb-1">Theme</p>
+              <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest mb-1">Hardening</p>
               <div className="flex items-center gap-2">
-                <Palette size={14} style={{ color: project.manifest?.visuals?.primaryColor || "#fff" }} />
-                <span className="text-[10px] font-black uppercase tracking-widest text-white/80 truncate">{project.manifest?.visuals?.theme || "dark"}</span>
+                <ShieldCheck size={14} className="text-brand-400" />
+                <span className="text-lg font-black text-white">{project.manifest?.sentinel?.hardeningScore || "--"}</span>
               </div>
             </div>
             <div className="bg-black/40 rounded-2xl p-4 border border-white/5">
-              <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest mb-1">Repo</p>
+              <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest mb-1">ROI</p>
               <div className="flex items-center gap-2">
-                <Code2 size={14} className="text-muted-foreground" />
-                <span className="text-[10px] font-black uppercase tracking-widest text-white/80 truncate">{project.githubRepo?.split("/").pop() || "local"}</span>
+                <TrendingUp size={14} className="text-green-400" />
+                <span className="text-lg font-black text-white">{project.manifest?.economy?.agentRoi || "--"}x</span>
               </div>
             </div>
           </div>

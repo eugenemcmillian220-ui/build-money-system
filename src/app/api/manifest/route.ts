@@ -11,6 +11,11 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { traced } from "@/lib/telemetry";
 import { rateLimit } from "@/lib/rate-limit";
 import { runSecurityAudit } from "@/lib/agents/security";
+import { runSentinelAgent } from "@/lib/agents/sentinel";
+import { runEconomyAgent } from "@/lib/agents/economy";
+import { runBrokerAgent } from "@/lib/agents/broker";
+import { runLegalAgent } from "@/lib/agents/legal";
+import { monetizationEngine } from "@/lib/monetization";
 
 export async function POST(request: NextRequest) {
   // Rate Limit
@@ -43,7 +48,10 @@ export async function POST(request: NextRequest) {
       span.attributes["project.prompt"] = prompt;
       span.attributes["project.org_id"] = orgId;
 
-      // STEP 0: CREDIT CHECK (Phase 10 Economy)
+      // STEP 0: CREDIT CHECK (Phase 10 Economy & Phase 6 Surge)
+      const baseManifestationCost = mode === "elite" ? 100 : 50;
+      const dynamicCost = monetizationEngine.calculateManifestationCost(baseManifestationCost);
+
       if (orgId) {
         const { data: org, error: orgError } = await supabaseAdmin
           .from("organizations")
@@ -55,8 +63,10 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: "Organization not found" }, { status: 404 });
         }
 
-        if (Number(org.credit_balance) < 50) {
-          return NextResponse.json({ error: "Insufficient credits. Manifestation requires 50 neural units." }, { status: 402 });
+        if (Number(org.credit_balance) < dynamicCost) {
+          return NextResponse.json({ 
+            error: `Insufficient credits. Current cost (with ${monetizationEngine.getSurgeMultiplier()}x surge) is ${dynamicCost} neural units.` 
+          }, { status: 402 });
         }
       }
 
@@ -114,6 +124,9 @@ USER REQUEST: "${prompt}"
       // STEP 6: PHASE 8-10 - THE SECURITY AUDITOR
       const security = await traced("agent.security", { "agent.role": "Security" }, () => runSecurityAudit(files));
 
+      // STEP 6.1: PHASE 4 - THE SENTINEL
+      const sentinel = await traced("agent.sentinel", { "agent.role": "Sentinel" }, () => runSentinelAgent(files));
+
       // STEP 7: PHASE 20 - THE PHANTOM
       const simulation = await traced("agent.phantom", { "agent.role": "Phantom" }, () => runPhantom({ files, id: "temp", createdAt: new Date().toISOString() } as Project));
 
@@ -124,6 +137,35 @@ USER REQUEST: "${prompt}"
         id: "temp",
         createdAt: new Date().toISOString(),
         manifest: { strategy: strategy.strategyMarkdown, docs: docs as unknown as Record<string, unknown>, mode, protocol }
+      } as unknown as Project));
+
+      // STEP 8.1: PHASE 10 & 13 - THE AUDITOR OF ECONOMY
+      const economy = await traced("agent.economy", { "agent.role": "Economy" }, () => runEconomyAgent({
+        name: genData.result.description?.split("\n")[0].slice(0, 100),
+        description: genData.result.description || prompt,
+        manifest: { protocol }
+      } as unknown as Project));
+
+      // STEP 8.2: PHASE 14 & 16 - THE EMPIRE BROKER
+      let broker = { mergerPotential: [], negotiationStrategy: "Audit pending." };
+      if (orgId) {
+        const { data: existingProjects } = await supabaseAdmin
+          .from("projects")
+          .select("*")
+          .eq("org_id", orgId)
+          .limit(10);
+        
+        broker = await traced("agent.broker", { "agent.role": "Broker" }, () => runBrokerAgent({
+          description: genData.result.description || prompt,
+          id: "temp"
+        } as unknown as Project, existingProjects || []));
+      }
+
+      // STEP 8.3: PHASE 17 - THE LEGAL VAULT
+      const legal = await traced("agent.legal", { "agent.role": "Legal" }, () => runLegalAgent({
+        name: genData.result.description?.split("\n")[0].slice(0, 100),
+        description: genData.result.description || prompt,
+        manifest: { protocol }
       } as unknown as Project));
 
       // STEP 9: PERSISTENCE
@@ -146,6 +188,10 @@ USER REQUEST: "${prompt}"
             auditLog: security.vulnerabilities.map(v => `${v.severity.toUpperCase()}: ${v.type} - ${v.description}`),
             lastScanAt: new Date().toISOString()
           },
+          sentinel,
+          economy,
+          broker,
+          legal,
           monetization: {
             affiliateCut: 0.20,
             revenueShareActive: true
@@ -155,11 +201,11 @@ USER REQUEST: "${prompt}"
 
       const savedProject = await saveProjectDB(projectData as Project);
 
-      // STEP 10: CREDIT DEDUCTION (Phase 10 Economy)
+      // STEP 10: CREDIT DEDUCTION (Phase 10 Economy & Phase 6 Surge)
       if (orgId) {
         await supabaseAdmin.rpc("decrement_org_balance", {
           org_id: orgId,
-          amount: 50
+          amount: dynamicCost
         });
       }
 

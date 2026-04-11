@@ -100,6 +100,31 @@ export interface ProjectManifest {
     auditLog: string[];
     lastScanAt: string;
   };
+  sentinel?: {
+    vulnerabilitiesFixed: string[];
+    penetrationLog: string[];
+    hardeningScore: number;
+  };
+  economy?: {
+    agentRoi: number;
+    stakingAvailable: boolean;
+    suggestedStake: number;
+    estimatedMonthlyRevenue: number;
+  };
+  broker?: {
+    mergerPotential: Array<{
+      targetProjectId: string;
+      compatibility: number;
+      strategy: string;
+    }>;
+    negotiationStrategy: string;
+  };
+  legal?: {
+    patentDraft: string;
+    tos: string;
+    privacyPolicy: string;
+    status: "drafted" | "filed" | "verified";
+  };
   monetization?: {
     affiliateCut: number;
     revenueShareActive: boolean;
@@ -311,6 +336,14 @@ export const heraldResultSchema = z.object({
     content: z.string(),
     keywords: z.array(z.string()),
   }),
+  hypeEngine: z.object({
+    launchSites: z.array(z.object({
+      name: z.string(),
+      url: z.string(),
+      strategy: z.string(),
+    })),
+    viralHooks: z.array(z.string()),
+  }).optional(),
   socialPosts: z.array(z.object({
     platform: z.string(),
     hook: z.string(),
@@ -334,6 +367,35 @@ export const securityResultSchema = z.object({
   })),
   recommendations: z.array(z.string()),
 }).passthrough();
+
+export const sentinelResultSchema = z.object({
+  vulnerabilitiesFixed: z.array(z.string()),
+  penetrationLog: z.array(z.string()),
+  hardeningScore: z.number(),
+});
+
+export const economyResultSchema = z.object({
+  agentRoi: z.number(),
+  stakingAvailable: z.boolean(),
+  suggestedStake: z.number(),
+  estimatedMonthlyRevenue: z.number(),
+});
+
+export const brokerResultSchema = z.object({
+  mergerPotential: z.array(z.object({
+    targetProjectId: z.string(),
+    compatibility: z.number(),
+    strategy: z.string(),
+  })),
+  negotiationStrategy: z.string(),
+});
+
+export const legalResultSchema = z.object({
+  patentDraft: z.string(),
+  tos: z.string(),
+  privacyPolicy: z.string(),
+  status: z.enum(["drafted", "filed", "verified"]),
+});
 
 // ─── Phase 6: Autonomous AI Company Builder ──────────────────────────────────
 

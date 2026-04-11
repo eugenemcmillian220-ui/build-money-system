@@ -10,6 +10,10 @@ export interface LaunchAssets extends Record<string, unknown> {
   twitterThread: { hook: string; posts: string[] };
   productHunt: { tagline: string; description: string; makerComment: string };
   seoArticle: { title: string; content: string; keywords: string[] };
+  hypeEngine?: {
+    launchSites: Array<{ name: string; url: string; strategy: string }>;
+    viralHooks: string[];
+  };
   socialPosts?: SocialPost[];
 }
 
@@ -20,7 +24,11 @@ Return JSON ONLY:
 {
   "twitterThread": { "hook": "...", "posts": ["...", "..."] },
   "productHunt": { "tagline": "...", "description": "...", "makerComment": "..." },
-  "seoArticle": { "title": "...", "content": "...", "keywords": ["...", "..."] }
+  "seoArticle": { "title": "...", "content": "...", "keywords": ["...", "..."] },
+  "hypeEngine": {
+    "launchSites": [{ "name": "...", "url": "...", "strategy": "..." }],
+    "viralHooks": ["...", "..."]
+  }
 }`;
 
   try {

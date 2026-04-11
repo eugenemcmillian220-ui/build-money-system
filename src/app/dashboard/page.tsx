@@ -6,6 +6,8 @@ import { ProjectList } from "@/components/dashboard/ProjectList";
 import { SystemStatus } from "@/components/dashboard/SystemStatus";
 import { supabase } from "@/lib/supabase/client";
 import { Project, ManifestOptions } from "@/lib/types";
+import { CeoReport } from "@/lib/agents/ceo";
+import { TrendResult } from "@/lib/agents/trend-hunter";
 import {
 
   Zap, 
@@ -26,6 +28,8 @@ export default function DashboardPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [org, setOrg] = useState<Org | null>(null);
   const [loading, setLoading] = useState(true);
+  const [ceoReport, setCeoReport] = useState<CeoReport | null>(null);
+  const [trends, setTrends] = useState<TrendResult | null>(null);
 
   const [error, setError] = useState<string | null>(null);
 
@@ -57,6 +61,14 @@ export default function DashboardPage() {
 
       if (projError) throw projError;
       setProjects(projectsData || []);
+
+      // Fetch CEO Report
+      const ceoRes = await fetch(`/api/ceo/report?orgId=${orgData.id}`);
+      if (ceoRes.ok) setCeoReport(await ceoRes.json());
+
+      // Fetch Trends
+      const trendRes = await fetch("/api/rd/scout");
+      if (trendRes.ok) setTrends(await trendRes.json());
 
     } catch (err) {
       console.error("Dashboard error:", err);
@@ -167,9 +179,47 @@ export default function DashboardPage() {
             </div>
           </section>
 
-          {/* Main Action Area */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-8">
+              {/* CEO Strategic Brief */}
+              {ceoReport && (
+                <section className="bg-brand-500/5 border border-brand-500/20 p-8 rounded-[2.5rem] space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-black uppercase tracking-tighter italic flex items-center gap-3">
+                      <Crown size={24} className="text-brand-400" />
+                      CEO Strategic Briefing
+                    </h2>
+                    <span className="px-3 py-1 bg-brand-500/20 text-brand-400 text-[10px] font-black uppercase rounded-full">
+                      Empire Health: {ceoReport.empireHealth}%
+                    </span>
+                  </div>
+                  <p className="text-sm italic font-bold text-white/80 leading-relaxed">{ceoReport.summary}</p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Strategic Tasks</p>
+                      <div className="space-y-2">
+                        {ceoReport.strategicTasks.map((t, i) => (
+                          <div key={i} className="flex items-start gap-3 p-3 bg-black/40 rounded-xl border border-white/5">
+                            <div className={`w-1.5 h-1.5 rounded-full mt-1.5 ${
+                              t.priority === 'critical' ? 'bg-red-500 animate-pulse' : 
+                              t.priority === 'high' ? 'bg-amber-500' : 'bg-brand-500'
+                            }`} />
+                            <p className="text-xs font-bold text-white/70">{t.task}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Revenue Optimization</p>
+                      <div className="p-4 bg-black/40 rounded-2xl border border-white/5 text-xs italic text-brand-400/80 leading-relaxed">
+                        {ceoReport.revenueOptimization}
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              )}
+
               <section>
                 <h2 className="text-xs font-black uppercase tracking-[0.3em] text-muted-foreground mb-6 flex items-center gap-3">
                   <div className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-ping" />
@@ -185,6 +235,32 @@ export default function DashboardPage() {
             </div>
 
             <div className="space-y-8">
+              {/* Market R&D Scouting */}
+              {trends && (
+                <section className="bg-white/5 border border-white/10 p-8 rounded-[2.5rem] space-y-6">
+                  <h2 className="text-xl font-black uppercase tracking-tighter italic flex items-center gap-3">
+                    <Zap size={20} className="text-amber-400" />
+                    Market R&D Scout
+                  </h2>
+                  <div className="space-y-4">
+                    {trends.trends.slice(0, 5).map((t, i) => (
+                      <div key={i} className="flex items-center justify-between group">
+                        <div className="space-y-0.5">
+                          <p className="text-sm font-black text-white group-hover:text-brand-400 transition-colors">{t.name}</p>
+                          <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">{t.category} | {t.source}</p>
+                        </div>
+                        <div className="text-right">
+                          <div className="w-12 h-1 bg-white/5 rounded-full overflow-hidden">
+                            <div className="h-full bg-brand-500" style={{ width: `${t.velocity}%` }} />
+                          </div>
+                          <p className="text-[8px] font-black text-brand-500 mt-1">{t.velocity}% VELOCITY</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
               <section>
                 <h2 className="text-xs font-black uppercase tracking-[0.3em] text-muted-foreground mb-6">Sovereignty Status</h2>
                 <SystemStatus />

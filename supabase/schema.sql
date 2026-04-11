@@ -99,6 +99,7 @@ CREATE TABLE projects (
   -- Metadata
   is_public BOOLEAN DEFAULT false,
   tags TEXT[] DEFAULT '{}',
+  monetization JSONB DEFAULT '{"affiliateCut": 0.20, "revenueShareActive": true, "surgePricing": false, "surgeMultiplier": 1.0}',
   manifest JSONB DEFAULT '{}',
   metadata JSONB DEFAULT '{}'
 );
@@ -1250,8 +1251,100 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- =============================================================================
--- ADDITIONAL BILLING TABLES
+-- ELITE EMPIRE UPGRADES (PHASES 1-20)
 -- =============================================================================
+
+-- Phase 10: Agent Performance & ROI Tracking
+CREATE TABLE IF NOT EXISTS agent_performance (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  agent_id VARCHAR(100) NOT NULL,
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  org_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+  token_usage INTEGER DEFAULT 0,
+  latency_ms INTEGER DEFAULT 0,
+  quality_score INTEGER DEFAULT 0,
+  roi_score DECIMAL(5, 2) DEFAULT 0.00,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Phase 12: Sovereign Governance (Multi-sig/DAO)
+CREATE TABLE IF NOT EXISTS governance_proposals (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  proposer_id UUID REFERENCES auth.users(id),
+  title TEXT NOT NULL,
+  description TEXT,
+  manifestation_diff JSONB,
+  status VARCHAR(20) DEFAULT 'pending', -- pending, approved, rejected, executed
+  votes_required INTEGER DEFAULT 1,
+  votes_current INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Phase 13: Staking & Revenue Share
+CREATE TABLE IF NOT EXISTS investment_stakes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id UUID REFERENCES organizations(id) ON DELETE CASCADE, -- Investor
+  target_project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  stake_amount DECIMAL(12, 4) NOT NULL,
+  equity_share DECIMAL(5, 4) NOT NULL, -- Percentage of future revenue
+  status VARCHAR(20) DEFAULT 'active', -- active, closed, liquidated
+  total_payouts DECIMAL(12, 4) DEFAULT 0.00,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Phase 14: Vendor Diplomacy & Negotiations
+CREATE TABLE IF NOT EXISTS vendor_relations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+  vendor_name VARCHAR(100) NOT NULL,
+  api_endpoint TEXT,
+  current_plan TEXT,
+  usage_stats JSONB DEFAULT '{}',
+  last_negotiated_at TIMESTAMPTZ,
+  next_audit_at TIMESTAMPTZ DEFAULT NOW() + INTERVAL '30 days',
+  status VARCHAR(20) DEFAULT 'optimized' -- optimized, at_risk, negotiating
+);
+
+-- Phase 16: M&A Brokerage
+CREATE TABLE IF NOT EXISTS merger_proposals (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  source_project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  target_project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  compatibility_score INTEGER,
+  merger_strategy TEXT,
+  estimated_valuation_surge DECIMAL(5, 2),
+  status VARCHAR(20) DEFAULT 'proposed', -- proposed, analyzing, executing, completed
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Phase 17: Legal IP Vault
+CREATE TABLE IF NOT EXISTS legal_vault (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  document_type VARCHAR(50) NOT NULL, -- patent, tos, privacy, license
+  document_content TEXT NOT NULL,
+  legal_hash TEXT, -- SHA-256 for integrity
+  status VARCHAR(20) DEFAULT 'filed', -- drafted, filed, verified
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Phase 18: Trend Scouting & R&D
+CREATE TABLE IF NOT EXISTS trend_scouting (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  trend_name VARCHAR(255) NOT NULL,
+  category VARCHAR(50), -- framework, library, api, market
+  velocity_score INTEGER, -- stars/growth rate
+  relevance_to_empire INTEGER, -- 0-100
+  last_scouted_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes for Elite Upgrades
+CREATE INDEX IF NOT EXISTS idx_agent_perf_org_id ON agent_performance(org_id);
+CREATE INDEX IF NOT EXISTS idx_investment_stakes_target ON investment_stakes(target_project_id);
+CREATE INDEX IF NOT EXISTS idx_merger_proposals_status ON merger_proposals(status);
+CREATE INDEX IF NOT EXISTS idx_legal_vault_project ON legal_vault(project_id);
 
 -- Lifetime licenses tracking
 CREATE TABLE IF NOT EXISTS lifetime_licenses (

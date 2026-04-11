@@ -285,6 +285,146 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
               </div>
             </div>
           )}
+          {activeTab === "sentinel" && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
+              <div className="bg-white/5 border border-white/10 p-8 rounded-[2.5rem] space-y-8">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-2xl font-black uppercase tracking-tighter italic flex items-center gap-3">
+                    <ShieldCheck size={24} className="text-brand-400" />
+                    Sentinel Hardening
+                  </h3>
+                  <div className="text-right">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Hardening Score</p>
+                    <p className="text-4xl font-black text-brand-500">
+                      {manifest?.sentinel?.hardeningScore || 0}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-4">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-green-400">Vulnerabilities Fixed</p>
+                    <div className="space-y-2">
+                      {manifest?.sentinel?.vulnerabilitiesFixed?.map((v, i) => (
+                        <div key={i} className="flex items-start gap-3 text-sm font-bold text-white/80">
+                          <span className="text-green-400 mt-1">✓</span>
+                          {v}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-amber-400">Penetration Log</p>
+                    <div className="bg-black/40 rounded-2xl p-6 font-mono text-[10px] space-y-2 text-white/60 border border-white/5">
+                      {manifest?.sentinel?.penetrationLog?.map((log, i) => (
+                        <div key={i}>{`> ${log}`}</div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "economy" && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="bg-white/5 border border-white/10 p-8 rounded-[2rem] space-y-2">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Agent ROI</p>
+                  <p className="text-4xl font-black text-white">{manifest?.economy?.agentRoi || 0}x</p>
+                </div>
+                <div className="bg-white/5 border border-white/10 p-8 rounded-[2rem] space-y-2">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Suggested Stake</p>
+                  <p className="text-4xl font-black text-brand-400">{(manifest?.economy?.suggestedStake || 0).toLocaleString()} CR</p>
+                </div>
+                <div className="bg-white/5 border border-white/10 p-8 rounded-[2rem] space-y-2">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Est. MRR</p>
+                  <p className="text-4xl font-black text-green-400">${(manifest?.economy?.estimatedMonthlyRevenue || 0).toLocaleString()}</p>
+                </div>
+                <div className="bg-white/5 border border-white/10 p-8 rounded-[2rem] space-y-2">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Staking Status</p>
+                  <p className={`text-xl font-black uppercase italic ${manifest?.economy?.stakingAvailable ? "text-brand-500" : "text-muted-foreground"}`}>
+                    {manifest?.economy?.stakingAvailable ? "AVAILABLE" : "UNAVAILABLE"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "broker" && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
+              <div className="bg-white/5 border border-white/10 p-8 rounded-[2.5rem] space-y-8">
+                <h3 className="text-2xl font-black uppercase tracking-tighter italic flex items-center gap-3">
+                  <Users size={24} className="text-brand-400" />
+                  Empire Brokerage & M&A
+                </h3>
+                
+                <div className="space-y-6">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Merger Potential</p>
+                  {manifest?.broker?.mergerPotential?.length ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {manifest.broker.mergerPotential.map((m, i) => (
+                        <div key={i} className="p-6 bg-black/40 rounded-2xl border border-white/5 space-y-4">
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs font-mono text-muted-foreground">Target: {m.targetProjectId.slice(0, 8)}...</span>
+                            <span className="px-2 py-1 bg-brand-500/20 text-brand-400 text-[10px] font-black uppercase rounded">
+                              {m.compatibility}% Match
+                            </span>
+                          </div>
+                          <p className="text-sm italic font-bold text-white/80">{m.strategy}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm italic text-muted-foreground">No strategic mergers identified in the current empire scope.</p>
+                  )}
+                </div>
+
+                <div className="space-y-4 pt-8 border-t border-white/5">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Negotiation Strategy</p>
+                  <div className="p-6 bg-brand-500/5 border border-brand-500/20 rounded-2xl text-sm italic font-bold leading-relaxed">
+                    {manifest?.broker?.negotiationStrategy || "Diplomatic audit pending."}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "legal" && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="bg-white/5 border border-white/10 p-8 rounded-[2.5rem] space-y-6">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-xl font-black uppercase tracking-tighter italic flex items-center gap-3">
+                      <ShieldCheck size={20} className="text-brand-400" />
+                      Patent Draft
+                    </h3>
+                    <span className="px-2 py-1 bg-green-500/20 text-green-400 text-[10px] font-black uppercase rounded">
+                      {manifest?.legal?.status || "Drafted"}
+                    </span>
+                  </div>
+                  <div className="bg-black/40 rounded-2xl p-6 font-mono text-[10px] whitespace-pre-wrap text-white/60 border border-white/5 h-[300px] overflow-y-auto custom-scrollbar">
+                    {manifest?.legal?.patentDraft || "Legal drafting in progress."}
+                  </div>
+                </div>
+
+                <div className="space-y-8">
+                  <div className="bg-white/5 border border-white/10 p-8 rounded-[2.5rem] space-y-4">
+                    <h3 className="text-lg font-black uppercase tracking-tighter italic">Terms of Service</h3>
+                    <div className="bg-black/40 rounded-xl p-4 font-mono text-[9px] line-clamp-6 text-white/40">
+                      {manifest?.legal?.tos}
+                    </div>
+                  </div>
+                  <div className="bg-white/5 border border-white/10 p-8 rounded-[2.5rem] space-y-4">
+                    <h3 className="text-lg font-black uppercase tracking-tighter italic">Privacy Policy</h3>
+                    <div className="bg-black/40 rounded-xl p-4 font-mono text-[9px] line-clamp-6 text-white/40">
+                      {manifest?.legal?.privacyPolicy}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

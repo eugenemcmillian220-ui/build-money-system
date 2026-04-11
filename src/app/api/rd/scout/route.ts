@@ -1,23 +1,16 @@
-import { rdAgent } from "@/lib/rd-agent";
+import { NextRequest, NextResponse } from "next/server";
+import { runTrendScout } from "@/lib/agents/trend-hunter";
+import { traced } from "@/lib/telemetry";
 
 export const runtime = "nodejs";
 
-/**
- * GET /api/rd/scout
- * Triggers an autonomous tech scouting cycle
- */
-export async function GET(): Promise<Response> {
-  try {
-    const trends = await rdAgent.scoutTrends();
-    await rdAgent.processTrends(trends);
-
-    return Response.json({
-      success: true,
-      scoutedCount: trends.length,
-      trends
-    });
-  } catch (error) {
-    console.error("R&D Scouting error:", error);
-    return Response.json({ error: "Scouting cycle failed" }, { status: 500 });
-  }
+export async function GET() {
+  return traced("rd.scout", { "agent.role": "Trend Hunter" }, async () => {
+    try {
+      const result = await runTrendScout();
+      return NextResponse.json(result);
+    } catch (error) {
+      return NextResponse.json({ error: (error as Error).message }, { status: 500 });
+    }
+  });
 }

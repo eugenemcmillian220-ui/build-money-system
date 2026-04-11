@@ -41,6 +41,27 @@ export interface RevenueShareConfig {
 
 export class MonetizationEngine {
   /**
+   * Phase 6: Surge Pricing Engine
+   * Calculates dynamic cost multipliers based on system load or specific windows.
+   */
+  getSurgeMultiplier(): number {
+    const hour = new Date().getUTCHours();
+    // Peak hours (simulated): 14:00 - 20:00 UTC
+    if (hour >= 14 && hour <= 20) {
+      return 1.5; // 50% surge
+    }
+    return 1.0;
+  }
+
+  /**
+   * Get dynamic cost for manifestation
+   */
+  calculateManifestationCost(baseCost: number = 50): number {
+    const multiplier = this.getSurgeMultiplier();
+    return Math.ceil(baseCost * multiplier);
+  }
+
+  /**
    * Process a revenue share transaction
    */
   async processRevenueShare(amountCents: number, config: RevenueShareConfig): Promise<void> {
