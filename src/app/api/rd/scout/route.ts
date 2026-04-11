@@ -3,6 +3,7 @@ import { runTrendScout } from "@/lib/agents/trend-hunter";
 import { traced } from "@/lib/telemetry";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   return traced("rd.scout", { "agent.role": "Trend Hunter" }, async () => {

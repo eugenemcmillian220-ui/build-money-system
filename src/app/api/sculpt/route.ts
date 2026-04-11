@@ -4,6 +4,7 @@ import { callLLM, cleanJson, parseMultiFileJson } from "@/lib/llm";
 import { traced } from "@/lib/telemetry";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 /**
  * Phase 1: The Sculptor - Real-time AI Refinement API

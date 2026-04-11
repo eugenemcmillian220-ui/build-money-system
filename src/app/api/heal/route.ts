@@ -4,6 +4,7 @@ import { traced } from "@/lib/telemetry";
 import { z } from "zod";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 const healResultSchema = z.object({
   diagnosis: z.string(),

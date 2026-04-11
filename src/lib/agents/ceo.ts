@@ -1,5 +1,6 @@
+import { z } from "zod";
 import { callLLMJson } from "../llm";
-import { Project, z } from "../types";
+import { Project } from "../types";
 
 export const ceoReportSchema = z.object({
   empireHealth: z.number(),

@@ -17,6 +17,9 @@ import { runBrokerAgent } from "@/lib/agents/broker";
 import { runLegalAgent } from "@/lib/agents/legal";
 import { monetizationEngine } from "@/lib/monetization";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 export async function POST(request: NextRequest) {
   // Rate Limit
   const ip = request.headers.get("x-forwarded-for") || "unknown";
