@@ -36,7 +36,7 @@ export async function createVercelDeploy(
   name?: string,
   env: Record<string, string> = {}
 ): Promise<VercelDeployResult> {
-  const token = serverEnv.VERCEL_TOKEN;
+  const token = serverEnv.VERCEL_ACCESS_TOKEN || serverEnv.VERCEL_TOKEN;
   
   if (!token) {
     return {
@@ -218,7 +218,7 @@ module.exports = nextConfig
  * Get deployment status from Vercel
  */
 export async function getDeploymentStatus(deploymentId: string): Promise<DeploymentInfo | null> {
-  const token = serverEnv.VERCEL_TOKEN;
+  const token = serverEnv.VERCEL_ACCESS_TOKEN || serverEnv.VERCEL_TOKEN;
   
   if (!token) {
     return null;
@@ -257,7 +257,7 @@ export async function getDeploymentStatus(deploymentId: string): Promise<Deploym
  * Check if Vercel integration is available
  */
 export function isVercelAvailable(): boolean {
-  return !!serverEnv.VERCEL_TOKEN;
+  return !!(serverEnv.VERCEL_ACCESS_TOKEN || serverEnv.VERCEL_TOKEN);
 }
 
 /**
@@ -282,7 +282,7 @@ function mapVercelStatus(vercelStatus: string): DeploymentStatus {
  * Delete a deployment
  */
 export async function deleteDeployment(deploymentId: string): Promise<boolean> {
-  const token = serverEnv.VERCEL_TOKEN;
+  const token = serverEnv.VERCEL_ACCESS_TOKEN || serverEnv.VERCEL_TOKEN;
   
   if (!token) {
     return false;

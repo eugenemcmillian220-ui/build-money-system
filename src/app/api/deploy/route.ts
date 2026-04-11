@@ -53,11 +53,26 @@ export async function POST(request: NextRequest): Promise<Response> {
       );
     }
 
+    // Extract owner/repo from URL if it's a URL
+    let githubRepo = project.githubRepo || "";
+    if (githubRepo.startsWith("http")) {
+      try {
+        const url = new URL(githubRepo);
+        githubRepo = url.pathname.slice(1); // remove leading slash
+        if (githubRepo.endsWith("/")) githubRepo = githubRepo.slice(0, -1);
+      } catch {
+        // Fallback to raw string
+      }
+    }
+
     // Create deployment
     const result = await createVercelDeploy(
       projectId,
       project.files,
-      project.description?.slice(0, 50)
+      project.name || project.description?.slice(0, 50),
+      {
+        GITHUB_REPO: githubRepo,
+      }
     );
 
     if (!result.success) {
