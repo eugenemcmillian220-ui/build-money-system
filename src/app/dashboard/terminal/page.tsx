@@ -66,7 +66,7 @@ export default function TerminalPage() {
           </header>
 
           <div className="max-w-4xl">
-            <AiTerminal onManifest={handleManifest} />
+            <AiTerminal onManifest={handleManifest} orgId={org?.id} />
           </div>
         </div>
     </div>

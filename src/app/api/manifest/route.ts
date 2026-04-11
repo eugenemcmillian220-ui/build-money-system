@@ -7,6 +7,7 @@ import { runHerald } from "@/lib/agents/herald";
 import { PHASE_19_SYSTEM_PROMPT } from "@/lib/prompts/phase-19";
 import { Project } from "@/lib/types";
 import { saveProjectDB } from "@/lib/supabase/db";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { traced } from "@/lib/telemetry";
 import { rateLimit } from "@/lib/rate-limit";
 import { runSecurityAudit } from "@/lib/agents/security";
@@ -41,6 +42,23 @@ export async function POST(request: NextRequest) {
 
       span.attributes["project.prompt"] = prompt;
       span.attributes["project.org_id"] = orgId;
+
+      // STEP 0: CREDIT CHECK (Phase 10 Economy)
+      if (orgId) {
+        const { data: org, error: orgError } = await supabaseAdmin
+          .from("organizations")
+          .select("credit_balance")
+          .eq("id", orgId)
+          .single();
+
+        if (orgError || !org) {
+          return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+        }
+
+        if (Number(org.credit_balance) < 50) {
+          return NextResponse.json({ error: "Insufficient credits. Manifestation requires 50 neural units." }, { status: 402 });
+        }
+      }
 
       // STEP 1: INTENT CLASSIFICATION
       const classification = await traced("agent.classifier", { "agent.role": "Classifier" }, () => classifyIntent(prompt));
@@ -136,6 +154,14 @@ USER REQUEST: "${prompt}"
       };
 
       const savedProject = await saveProjectDB(projectData as Project);
+
+      // STEP 10: CREDIT DEDUCTION (Phase 10 Economy)
+      if (orgId) {
+        await supabaseAdmin.rpc("decrement_org_balance", {
+          org_id: orgId,
+          amount: 50
+        });
+      }
 
       return NextResponse.json({ success: true, project: savedProject });
 

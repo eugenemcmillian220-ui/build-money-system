@@ -175,7 +175,7 @@ export default function DashboardPage() {
                   <div className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-ping" />
                   Neural Manifestation
                 </h2>
-                <AiTerminal onManifest={handleManifest} />
+                <AiTerminal onManifest={handleManifest} orgId={org?.id} />
               </section>
 
               <section>

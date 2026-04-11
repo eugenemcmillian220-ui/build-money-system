@@ -6,9 +6,10 @@ import { ManifestOptions } from "@/lib/types";
 
 interface AiTerminalProps {
   onManifest: (prompt: string, options: ManifestOptions) => Promise<void>;
+  orgId?: string;
 }
 
-export function AiTerminal({ onManifest }: AiTerminalProps) {
+export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
   const [input, setInput] = useState("");
   const [history, setHistory] = useState<{ type: "input" | "output" | "error"; text: string }[]>([
     { type: "output", text: "Sovereign Forge OS v2.1 (Phase 20 Active)" },
@@ -38,8 +39,75 @@ export function AiTerminal({ onManifest }: AiTerminalProps) {
     if (cmd.toLowerCase() === "help") {
       addLine("output", "Available commands:");
       addLine("output", "  manifest <prompt> [--mode <elite|universal|nano>] [--proto <saas|tma|farcaster|...>]");
+      addLine("output", "  deals            - Scan for VC investment opportunities (Phase 13)");
+      addLine("output", "  negotiate        - Audit vendors and initiate negotiations (Phase 14)");
+      addLine("output", "  scout            - Research emerging tech trends (Phase 18)");
       addLine("output", "  status           - Check platform health");
       addLine("output", "  clear            - Clear terminal");
+      return;
+    }
+
+    if (cmd.toLowerCase() === "deals") {
+      if (!orgId) {
+        addLine("error", "Error: Organization context required for VC scouting.");
+        return;
+      }
+      setIsProcessing(true);
+      addLine("output", "Principal VC Agent initiating organization audit...");
+      try {
+        const res = await fetch(`/api/vc/propose?orgId=${orgId}`);
+        const data = await res.json();
+        if (data.proposals?.length) {
+          addLine("output", `Found ${data.proposals.length} high-potential investment opportunities!`);
+          data.proposals.forEach((p: any) => {
+            addLine("output", `  - Project: ${p.projectId.slice(0, 8)}... | Score: ${p.score}/100 | Ask: ${p.suggestedCredits} CR | RevShare: ${(p.equityShare * 100).toFixed(1)}%`);
+          });
+        } else {
+          addLine("output", "No new investment opportunities identified in this cycle.");
+        }
+      } catch (err) {
+        addLine("error", `VC Scouting failed: ${(err as Error).message}`);
+      } finally {
+        setIsProcessing(false);
+      }
+      return;
+    }
+
+    if (cmd.toLowerCase() === "negotiate") {
+      setIsProcessing(true);
+      addLine("output", "Chief Diplomat Agent auditing vendor relations...");
+      try {
+        const res = await fetch("/api/diplomat");
+        const data = await res.json();
+        addLine("output", `Audit Complete: ${data.vendorsChecked} vendors checked, ${data.incidentsFound} incidents found.`);
+        if (data.incidentsFound > 0) {
+          addLine("output", "Diplomat has initiated automated negotiations for all at-risk accounts.");
+        }
+      } catch (err) {
+        addLine("error", `Diplomat Audit failed: ${(err as Error).message}`);
+      } finally {
+        setIsProcessing(false);
+      }
+      return;
+    }
+
+    if (cmd.toLowerCase() === "scout") {
+      setIsProcessing(true);
+      addLine("output", "R&D Agent scouting emerging 2026 tech trends...");
+      try {
+        const res = await fetch("/api/rd/scout");
+        const data = await res.json();
+        if (data.trends?.length) {
+          addLine("output", "Top Emerging Technologies Identified:");
+          data.trends.forEach((t: any) => {
+            addLine("output", `  - ${t.name} (${t.category}) | Velocity: ${t.velocity} stars/wk | Source: ${t.source}`);
+          });
+        }
+      } catch (err) {
+        addLine("error", `R&D Scouting failed: ${(err as Error).message}`);
+      } finally {
+        setIsProcessing(false);
+      }
       return;
     }
 

@@ -726,6 +726,9 @@ CREATE TABLE IF NOT EXISTS organizations (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE INDEX IF NOT EXISTS idx_organizations_slug ON organizations(slug);
+CREATE INDEX IF NOT EXISTS idx_organizations_owner_id ON organizations(owner_id);
+
 -- Org Members table (RBAC)
 CREATE TABLE IF NOT EXISTS org_members (
   org_id UUID REFERENCES organizations(id) ON DELETE CASCADE,

@@ -293,3 +293,35 @@ export async function createOrUpdateFile(
 
   return result.content?.sha || "";
 }
+
+/**
+ * Create a pull request in a GitHub repository
+ */
+export async function createPullRequest(
+  owner: string,
+  repo: string,
+  title: string,
+  body: string,
+  head: string,
+  base: string = "main"
+): Promise<{ number: number; url: string }> {
+  const token = serverEnv.GITHUB_ACCESS_TOKEN || serverEnv.GITHUB_TOKEN;
+  if (!token) throw new GitHubError("GitHub token missing");
+
+  const { Octokit } = await import("@octokit/rest");
+  const octokit = new Octokit({ auth: token });
+
+  const { data: pr } = await octokit.pulls.create({
+    owner,
+    repo,
+    title,
+    body,
+    head,
+    base,
+  });
+
+  return {
+    number: pr.number,
+    url: pr.html_url,
+  };
+}

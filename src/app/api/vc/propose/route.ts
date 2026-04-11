@@ -3,25 +3,40 @@ import { z } from "zod";
 
 export const runtime = "nodejs";
 
-const requestSchema = z.object({
+const proposeSchema = z.object({
   orgId: z.string().uuid(),
 });
 
+// GET: Scout for investment opportunities in an organization
+export async function GET(request: Request): Promise<Response> {
+  const { searchParams } = new URL(request.url);
+  const orgId = searchParams.get("orgId");
+
+  if (!orgId) {
+    return Response.json({ error: "orgId is required" }, { status: 400 });
+  }
+
+  try {
+    const proposals = await vcAgent.evaluateOrganization(orgId);
+    return Response.json({ success: true, proposals });
+  } catch (error) {
+    return Response.json({ error: error instanceof Error ? error.message : "VC evaluation failed" }, { status: 500 });
+  }
+}
+
+// POST: Issue a formal offer
 export async function POST(request: Request): Promise<Response> {
   try {
     const body = await request.json();
-    const { orgId } = requestSchema.parse(body);
+    const proposal = body.proposal; // Expecting full InvestmentProposal object
 
-    const proposals = await vcAgent.evaluateOrganization(orgId);
+    if (!proposal) {
+      return Response.json({ error: "Proposal data is required" }, { status: 400 });
+    }
 
-    return Response.json({
-      success: true,
-      proposals,
-      count: proposals.length,
-    });
+    const offerId = await vcAgent.issueOffer(proposal);
+    return Response.json({ success: true, offerId });
   } catch (error) {
-    console.error("VC Evaluation error:", error);
-    const message = error instanceof Error ? error.message : "VC Evaluation failed";
-    return Response.json({ error: message }, { status: 500 });
+    return Response.json({ error: error instanceof Error ? error.message : "Offer issuance failed" }, { status: 500 });
   }
 }

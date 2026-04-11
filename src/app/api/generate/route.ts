@@ -1,6 +1,7 @@
 import { generateText, generateTextStream, OpenRouterError } from "@/lib/openrouter";
 import { AppBuildAgent, AgentError } from "@/lib/agent";
 import { keyManager } from "@/lib/key-manager";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { z } from "zod";
 
 export const runtime = "nodejs";
@@ -12,6 +13,7 @@ const requestSchema = z.object({
   stream: z.boolean().optional().default(false),
   multiFile: z.boolean().optional().default(false),
   mode: z.enum(["web-component", "web-app", "mobile-app", "vision"]).optional().default("web-app"),
+  orgId: z.string().uuid().optional(),
 });
 
 const SYSTEM_PROMPT =
@@ -68,7 +70,25 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
-  const { prompt, imageUrl, stream, multiFile, mode } = parsed.data;
+  const { prompt, imageUrl, stream, multiFile, mode, orgId } = parsed.data;
+
+  // STEP 0: CREDIT CHECK
+  const creditCost = multiFile ? 25 : 5;
+  if (orgId) {
+    const { data: org, error: orgError } = await supabaseAdmin
+      .from("organizations")
+      .select("credit_balance")
+      .eq("id", orgId)
+      .single();
+
+    if (orgError || !org) {
+      return Response.json({ error: "Organization not found" }, { status: 404 });
+    }
+
+    if (Number(org.credit_balance) < creditCost) {
+      return Response.json({ error: `Insufficient credits. This operation requires ${creditCost} units.` }, { status: 402 });
+    }
+  }
 
   const llmAvailable = isAnyLLMAvailable();
 
@@ -132,6 +152,12 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     const result = await agent.run(prompt || "");
+
+    // CREDIT DEDUCTION
+    if (orgId) {
+      await supabaseAdmin.rpc("decrement_org_balance", { org_id: orgId, amount: creditCost });
+    }
+
     return Response.json(result);
   }
 
@@ -177,6 +203,12 @@ export async function POST(request: Request): Promise<Response> {
       const code = await generateText(
         `${SYSTEM_PROMPT}\n\nUser request: ${prompt}\n\nGenerate a complete Next.js component with Tailwind CSS:`,
       );
+
+      // CREDIT DEDUCTION
+      if (orgId) {
+        await supabaseAdmin.rpc("decrement_org_balance", { org_id: orgId, amount: creditCost });
+      }
+
       return Response.json({ code });
     } catch (error) {
       if (error instanceof OpenRouterError || error instanceof AgentError) {
