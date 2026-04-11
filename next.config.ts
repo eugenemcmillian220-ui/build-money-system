@@ -17,9 +17,9 @@ const nextConfig: NextConfig = {
 };
 
 export default withSentryConfig(nextConfig, {
-  org: "build-money-system",
-  project: "javascript-nextjs",
-  silent: !process.env.CI,
+  org: process.env.SENTRY_ORG || "build-money-system",
+  project: process.env.SENTRY_PROJECT || "javascript-nextjs",
+  silent: true,
   widenClientFileUpload: true,
   hideSourceMaps: true,
   disableLogger: true,
