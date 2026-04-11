@@ -1,7 +1,9 @@
 "use client";
 
 import { Project } from "@/lib/types";
-import { 
+import Link from "next/link";
+import {
+
   Package, 
   ExternalLink, 
   Code2, 

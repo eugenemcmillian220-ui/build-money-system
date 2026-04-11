@@ -26,13 +26,14 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
 
   useEffect(() => {
     async function fetchProject() {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("projects")
         .select("*")
         .eq("id", id)
         .single();
-      
+
       if (data) setProject(data);
+
       setLoading(false);
     }
     fetchProject();
@@ -117,7 +118,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => setActiveTab(tab.id as typeof activeTab)}
                 className={`flex items-center gap-2 px-6 py-4 text-[10px] font-black uppercase tracking-widest transition-all border-b-2 ${
                   isActive ? "border-brand-500 text-white bg-brand-500/5" : "border-transparent text-muted-foreground hover:text-white hover:bg-white/5"
                 }`}
@@ -155,7 +156,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                   System Architecture
                 </h3>
                 <div className="bg-black/40 rounded-2xl p-6 font-mono text-xs whitespace-pre-wrap text-white/80 border border-white/5">
-                  {(manifest?.docs as any)?.architecture || "Architecture specs not available."}
+                  {manifest?.docs?.architecture || "Architecture specs not available."}
                 </div>
               </div>
               <div className="bg-white/5 border border-white/10 p-8 rounded-[2.5rem] space-y-6">
@@ -164,7 +165,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                   API Blueprint
                 </h3>
                 <div className="bg-black/40 rounded-2xl p-6 font-mono text-xs whitespace-pre-wrap text-white/80 border border-white/5">
-                  {(manifest?.docs as any)?.apiDocs || "API documentation not available."}
+                  {manifest?.docs?.apiDocs || "API documentation not available."}
                 </div>
               </div>
             </div>
@@ -177,27 +178,27 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                   <p className="text-[10px] font-black uppercase tracking-widest text-brand-400">X (Twitter) Thread</p>
                   <div className="space-y-4">
                     <div className="p-4 bg-black/40 rounded-xl border border-white/5 text-sm italic font-bold">
-                      {(manifest?.launch as any)?.twitterThread?.hook || "No hook available."}
+                      {manifest?.launch?.twitterThread?.hook || "No hook available."}
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground text-[10px] font-black uppercase">
                       <TrendingUp size={12} />
-                      <span>{ (manifest?.launch as any)?.twitterThread?.posts?.length || 0 } Posts Manifested</span>
+                      <span>{ manifest?.launch?.twitterThread?.posts?.length || 0 } Posts Manifested</span>
                     </div>
                   </div>
                 </div>
                 <div className="bg-white/5 border border-white/10 p-8 rounded-[2.5rem] space-y-4">
                   <p className="text-[10px] font-black uppercase tracking-widest text-brand-400">Product Hunt Launch</p>
                   <div className="space-y-2">
-                    <p className="text-lg font-black italic">{(manifest?.launch as any)?.productHunt?.tagline || "Tagline pending..."}</p>
-                    <p className="text-xs text-muted-foreground line-clamp-3">{(manifest?.launch as any)?.productHunt?.description}</p>
+                    <p className="text-lg font-black italic">{manifest?.launch?.productHunt?.tagline || "Tagline pending..."}</p>
+                    <p className="text-xs text-muted-foreground line-clamp-3">{manifest?.launch?.productHunt?.description}</p>
                   </div>
                 </div>
                 <div className="bg-white/5 border border-white/10 p-8 rounded-[2.5rem] space-y-4">
                   <p className="text-[10px] font-black uppercase tracking-widest text-brand-400">Viral SEO Engine</p>
                   <div className="space-y-2">
-                    <p className="text-sm font-bold italic">{(manifest?.launch as any)?.seoArticle?.title || "Article not generated."}</p>
+                    <p className="text-sm font-bold italic">{manifest?.launch?.seoArticle?.title || "Article not generated."}</p>
                     <div className="flex flex-wrap gap-2">
-                      {(manifest?.launch as any)?.seoArticle?.keywords?.slice(0, 3).map((k: string) => (
+                      {manifest?.launch?.seoArticle?.keywords?.slice(0, 3).map((k: string) => (
                         <span key={k} className="px-2 py-0.5 bg-white/5 rounded-md text-[9px] font-black uppercase tracking-widest text-white/50 border border-white/10">
                           #{k}
                         </span>
@@ -230,7 +231,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                   <div>
                     <h4 className="text-[10px] font-black uppercase tracking-widest text-brand-400 mb-3">Phantom UX Audit</h4>
                     <ul className="space-y-2">
-                      {(manifest?.simulation as any)?.frictionPoints?.map((p: string, i: number) => (
+                      {manifest?.simulation?.frictionPoints?.map((p: string, i: number) => (
                         <li key={i} className="flex items-start gap-3 text-sm italic font-bold text-muted-foreground">
                           <span className="text-red-400 mt-1">●</span>
                           {p}
@@ -241,7 +242,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                   <div>
                     <h4 className="text-[10px] font-black uppercase tracking-widest text-green-400 mb-3">Recommendations</h4>
                     <ul className="space-y-2">
-                      {(manifest?.simulation as any)?.recommendations?.map((r: string, i: number) => (
+                      {manifest?.simulation?.recommendations?.map((r: string, i: number) => (
                         <li key={i} className="flex items-start gap-3 text-sm italic font-bold text-white/80">
                           <span className="text-green-400 mt-1">✓</span>
                           {r}

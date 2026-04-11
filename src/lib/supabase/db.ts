@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { serverEnv } from "@/lib/env";
-import { Project, FileMap, ProjectStatus, DeploymentInfo } from "@/lib/types";
+import { Project, FileMap, ProjectStatus, DeploymentInfo, ProjectManifest } from "@/lib/types";
 
 // Use service role key for admin operations (server-side only)
 const supabaseUrl = serverEnv.NEXT_PUBLIC_SUPABASE_URL;
@@ -31,7 +31,7 @@ export interface DatabaseProject {
   status?: ProjectStatus;
   deployment?: DeploymentInfo;
   github_repo?: string;
-  manifest?: any;
+  manifest?: ProjectManifest;
   created_at: string;
   updated_at: string;
 }

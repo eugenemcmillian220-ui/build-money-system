@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sidebar } from "@/components/dashboard/Sidebar";
 import { PricingTable } from "@/components/billing/pricing-table";
 import { supabase } from "@/lib/supabase/client";
 import { Loader2 } from "lucide-react";

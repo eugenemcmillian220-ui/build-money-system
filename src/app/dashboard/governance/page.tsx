@@ -1,6 +1,5 @@
 "use client";
 
-import { Sidebar } from "@/components/dashboard/Sidebar";
 import { ShieldCheck, Lock, History } from "lucide-react";
 
 export default function GovernancePage() {

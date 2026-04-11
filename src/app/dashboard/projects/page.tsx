@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sidebar } from "@/components/dashboard/Sidebar";
 import { ProjectList } from "@/components/dashboard/ProjectList";
 import { supabase } from "@/lib/supabase/client";
 import { Project } from "@/lib/types";

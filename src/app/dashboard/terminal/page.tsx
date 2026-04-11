@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sidebar } from "@/components/dashboard/Sidebar";
 import { AiTerminal } from "@/components/dashboard/AiTerminal";
 import { supabase } from "@/lib/supabase/client";
 import { Loader2 } from "lucide-react";

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Loader2, Sparkles, Wand2 } from "lucide-react";
+import Link from "next/link";
 
 export function GeneratorForm() {
   const [prompt, setPrompt] = useState("");
@@ -136,18 +137,18 @@ export function GeneratorForm() {
           </div>
 
           <div className="flex gap-3">
-            <a
+            <Link
               href="/dashboard"
               className="flex-1 text-center py-3 bg-white/5 border border-white/10 rounded-xl text-sm font-bold text-white hover:bg-white/10 transition-colors"
             >
               View in Dashboard
-            </a>
-            <a
+            </Link>
+            <Link
               href="/dashboard/projects"
               className="flex-1 text-center py-3 bg-brand-500 text-black rounded-xl text-sm font-black uppercase tracking-wider hover:bg-brand-400 transition-colors"
             >
               Deploy Now
-            </a>
+            </Link>
           </div>
         </div>
       )}

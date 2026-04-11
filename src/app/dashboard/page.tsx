@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sidebar } from "@/components/dashboard/Sidebar";
 import { AiTerminal } from "@/components/dashboard/AiTerminal";
 import { ProjectList } from "@/components/dashboard/ProjectList";
 import { SystemStatus } from "@/components/dashboard/SystemStatus";

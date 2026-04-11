@@ -55,6 +55,13 @@ export const llmResponseSchema = z.object({
   integrations: z.array(z.string()).optional(),
 });
 
+export type IntentClassification = z.infer<typeof intentClassificationSchema>;
+export type ScoutResult = z.infer<typeof scoutResultSchema>;
+export type ChroniclerResult = z.infer<typeof chroniclerResultSchema>;
+export type HeraldResult = z.infer<typeof heraldResultSchema>;
+export type PhantomResult = z.infer<typeof phantomResultSchema>;
+export type SecurityResult = z.infer<typeof securityResultSchema>;
+
 export interface ManifestOptions extends Record<string, unknown> {
   mode?: string;
   protocol?: string;
@@ -81,22 +88,15 @@ export interface ProjectManifest {
   mode: string;
   protocol: string;
   strategy?: string;
-  docs?: Record<string, unknown>;
-  simulation?: {
-    uxScore?: number;
-    [key: string]: unknown;
-  };
-  launch?: {
-    isReady?: boolean;
-    [key: string]: unknown;
-  };
+  docs?: ChroniclerResult;
+  simulation?: PhantomResult;
+  launch?: HeraldResult;
   visuals?: {
     theme: "dark" | "light" | "system";
     primaryColor: string;
     fontFamily: string;
   };
-  security?: {
-    score: number;
+  security?: SecurityResult & {
     auditLog: string[];
     lastScanAt: string;
   };
