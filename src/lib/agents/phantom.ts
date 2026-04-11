@@ -1,11 +1,11 @@
 import { callLLMJson } from "../llm";
 import { Project, phantomResultSchema } from "../types";
 
-export interface SimulationResult extends Record<string, unknown> {
+export type SimulationResult = {
   uxScore: number;
   frictionPoints: string[];
   recommendations: string[];
-}
+} & Record<string, unknown>;
 
 export async function runPhantom(project: Project): Promise<SimulationResult> {
   const fileNames = Object.keys(project.files).join(", ");

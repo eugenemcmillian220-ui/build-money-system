@@ -14,7 +14,8 @@ import {
   Code2, 
   ChevronRight,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  Users
 } from "lucide-react";
 import Link from "next/link";
 
@@ -22,7 +23,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
   const { id } = use(params);
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"strategy" | "docs" | "marketing" | "simulation" | "security">("strategy");
+  const [activeTab, setActiveTab] = useState<"strategy" | "docs" | "marketing" | "simulation" | "security" | "sentinel" | "economy" | "broker" | "legal">("strategy");
 
   useEffect(() => {
     async function fetchProject() {

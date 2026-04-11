@@ -1,7 +1,7 @@
 import { callLLMJson } from "../llm";
 import { FileMap, securityResultSchema } from "../types";
 
-export interface SecurityAuditResult {
+export type SecurityAuditResult = {
   score: number;
   vulnerabilities: Array<{
     severity: "low" | "medium" | "high" | "critical";
@@ -11,7 +11,7 @@ export interface SecurityAuditResult {
     fix?: string;
   }>;
   recommendations: string[];
-}
+} & Record<string, unknown>;
 
 /**
  * Phase 8-10: Deep Security Auditor Agent

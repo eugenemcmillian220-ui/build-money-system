@@ -21,7 +21,6 @@ export default withSentryConfig(nextConfig, {
   project: process.env.SENTRY_PROJECT || "javascript-nextjs",
   silent: true,
   widenClientFileUpload: true,
-  hideSourceMaps: true,
   disableLogger: true,
   automaticVercelMonitors: true,
 });

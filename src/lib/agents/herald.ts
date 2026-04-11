@@ -6,7 +6,7 @@ export interface SocialPost {
   hook: string;
 }
 
-export interface LaunchAssets extends Record<string, unknown> {
+export type LaunchAssets = {
   twitterThread: { hook: string; posts: string[] };
   productHunt: { tagline: string; description: string; makerComment: string };
   seoArticle: { title: string; content: string; keywords: string[] };
@@ -15,7 +15,7 @@ export interface LaunchAssets extends Record<string, unknown> {
     viralHooks: string[];
   };
   socialPosts?: SocialPost[];
-}
+} & Record<string, unknown>;
 
 export async function runHerald(project: Project): Promise<LaunchAssets> {
   const systemPrompt = `You are The Herald. Generate high-impact marketing assets for: ${project.name}.

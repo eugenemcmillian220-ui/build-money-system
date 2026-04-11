@@ -1,12 +1,12 @@
 import { callLLMJson } from "../llm";
 import { Project, legalResultSchema } from "../types";
 
-export interface LegalVaultResult {
+export type LegalVaultResult = {
   patentDraft: string;
   tos: string;
   privacyPolicy: string;
   status: "drafted" | "filed" | "verified";
-}
+} & Record<string, unknown>;
 
 /**
  * Phase 17: The Legal Vault - Autonomous IP & Compliance Agent

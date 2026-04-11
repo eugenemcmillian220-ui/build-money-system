@@ -1,12 +1,12 @@
 import { callLLMJson } from "../llm";
 import { Project, economyResultSchema } from "../types";
 
-export interface EconomyResult {
+export type EconomyResult = {
   agentRoi: number;
   stakingAvailable: boolean;
   suggestedStake: number;
   estimatedMonthlyRevenue: number;
-}
+} & Record<string, unknown>;
 
 /**
  * Phase 10 & 13: The Auditor of Economy - Agent ROI & Staking Engine

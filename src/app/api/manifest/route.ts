@@ -51,6 +51,14 @@ export async function POST(request: NextRequest) {
       span.attributes["project.prompt"] = prompt;
       span.attributes["project.org_id"] = orgId;
 
+      // STEP 1: INTENT CLASSIFICATION
+      const classification = await traced("agent.classifier", { "agent.role": "Classifier" }, () => classifyIntent(prompt));
+      const mode = options?.mode || classification.mode;
+      const protocol = options?.protocol || classification.protocol;
+
+      span.attributes["project.mode"] = mode;
+      span.attributes["project.protocol"] = protocol;
+
       // STEP 0: CREDIT CHECK (Phase 10 Economy & Phase 6 Surge)
       const baseManifestationCost = mode === "elite" ? 100 : 50;
       const dynamicCost = monetizationEngine.calculateManifestationCost(baseManifestationCost);
@@ -72,14 +80,6 @@ export async function POST(request: NextRequest) {
           }, { status: 402 });
         }
       }
-
-      // STEP 1: INTENT CLASSIFICATION
-      const classification = await traced("agent.classifier", { "agent.role": "Classifier" }, () => classifyIntent(prompt));
-      const mode = options?.mode || classification.mode;
-      const protocol = options?.protocol || classification.protocol;
-
-      span.attributes["project.mode"] = mode;
-      span.attributes["project.protocol"] = protocol;
 
       // STEP 2: THE SCOUT (Pre-generation Research)
       const strategy = await traced("agent.scout", { "agent.role": "Scout" }, () => runScoutAgent(prompt, protocol));
@@ -150,7 +150,7 @@ USER REQUEST: "${prompt}"
       } as unknown as Project));
 
       // STEP 8.2: PHASE 14 & 16 - THE EMPIRE BROKER
-      let broker = { mergerPotential: [], negotiationStrategy: "Audit pending." };
+      let broker: any = { mergerPotential: [], negotiationStrategy: "Audit pending." };
       if (orgId) {
         const { data: existingProjects } = await supabaseAdmin
           .from("projects")

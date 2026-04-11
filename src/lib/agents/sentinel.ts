@@ -1,11 +1,11 @@
 import { callLLMJson } from "../llm";
 import { FileMap, sentinelResultSchema } from "../types";
 
-export interface SentinelResult {
+export type SentinelResult = {
   vulnerabilitiesFixed: string[];
   penetrationLog: string[];
   hardeningScore: number;
-}
+} & Record<string, unknown>;
 
 /**
  * Phase 4: The Sentinel - Automated Pen-Testing & Hardening Agent

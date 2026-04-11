@@ -1,14 +1,14 @@
 import { callLLMJson } from "../llm";
 import { Project, brokerResultSchema } from "../types";
 
-export interface BrokerResult {
+export type BrokerResult = {
   mergerPotential: Array<{
     targetProjectId: string;
     compatibility: number;
     strategy: string;
   }>;
   negotiationStrategy: string;
-}
+} & Record<string, unknown>;
 
 /**
  * Phase 14 & 16: The Empire Broker - B2B Diplomacy & M&A Engine

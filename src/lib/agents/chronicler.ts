@@ -1,11 +1,11 @@
 import { callLLMJson } from "../llm";
 import { FileMap, chroniclerResultSchema } from "../types";
 
-export interface ProjectDocs extends Record<string, unknown> {
+export type ProjectDocs = {
   readme: string;
   architecture: string;
   apiDocs: string;
-}
+} & Record<string, unknown>;
 
 export async function runChroniclerAgent(files: FileMap): Promise<ProjectDocs> {
   const fileNames = Object.keys(files).join(", ");
