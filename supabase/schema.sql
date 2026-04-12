@@ -746,13 +746,24 @@ ALTER TABLE projects ADD COLUMN IF NOT EXISTS org_id UUID REFERENCES organizatio
 CREATE INDEX IF NOT EXISTS idx_projects_org_id ON projects(org_id);
 
 -- Update project policies for multi-tenancy
-DROP POLICY IF EXISTS "Users can view own projects" ON projects;
+CREATE OR REPLACE FUNCTION public.check_is_org_member(org_uuid UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM org_members
+    WHERE org_id = org_uuid AND user_id = auth.uid()
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP POLICY IF EXISTS "Users can view org projects" ON projects;
 CREATE POLICY "Users can view org projects" ON projects
   FOR SELECT USING (
-    is_public = true OR 
-    (org_id IS NOT NULL AND EXISTS (SELECT 1 FROM org_members WHERE org_id = projects.org_id AND user_id = auth.uid())) OR
+    is_public = true OR
+    (org_id IS NOT NULL AND check_is_org_member(org_id)) OR
     (org_id IS NULL AND user_id = auth.uid())
   );
+
 
 -- Generation Memory (pgvector)
 CREATE TABLE IF NOT EXISTS generation_memory (

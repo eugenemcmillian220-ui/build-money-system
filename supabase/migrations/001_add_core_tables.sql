@@ -180,36 +180,44 @@ ALTER TABLE affiliate_commissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE marketplace_transactions ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for organizations
-CREATE POLICY "Users can view their org" ON organizations
-  FOR SELECT USING (
-    EXISTS (SELECT 1 FROM org_members WHERE org_id = organizations.id AND user_id = auth.uid())
+CREATE OR REPLACE FUNCTION public.check_is_org_member(org_uuid UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM org_members
+    WHERE org_id = org_uuid AND user_id = auth.uid()
   );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.check_is_org_owner(org_uuid UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM org_members
+    WHERE org_id = org_uuid AND user_id = auth.uid() AND role = 'owner'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE POLICY "Users can view their org" ON organizations
+  FOR SELECT USING (check_is_org_member(id));
 
 CREATE POLICY "Org owners can update org" ON organizations
-  FOR UPDATE USING (
-    EXISTS (SELECT 1 FROM org_members WHERE org_id = organizations.id AND user_id = auth.uid() AND role = 'owner')
-  );
+  FOR UPDATE USING (check_is_org_owner(id));
 
 -- RLS Policies for org_members
 CREATE POLICY "Users can view org members" ON org_members
-  FOR SELECT USING (
-    EXISTS (SELECT 1 FROM org_members om WHERE om.org_id = org_members.org_id AND om.user_id = auth.uid())
-  );
+  FOR SELECT USING (check_is_org_member(org_id));
 
 -- RLS Policies for white_label_config
 CREATE POLICY "Users can view white label config" ON white_label_config
-  FOR SELECT USING (
-    EXISTS (SELECT 1 FROM org_members WHERE org_id = white_label_config.org_id AND user_id = auth.uid())
-  );
+  FOR SELECT USING (check_is_org_member(org_id));
 
 -- RLS Policies for billing subscriptions
 CREATE POLICY "Users can view their billing" ON billing_subscriptions
-  FOR SELECT USING (
-    EXISTS (SELECT 1 FROM org_members WHERE org_id = billing_subscriptions.org_id AND user_id = auth.uid())
-  );
+  FOR SELECT USING (check_is_org_member(org_id));
 
 -- RLS Policies for credit transactions
 CREATE POLICY "Users can view their credits" ON credit_transactions
-  FOR SELECT USING (
-    EXISTS (SELECT 1 FROM org_members WHERE org_id = credit_transactions.org_id AND user_id = auth.uid())
-  );
+  FOR SELECT USING (check_is_org_member(org_id));

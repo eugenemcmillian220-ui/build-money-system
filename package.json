@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "fresh:restart": "npx tsx scripts/fresh-restart.ts"
   },
   "dependencies": {
     "@octokit/rest": "^21.1.1",

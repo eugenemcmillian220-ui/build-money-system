@@ -187,6 +187,25 @@ export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
       return;
     }
 
+    if (cmd.toLowerCase() === "restart") {
+      setIsProcessing(true);
+      addLine("output", "Executing Sovereign Fresh Restart (Phase 20)...");
+      try {
+        const repair = await repairOrganization();
+        if (repair.success) {
+          addLine("output", "Successfully re-anchored workspace and repaired RLS links.");
+          addLine("output", "Platform integrity restored. Please refresh the page.");
+        } else {
+          addLine("error", `Restart failed: ${repair.error}`);
+        }
+      } catch (err) {
+        addLine("error", `Critical failure during restart: ${(err as Error).message}`);
+      } finally {
+        setIsProcessing(false);
+      }
+      return;
+    }
+
     addLine("error", `Command not found: ${cmd.split(" ")[0]}`);
   };
 
