@@ -192,9 +192,14 @@ GITHUB_TOKEN=ghp_...
 - OTel tracing is initialized in `src/instrumentation.ts` (server-side only)
 - `_archive/` is `.gitignore`d — nothing in there is production code
 
----
+### **Sovereign Health & Repair Protocol**
+To maintain and repair the empire, use the following built-in systems:
 
-## 🚀 How to Deploy
+1.  **System Audit**: Type `status` in the **AI Terminal**. This triggers a live health check of Supabase, Stripe, and the AI Agent Swarm.
+2.  **Account Repair**: If your dashboard appears empty or desynced, the system automatically runs the `repairOrganization` logic upon landing on the `/dashboard` page.
+3.  **Code Hardening**: Every manifestation is automatically passed through **The Sentinel** (Phase 4) to harden the codebase and fix vulnerabilities before deployment.
+4.  **Error Diagnosis**: If a runtime error occurs, **The Healer** agent (Phase 7) diagnoses the logs and suggests an autonomous fix via the `/api/heal` endpoint.
+5.  **Schema Alignment**: Use **The SQL Forge** (Phase 2) to regenerate and apply migrations if the database schema drifts from the manifestation intent.
 ```bash
 # Sync env vars to Vercel
 npx tsx scripts/sync-all-env.ts

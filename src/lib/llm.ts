@@ -48,7 +48,7 @@ export function parseMultiFileJson(content: string): { files: FileMap } {
 
 export async function callLLMJson<T>(
   messages: ChatMessage[],
-  schema: { parse: (data: any) => T },
+  schema: { parse: (data: unknown) => T },
   config: Partial<AgentConfig> = {}
 ): Promise<T> {
   const content = await callLLM(messages, config);

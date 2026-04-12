@@ -145,6 +145,25 @@ export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
       return;
     }
 
+    if (cmd.toLowerCase() === "status") {
+      setIsProcessing(true);
+      addLine("output", "Initiating Sovereign Health Audit...");
+      try {
+        const res = await fetch("/api/health");
+        const data = await res.json();
+        addLine("output", `System: ${data.status.toUpperCase()} | Version: ${data.version || "2.3"}`);
+        addLine("output", "Integrations Status:");
+        addLine("output", `  - Supabase: ${data.checks?.database ? "HEALTHY" : "OFFLINE"}`);
+        addLine("output", `  - Stripe: ${data.checks?.stripe ? "CONNECTED" : "DISCONNECTED"}`);
+        addLine("output", `  - AI Swarm: ${data.checks?.agents ? "ACTIVE" : "DEGRADED"}`);
+      } catch (err) {
+        addLine("error", `Health Audit failed: ${(err as Error).message}`);
+      } finally {
+        setIsProcessing(false);
+      }
+      return;
+    }
+
     addLine("error", `Command not found: ${cmd.split(" ")[0]}`);
   };
 
