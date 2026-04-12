@@ -18,6 +18,26 @@ export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const [mode, setMode] = useState<"elite" | "universal" | "nano">("universal");
+  const [protocol, setProtocol] = useState("Sovereign-Forge-v1");
+
+  useEffect(() => {
+    // Handle blueprint pre-fill
+    const prefill = sessionStorage.getItem("sovereign_manifest_prefill");
+    if (prefill) {
+      try {
+        const { prompt, options } = JSON.parse(prefill);
+        setInput(prompt);
+        if (options.mode) setMode(options.mode);
+        if (options.protocol) setProtocol(options.protocol);
+        sessionStorage.removeItem("sovereign_manifest_prefill");
+        addLine("output", `Blueprint loaded: ${options.protocol}. Tactical parameters adjusted.`);
+      } catch (e) {
+        console.error("Prefill error:", e);
+      }
+    }
+  }, []);
+
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -116,27 +136,30 @@ export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
       return;
     }
 
-    if (cmd.toLowerCase().startsWith("manifest")) {
-      const prompt = cmd.replace("manifest", "").split("--")[0].trim();
-      if (!prompt) {
-        addLine("error", "Error: Prompt required. Usage: manifest <prompt>");
+    if (cmd.toLowerCase().startsWith("manifest") || (!cmd.includes(" ") && !["help", "deals", "negotiate", "scout", "clear", "status", "test", "restart"].includes(cmd.toLowerCase())) || (cmd.includes(" ") && !cmd.toLowerCase().startsWith("help") && !cmd.toLowerCase().startsWith("deals") && !cmd.toLowerCase().startsWith("negotiate") && !cmd.toLowerCase().startsWith("scout") && !cmd.toLowerCase().startsWith("clear") && !cmd.toLowerCase().startsWith("status") && !cmd.toLowerCase().startsWith("test") && !cmd.toLowerCase().startsWith("restart"))) {
+      setIsProcessing(true);
+      const manifestPrompt = cmd.toLowerCase().startsWith("manifest") ? cmd.slice(9).trim() : cmd;
+      
+      if (!manifestPrompt) {
+        addLine("error", "Error: Manifestation requires an intent prompt.");
+        setIsProcessing(false);
         return;
       }
 
-      const modeMatch = cmd.match(/--mode\s+(\w+)/);
-      const protoMatch = cmd.match(/--proto\s+(\w+)/);
+      // Check for flags in the prompt
+      const modeMatch = manifestPrompt.match(/--mode\s+(elite|universal|nano)/i);
+      const protoMatch = manifestPrompt.match(/--proto\s+(\S+)/i);
       
-      const options = {
-        mode: modeMatch?.[1] || "elite",
-        protocol: protoMatch?.[1] || "saas"
-      };
+      const finalMode = modeMatch ? modeMatch[1].toLowerCase() as any : mode;
+      const finalProto = protoMatch ? protoMatch[1] : protocol;
+      const cleanPrompt = manifestPrompt.replace(/--mode\s+\S+/gi, "").replace(/--proto\s+\S+/gi, "").trim();
 
-      setIsProcessing(true);
-      addLine("output", `Manifesting: "${prompt}" in ${options.mode} mode...`);
+      addLine("output", `Initiating Manifestation: ${finalMode.toUpperCase()} | ${finalProto}`);
+      addLine("output", "Decoding plain English intent...");
       
       try {
-        await onManifest(prompt, options);
-        addLine("output", "Manifestation complete. Project saved to database.");
+        await onManifest(cleanPrompt, { mode: finalMode, protocol: finalProto });
+        addLine("output", "Manifestation complete. Empire initialized in database.");
       } catch (err) {
         addLine("error", `Manifestation failed: ${(err as Error).message}`);
       } finally {
@@ -144,6 +167,7 @@ export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
       }
       return;
     }
+
 
     if (cmd.toLowerCase() === "status") {
       setIsProcessing(true);

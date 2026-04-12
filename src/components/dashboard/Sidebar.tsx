@@ -26,6 +26,8 @@ export function Sidebar() {
 
   const navItems = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { name: "Blueprints", href: "/dashboard/blueprints", icon: Package },
+    { name: "Guide", href: "/dashboard/guide", icon: BookOpen },
     { name: "AI Terminal", href: "/dashboard/terminal", icon: Terminal },
     { name: "Projects", href: "/dashboard/projects", icon: Package },
     { name: "Billing", href: "/dashboard/billing", icon: CreditCard },
