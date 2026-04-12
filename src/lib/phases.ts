@@ -69,6 +69,39 @@ export const SOVEREIGN_PHASES: Phase[] = [
     expectation: "A hardened codebase with a detailed security score."
   },
   {
+    id: 5,
+    name: "Growth Lab",
+    mission: "Autonomous Market Presence",
+    icon: Rocket,
+    features: ["Social media automation", "SEO article generation", "Viral hook engineering"],
+    tools: [
+      { name: "Generate Posts", description: "Create marketing assets for your empire.", action: "growth", endpoint: "/api/growth", method: "POST" }
+    ],
+    expectation: "A complete marketing suite ready for global distribution."
+  },
+  {
+    id: 6,
+    name: "Revenue Engine",
+    mission: "Monetization Optimization",
+    icon: BarChart3,
+    features: ["Surge pricing logic", "A/B test deployment", "Churn prediction audit"],
+    tools: [
+      { name: "Optimize Pricing", description: "Run AI revenue optimization.", action: "revenue", endpoint: "/api/revenue-optimize", method: "POST" }
+    ],
+    expectation: "Maximised MRR through dynamic pricing and conversion tuning."
+  },
+  {
+    id: 7,
+    name: "The Healer",
+    mission: "Autonomous Self-Correction",
+    icon: Activity,
+    features: ["Runtime error diagnosis", "Self-healing code patches", "Agent log auditing"],
+    tools: [
+      { name: "Heal System", description: "Diagnose and fix platform issues.", action: "heal", endpoint: "/api/heal", method: "POST" }
+    ],
+    expectation: "A self-correcting platform with 100% uptime reliability."
+  },
+  {
     id: 8,
     name: "DevOS Sandbox",
     mission: "Virtual Engineering Environment",
@@ -113,6 +146,39 @@ export const SOVEREIGN_PHASES: Phase[] = [
     expectation: "Maximum market visibility and high-velocity user acquisition."
   },
   {
+    id: 12,
+    name: "Governance Hub",
+    mission: "HITL & Global Oversight",
+    icon: ShieldCheck,
+    features: ["Permission overrides", "Audit log transparency", "Human-in-the-loop approvals"],
+    tools: [
+      { name: "Check Compliance", description: "Verify empire regulatory status.", action: "governance", endpoint: "/api/governance", method: "POST" }
+    ],
+    expectation: "Full operational transparency and regulatory compliance."
+  },
+  {
+    id: 13,
+    name: "Autonomous VC",
+    mission: "Credit Injection & RevShare",
+    icon: TrendingUp,
+    features: ["Investment scouting", "Revenue share negotiation", "Automated deal flow"],
+    tools: [
+      { name: "Scan for Deals", description: "Find high-potential investment targets.", action: "scout", endpoint: "/api/vc/propose", method: "GET" }
+    ],
+    expectation: "A list of investment opportunities with ROI projections."
+  },
+  {
+    id: 14,
+    name: "Chief Diplomat",
+    mission: "B2B Vendor Negotiation",
+    icon: Handshake,
+    features: ["Vendor price auditing", "Automated cost reduction", "SLA incident detection"],
+    tools: [
+      { name: "Negotiate Costs", description: "Audit vendors and initiate negotiations.", action: "negotiate", endpoint: "/api/diplomat", method: "GET" }
+    ],
+    expectation: "Reduced operational costs and optimized vendor relations."
+  },
+  {
     id: 15,
     name: "The Hive Mind",
     mission: "Collective Intelligence Loop",
@@ -146,6 +212,17 @@ export const SOVEREIGN_PHASES: Phase[] = [
     expectation: "A legally-protected business entity with all required filings."
   },
   {
+    id: 18,
+    name: "R&D Scout",
+    mission: "Emerging Tech Research",
+    icon: Search,
+    features: ["GitHub trend analysis", "arXiv tech scouting", "Alpha-tech verification"],
+    tools: [
+      { name: "Scout Trends", description: "Discover emerging 2026 tech stacks.", action: "scout", endpoint: "/api/rd/scout", method: "GET" }
+    ],
+    expectation: "A strategic briefing on high-velocity emerging technologies."
+  },
+  {
     id: 19,
     name: "Universal Forge",
     mission: "Intent-Based Synthesis",
@@ -166,81 +243,6 @@ export const SOVEREIGN_PHASES: Phase[] = [
       { name: "Run Lifecycle", description: "Simulate and prepare launch assets.", action: "lifecycle", endpoint: "/api/manifest", method: "POST" }
     ],
     expectation: "A production-hardened app with verified UX and launch readiness."
-  },
-    mission: "Autonomous Market Presence",
-    icon: Rocket,
-    features: ["Social media automation", "SEO article generation", "Viral hook engineering"],
-    tools: [
-      { name: "Generate Posts", description: "Create marketing assets for your empire.", action: "growth", endpoint: "/api/growth", method: "POST" }
-    ],
-    expectation: "A complete marketing suite ready for global distribution."
-  },
-  {
-    id: 6,
-    name: "Revenue Engine",
-    mission: "Monetization Optimization",
-    icon: BarChart3,
-    features: ["Surge pricing logic", "A/B test deployment", "Churn prediction audit"],
-    tools: [
-      { name: "Optimize Pricing", description: "Run AI revenue optimization.", action: "revenue", endpoint: "/api/revenue-optimize", method: "POST" }
-    ],
-    expectation: "Maximised MRR through dynamic pricing and conversion tuning."
-  },
-  {
-    id: 7,
-    name: "The Healer",
-    mission: "Autonomous Self-Correction",
-    icon: Activity,
-    features: ["Runtime error diagnosis", "Self-healing code patches", "Agent log auditing"],
-    tools: [
-      { name: "Heal System", description: "Diagnose and fix platform issues.", action: "heal", endpoint: "/api/heal", method: "POST" }
-    ],
-    expectation: "A self-correcting platform with 100% uptime reliability."
-  },
-  {
-    id: 12,
-    name: "Governance Hub",
-    mission: "HITL & Global Oversight",
-    icon: ShieldCheck,
-    features: ["Permission overrides", "Audit log transparency", "Human-in-the-loop approvals"],
-    tools: [
-      { name: "Check Compliance", description: "Verify empire regulatory status.", action: "governance", endpoint: "/api/governance", method: "POST" }
-    ],
-    expectation: "Full operational transparency and regulatory compliance."
-  },
-  {
-    id: 13,
-    name: "Autonomous VC",
-
-    mission: "Credit Injection & RevShare",
-    icon: TrendingUp,
-    features: ["Investment scouting", "Revenue share negotiation", "Automated deal flow"],
-    tools: [
-      { name: "Scan for Deals", description: "Find high-potential investment targets.", action: "scout", endpoint: "/api/vc/propose", method: "GET" }
-    ],
-    expectation: "A list of investment opportunities with ROI projections."
-  },
-  {
-    id: 14,
-    name: "Chief Diplomat",
-    mission: "B2B Vendor Negotiation",
-    icon: Handshake,
-    features: ["Vendor price auditing", "Automated cost reduction", "SLA incident detection"],
-    tools: [
-      { name: "Negotiate Costs", description: "Audit vendors and initiate negotiations.", action: "negotiate", endpoint: "/api/diplomat", method: "GET" }
-    ],
-    expectation: "Reduced operational costs and optimized vendor relations."
-  },
-  {
-    id: 18,
-    name: "R&D Scout",
-    mission: "Emerging Tech Research",
-    icon: Search,
-    features: ["GitHub trend analysis", "arXiv tech scouting", "Alpha-tech verification"],
-    tools: [
-      { name: "Scout Trends", description: "Discover emerging 2026 tech stacks.", action: "scout", endpoint: "/api/rd/scout", method: "GET" }
-    ],
-    expectation: "A strategic briefing on high-velocity emerging technologies."
   },
   {
     id: 21,

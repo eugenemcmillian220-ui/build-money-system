@@ -16,8 +16,8 @@ import {
   Menu,
   X,
   LogOut,
-  BookOpen,
-  Layers
+  Book,
+  LayoutGrid
 } from "lucide-react";
 
 
@@ -30,7 +30,7 @@ export function Sidebar() {
   const navItems = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Blueprints", href: "/dashboard/blueprints", icon: Package },
-    { name: "Guide", href: "/dashboard/guide", icon: BookOpen },
+    { name: "Guide", href: "/dashboard/guide", icon: Book },
     { name: "AI Terminal", href: "/dashboard/terminal", icon: Terminal },
     { name: "Projects", href: "/dashboard/projects", icon: Package },
     { name: "Billing", href: "/dashboard/billing", icon: CreditCard },
@@ -108,7 +108,7 @@ export function Sidebar() {
 
             <div className="space-y-4">
               <div className="flex items-center gap-2 px-4">
-                <Layers size={14} className="text-brand-400" />
+                <LayoutGrid size={14} className="text-brand-400" />
                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Forge Phases</span>
               </div>
               <div className="space-y-1">

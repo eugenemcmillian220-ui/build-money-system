@@ -3,7 +3,7 @@
 import { BlueprintGallery } from "@/components/dashboard/BlueprintGallery";
 import { Blueprint } from "@/lib/blueprints";
 import { useRouter } from "next/navigation";
-import { BookOpen, Rocket, Info } from "lucide-react";
+import { Book, Rocket, Info } from "lucide-react";
 
 export default function BlueprintsPage() {
   const router = useRouter();
@@ -76,7 +76,7 @@ export default function BlueprintsPage() {
         {/* Outcome Expectations Guide */}
         <section className="bg-white/5 border border-white/10 p-8 rounded-[2.5rem] space-y-8">
           <div className="flex items-center gap-3">
-            <BookOpen size={24} className="text-brand-400" />
+            <Book size={24} className="text-brand-400" />
             <h2 className="text-xl font-black uppercase tracking-tighter italic">Sovereign Mode Outcomes</h2>
           </div>
           

@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, ShieldCheck, Zap, TrendingUp, Users, Lock, Globe } from "lucide-react";
+import { Book, ShieldCheck, Zap, TrendingUp, Users, Lock, Globe } from "lucide-react";
 
 export default function GuidePage() {
   const sections = [
@@ -36,7 +36,7 @@ export default function GuidePage() {
         <header className="space-y-2">
           <div className="flex items-center gap-3">
             <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter italic">Sovereign Guide</h1>
-            <BookOpen className="text-brand-500" size={32} />
+            <Book className="text-brand-500" size={32} />
           </div>
           <p className="text-muted-foreground font-bold italic tracking-tight">Master the Absolute Dominance of Sovereign Forge OS.</p>
         </header>
