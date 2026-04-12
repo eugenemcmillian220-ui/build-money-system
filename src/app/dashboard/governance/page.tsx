@@ -18,7 +18,10 @@ export default function GovernancePage() {
                 <h3 className="text-xl font-black uppercase mb-2">Sovereign Audit</h3>
                 <p className="text-sm text-muted-foreground font-bold italic">Trace every agent decision across your multi-key LLM router.</p>
               </div>
-              <button className="mt-10 w-full py-4 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/5 transition-all">
+              <button 
+                onClick={() => alert("Sovereign Audit Logs are being synchronized with the Hive Mind. Check the AI Terminal for live trace outputs.")}
+                className="mt-10 w-full py-4 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/5 transition-all"
+              >
                 Access Audit Logs
               </button>
             </div>
@@ -29,7 +32,10 @@ export default function GovernancePage() {
                 <h3 className="text-xl font-black uppercase mb-2">IP Vault</h3>
                 <p className="text-sm text-muted-foreground font-bold italic">Secure your generated codebase with encrypted legal-ready snapshots.</p>
               </div>
-              <button className="mt-10 w-full py-4 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/5 transition-all">
+              <button 
+                onClick={() => alert("The IP Vault is currently locked under Phase 17 Sovereign Legal Protocol. Your patents are being drafted.")}
+                className="mt-10 w-full py-4 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/5 transition-all"
+              >
                 Open IP Vault
               </button>
             </div>

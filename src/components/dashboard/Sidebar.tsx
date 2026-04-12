@@ -3,18 +3,21 @@
 import Link from "next/link";
 import type { Route } from "next";
 import { usePathname } from "next/navigation";
-import { 
-  LayoutDashboard, 
-  Terminal, 
-  Package, 
-  CreditCard, 
-  ShieldCheck, 
-  Zap, 
-  Globe, 
+import { signOut } from "@/lib/auth-actions";
+import {
+  LayoutDashboard,
+  Terminal,
+  Package,
+  CreditCard,
+  ShieldCheck,
+  Zap,
+  Globe,
   Settings,
   Menu,
-  X
+  X,
+  LogOut
 } from "lucide-react";
+
 import { useState } from "react";
 
 export function Sidebar() {
@@ -27,7 +30,7 @@ export function Sidebar() {
     { name: "Projects", href: "/dashboard/projects", icon: Package },
     { name: "Billing", href: "/dashboard/billing", icon: CreditCard },
     { name: "Governance", href: "/dashboard/governance", icon: ShieldCheck },
-    { name: "Marketplace", href: "/marketplace", icon: Globe },
+    { name: "Marketplace", href: "/dashboard/marketplace", icon: Globe },
   ];
 
   return (
@@ -75,7 +78,7 @@ export function Sidebar() {
             })}
           </nav>
 
-          <div className="mt-auto pt-6 border-t border-white/5 px-2">
+          <div className="mt-auto pt-6 border-t border-white/5 space-y-1 px-2">
             <Link
               href="/dashboard/settings"
               className={`
@@ -86,6 +89,14 @@ export function Sidebar() {
               <Settings size={18} />
               <span className="uppercase tracking-widest text-[10px]">Settings</span>
             </Link>
+
+            <button
+              onClick={() => signOut()}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-red-400/60 hover:text-red-400 hover:bg-red-500/5 transition-all"
+            >
+              <LogOut size={18} />
+              <span className="uppercase tracking-widest text-[10px]">Logout</span>
+            </button>
           </div>
         </div>
       </aside>

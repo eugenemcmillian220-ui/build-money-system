@@ -39,7 +39,7 @@ export default function MarketplacePage() {
   }
 
   return (
-    <div className="min-h-screen bg-black pb-20 pt-32">
+    <div className="min-h-screen bg-[#0a0a0a] pb-20 pt-12">
       <div className="mx-auto max-w-7xl px-6">
         {/* Header */}
         <div className="mb-16 text-center">
