@@ -20,6 +20,7 @@ export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
 
   const [mode, setMode] = useState<"elite" | "universal" | "nano">("universal");
   const [protocol, setProtocol] = useState("Sovereign-Forge-v1");
+  const [builderType, setBuilderType] = useState<"automated" | "granular">("automated");
 
   useEffect(() => {
     // Handle blueprint pre-fill
@@ -235,9 +236,29 @@ export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
 
   return (
     <div className="bg-black border border-white/10 rounded-2xl overflow-hidden font-mono text-sm shadow-2xl">
-      <div className="bg-white/5 px-4 py-2 border-b border-white/10 flex items-center gap-2">
-        <TerminalIcon size={14} className="text-brand-400" />
-        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Sovereign AI Terminal</span>
+      <div className="bg-white/5 px-4 py-2 border-b border-white/10 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <TerminalIcon size={14} className="text-brand-400" />
+          <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Sovereign AI Terminal</span>
+        </div>
+        <div className="flex bg-black/40 border border-white/10 rounded-lg p-0.5">
+          <button
+            onClick={() => setBuilderType("automated")}
+            className={`px-3 py-1 rounded-md text-[8px] font-black uppercase tracking-widest transition-all ${
+              builderType === "automated" ? "bg-brand-500 text-black" : "text-muted-foreground hover:text-white"
+            }`}
+          >
+            Automated Builder
+          </button>
+          <button
+            onClick={() => setBuilderType("granular")}
+            className={`px-3 py-1 rounded-md text-[8px] font-black uppercase tracking-widest transition-all ${
+              builderType === "granular" ? "bg-brand-500 text-black" : "text-muted-foreground hover:text-white"
+            }`}
+          >
+            Granular Architect
+          </button>
+        </div>
       </div>
       
       <div ref={scrollRef} className="h-80 overflow-y-auto p-4 space-y-2 custom-scrollbar">
@@ -260,7 +281,7 @@ export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Type 'manifest <prompt>' to build..."
+          placeholder={builderType === "automated" ? "Describe your vision in plain English..." : "Enter granular tactical command..."}
           className="flex-1 bg-transparent border-none outline-none text-white placeholder:text-white/20"
           disabled={isProcessing}
         />
