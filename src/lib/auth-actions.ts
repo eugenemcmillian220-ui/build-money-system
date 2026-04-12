@@ -94,3 +94,18 @@ export async function signOut() {
   revalidatePath("/", "layout");
   redirect("/");
 }
+
+/**
+ * Repairs a user's account by ensuring they have a personal organization.
+ * Used when a user exists but has no linked organization (e.g. after schema updates).
+ */
+export async function repairOrganization() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) return { error: "Not authenticated" };
+  
+  await ensurePersonalOrg(supabase, user, user.email || "");
+  revalidatePath("/dashboard");
+  return { success: true };
+}

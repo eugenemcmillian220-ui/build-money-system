@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase/client";
 import { Project, ManifestOptions } from "@/lib/types";
 import { CeoReport } from "@/lib/agents/ceo";
 import { TrendResult } from "@/lib/agents/trend-hunter";
+import { repairOrganization } from "@/lib/auth-actions";
 import {
 
   Zap, 
@@ -49,7 +50,28 @@ export default function DashboardPage() {
         .eq("owner_id", user.id)
         .single();
 
-      if (orgError) throw orgError;
+      if (orgError) {
+        if (orgError.code === "PGRST116") {
+          // No org found, attempt self-healing
+          console.log("No organization found for user, initiating repair...");
+          const repair = await repairOrganization();
+          if (repair.success) {
+            // Retry fetch after repair
+            const { data: retryOrg, error: retryError } = await supabase
+              .from("organizations")
+              .select("*")
+              .eq("owner_id", user.id)
+              .single();
+            
+            if (retryError) throw retryError;
+            setOrg(retryOrg);
+            return fetchDashboardData(); // Reload projects with new org ID
+          } else {
+            throw new Error("Failed to initialize workspace. Please contact support.");
+          }
+        }
+        throw orgError;
+      }
       setOrg(orgData);
 
       // Fetch projects
