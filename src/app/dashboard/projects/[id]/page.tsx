@@ -62,10 +62,15 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
 
   const tabs = [
     { id: "strategy", name: "Strategy", icon: Globe },
-    { id: "docs", name: "Documentation", icon: FileText },
+    { id: "docs", name: "Docs", icon: FileText },
     { id: "marketing", name: "Marketing", icon: Rocket },
     { id: "simulation", name: "UX Simulation", icon: Eye },
     { id: "security", name: "Security Audit", icon: ShieldCheck },
+    { id: "sentinel", name: "Sentinel", icon: ShieldCheck },
+    { id: "economy", name: "Economy", icon: TrendingUp },
+    { id: "broker", name: "Broker", icon: Users },
+    { id: "legal", name: "Legal", icon: ShieldCheck },
+    { id: "qa", name: "QA Audit", icon: ShieldCheck },
   ];
 
   return (
@@ -422,6 +427,45 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                       {manifest?.legal?.privacyPolicy}
                     </div>
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "qa" && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
+              <div className="bg-white/5 border border-white/10 p-8 rounded-[2.5rem] space-y-8">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-2xl font-black uppercase tracking-tighter italic flex items-center gap-3">
+                    <ShieldCheck size={24} className="text-brand-400" />
+                    The Overseer: QA Audit
+                  </h3>
+                  <div className="text-right">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Test Status</p>
+                    <p className={`text-xl font-black uppercase italic ${manifest?.qa?.status === "pass" ? "text-green-400" : "text-red-400"}`}>
+                      {manifest?.qa?.status || "PENDING"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Audit Summary</p>
+                  <div className="p-6 bg-black/40 rounded-2xl border border-white/5 text-sm italic font-bold leading-relaxed text-white/80">
+                    Your application flow was audited across 4 critical vectors: Authentication, Navigation, State Persistence, and Mobile Responsiveness.
+                  </div>
+                  
+                  {manifest?.qa?.errors && manifest.qa.errors.length > 0 && (
+                    <div className="space-y-4">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-red-400">Errors Detected</p>
+                      <div className="space-y-2">
+                        {manifest.qa.errors.map((err: string, i: number) => (
+                          <div key={i} className="p-4 bg-red-500/10 rounded-xl border border-red-500/20 text-xs font-bold text-red-200">
+                            {err}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

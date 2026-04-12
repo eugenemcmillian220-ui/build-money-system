@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { Route } from "next";
 import { createClient } from "@/lib/supabase/server";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 
 import { SupabaseClient, User } from "@supabase/supabase-js";
 
@@ -108,4 +109,25 @@ export async function repairOrganization() {
   await ensurePersonalOrg(supabase, user, user.email || "");
   revalidatePath("/dashboard");
   return { success: true };
+}
+
+export async function deleteAccount() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { error: "Not authenticated" };
+
+  try {
+    // Delete the user from auth.users using admin client
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(user.id);
+    if (error) throw error;
+
+    // Sign out from the current session
+    await supabase.auth.signOut();
+    revalidatePath("/", "layout");
+    return { success: true };
+  } catch (err) {
+    console.error("Failed to delete account:", err);
+    return { error: (err as Error).message };
+  }
 }

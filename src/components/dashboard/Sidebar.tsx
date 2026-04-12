@@ -76,10 +76,16 @@ export function Sidebar() {
           </nav>
 
           <div className="mt-auto pt-6 border-t border-white/5 px-2">
-            <div className="flex items-center gap-3 text-muted-foreground hover:text-white transition-colors cursor-pointer">
+            <Link
+              href="/dashboard/settings"
+              className={`
+                flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all
+                ${pathname === "/dashboard/settings" ? "bg-white text-black shadow-lg" : "text-muted-foreground hover:text-white hover:bg-white/5"}
+              `}
+            >
               <Settings size={18} />
-              <span className="text-sm font-bold uppercase tracking-widest text-[10px]">Settings</span>
-            </div>
+              <span className="uppercase tracking-widest text-[10px]">Settings</span>
+            </Link>
           </div>
         </div>
       </aside>
