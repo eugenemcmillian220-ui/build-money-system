@@ -22,6 +22,7 @@ export default function PhasePage() {
   const [loading, setLoading] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [customPrompt, setCustomPrompt] = useState("");
 
   if (!phase) {
     return (
@@ -42,7 +43,12 @@ export default function PhasePage() {
       const res = await fetch(endpoint, {
         method: method,
         headers: { "Content-Type": "application/json" },
-        ...(method === "POST" && { body: JSON.stringify({ prompt: "Standalone Phase Execution", orgId: "default" }) })
+        ...(method === "POST" && { 
+          body: JSON.stringify({ 
+            prompt: customPrompt || `Standalone Phase ${phase.id} Execution`, 
+            orgId: "default" 
+          }) 
+        })
       });
 
       if (!res.ok) throw new Error(`Execution failed: ${res.statusText}`);
@@ -88,6 +94,23 @@ export default function PhasePage() {
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Mission Command Input */}
+          <div className="lg:col-span-3">
+            <section className="bg-white/5 border border-white/10 p-8 rounded-[2.5rem] space-y-6">
+              <div className="flex items-center gap-3">
+                <Terminal size={20} className="text-brand-400" />
+                <h3 className="text-sm font-black uppercase tracking-widest text-white">Mission Command</h3>
+              </div>
+              <textarea
+                value={customPrompt}
+                onChange={(e) => setCustomPrompt(e.target.value)}
+                placeholder={`Describe the specific mission for ${phase.name} (e.g., "Analyze specific security vulnerabilities in the auth flow")`}
+                className="w-full h-32 bg-black/40 border border-white/10 rounded-2xl p-6 text-sm font-bold italic text-white placeholder:text-muted-foreground outline-none focus:border-brand-500/50 transition-all resize-none"
+              />
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Plain English Intent Decoding: ACTIVE</p>
+            </section>
+          </div>
+
           {/* Features & Expectation */}
           <div className="space-y-8">
             <section className="bg-white/5 border border-white/10 p-8 rounded-[2.5rem] space-y-6">
