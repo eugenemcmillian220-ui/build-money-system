@@ -98,7 +98,17 @@ export function ProjectList({ projects, onDelete }: ProjectListProps) {
               <div className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center border-2 border-[#0a0a0a] text-[10px] font-black">H</div>
               <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center border-2 border-[#0a0a0a] text-[10px] font-black">P</div>
             </div>
-            <div className="flex gap-4">
+            <div className="flex gap-4 items-center">
+              {project.manifest?.qa && (
+                <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                  project.manifest.qa.status === 'pass' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 
+                  project.manifest.qa.status === 'fail' ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 
+                  'bg-brand-500/10 text-brand-400 border border-brand-500/20'
+                }`}>
+                  <ShieldCheck size={10} />
+                  <span>QA: {project.manifest.qa.status}</span>
+                </div>
+              )}
               {project.manifest?.launch && (
                 <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-brand-400">
                   <TrendingUp size={12} />

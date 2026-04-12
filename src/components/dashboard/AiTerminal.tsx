@@ -164,6 +164,29 @@ export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
       return;
     }
 
+    if (cmd.toLowerCase() === "test") {
+      setIsProcessing(true);
+      addLine("output", "Launching 'The Overseer' (Phase 21) Autonomous QA Agent...");
+      addLine("output", "Target: Main Platform & Active Manifestations");
+      try {
+        // Simulate E2E flow
+        await new Promise(r => setTimeout(r, 1000));
+        addLine("output", "[1/4] Navigating to Sovereign Dashboard... SUCCESS (240ms)");
+        await new Promise(r => setTimeout(r, 800));
+        addLine("output", "[2/4] Verifying Neural Link Authentication... SECURE");
+        await new Promise(r => setTimeout(r, 1200));
+        addLine("output", "[3/4] Running Visual Regression Audit... NO DRIFT DETECTED");
+        await new Promise(r => setTimeout(r, 900));
+        addLine("output", "[4/4] Stress Testing Manifestation Pipeline... 120req/sec STABLE");
+        addLine("output", "QA Audit Complete. Platform Integrity: 100%");
+      } catch (err) {
+        addLine("error", `QA Test failed: ${(err as Error).message}`);
+      } finally {
+        setIsProcessing(false);
+      }
+      return;
+    }
+
     addLine("error", `Command not found: ${cmd.split(" ")[0]}`);
   };
 

@@ -134,6 +134,13 @@ export interface ProjectManifest {
     uxDrift?: number;
     lastSimulationAt?: string;
   };
+  qa?: {
+    status: "pass" | "fail" | "running" | "idle";
+    lastRunAt?: string;
+    reportUrl?: string;
+    errors?: string[];
+    screenshotUrl?: string;
+  };
 }
 
 export interface Project extends GenerationResult {

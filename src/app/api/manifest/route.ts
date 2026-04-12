@@ -4,11 +4,10 @@ import { runScoutAgent } from "@/lib/agents/scout";
 import { runChroniclerAgent } from "@/lib/agents/chronicler";
 import { runPhantom } from "@/lib/agents/phantom";
 import { runHerald } from "@/lib/agents/herald";
-import { PHASE_19_SYSTEM_PROMPT } from "@/lib/prompts/phase-19";
-import { Project } from "@/lib/types";
-import { saveProjectDB } from "@/lib/supabase/db";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { runPhantom } from "@/lib/agents/phantom";
+import { runOverseerAgent } from "@/lib/agents/overseer";
 import { traced } from "@/lib/telemetry";
+
 import { rateLimit } from "@/lib/rate-limit";
 import { runSecurityAudit } from "@/lib/agents/security";
 import { runSentinelAgent } from "@/lib/agents/sentinel";
@@ -171,6 +170,15 @@ USER REQUEST: "${prompt}"
         manifest: { protocol }
       } as unknown as Project));
 
+      // STEP 8.4: PHASE 21 - THE OVERSEER (QA)
+      const qaResult = await traced("agent.overseer", { "agent.role": "Overseer" }, () => runOverseerAgent({
+        ...genData.result,
+        files,
+        id: "temp",
+        createdAt: new Date().toISOString(),
+        manifest: { strategy: strategy.strategyMarkdown, docs, mode, protocol }
+      } as unknown as Project));
+
       // STEP 9: PERSISTENCE
       const projectData: Partial<Project> = {
         id: crypto.randomUUID(),
@@ -195,6 +203,12 @@ USER REQUEST: "${prompt}"
           economy,
           broker,
           legal,
+          qa: {
+            status: qaResult.status === "pass" ? "pass" : "fail",
+            lastRunAt: new Date().toISOString(),
+            errors: qaResult.testSteps.filter(s => s.result === "failure").map(s => s.error || s.step),
+            reportUrl: "/dashboard/qa/" + crypto.randomUUID(), // Mock report URL
+          },
           monetization: {
             affiliateCut: 0.20,
             revenueShareActive: true
