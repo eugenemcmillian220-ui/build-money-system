@@ -17,8 +17,15 @@ const nextConfig: NextConfig = {
 };
 
 export default withSentryConfig(nextConfig, {
-  org: process.env.SENTRY_ORG || "build-money-system",
-  project: process.env.SENTRY_PROJECT || "javascript-nextjs",
-  silent: true,
+  org: "build-money-system-iq",
+  project: "httpsbuild-money-system-omd8vercelapp",
+  silent: !process.env.CI,
   widenClientFileUpload: true,
+  reactComponentAnnotation: {
+    enabled: true,
+  },
+  tunnelRoute: "/monitoring",
+  hideSourceMaps: true,
+  disableLogger: true,
+  automaticVercelMonitors: true,
 });

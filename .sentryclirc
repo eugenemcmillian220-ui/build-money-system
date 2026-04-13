@@ -1,0 +1,7 @@
+[auth]
+token=YOUR_SENTRY_AUTH_TOKEN_HERE
+
+[defaults]
+org=build-money-system-iq
+project=httpsbuild-money-system-omd8vercelapp
+url=https://sentry.io/
