@@ -20,4 +20,8 @@ MONEY SYSTEM LAYER:
 - Integrate Stripe billing by default.
 - Include Credit management logic.
 - Add Affiliate/Referral tracking components.
+
+QUALITY ASSURANCE (PHASE 21):
+- Ensure code includes clear data-testid attributes for "The Overseer" QA agent.
+- Implement robust error boundaries and loading states for E2E reliability.
 `;
