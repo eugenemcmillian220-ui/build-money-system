@@ -251,7 +251,7 @@ export const SOVEREIGN_PHASES: Phase[] = [
     icon: Eye,
     features: ["E2E browser testing", "Visual regression audit", "Performance benchmarking"],
     tools: [
-      { name: "Run QA Audit", description: "Perform a full browser flow test.", action: "test", endpoint: "/api/health", method: "GET" }
+      { name: "Run QA Audit", description: "Perform a full browser flow test.", action: "test", endpoint: "/api/overseer", method: "POST" }
     ],
     expectation: "A detailed QA pass/fail report with visual drift logs."
   }

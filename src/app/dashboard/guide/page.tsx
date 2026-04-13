@@ -17,9 +17,9 @@ export default function GuidePage() {
       tips: ["Elite mode requires more credits but includes auto-legalization.", "Universal mode is best for most SaaS applications."]
     },
     {
-      title: "3. The 17-Agent Swarm",
+      title: "3. The 21-Agent Swarm",
       icon: Users,
-      content: "When you manifest a project, 17 specialized AI agents collaborate. The Scout researches the market, the Architect designs the UI, the Developer writes the code, the Sentinel hardens security, and the Overseer performs E2E browser tests.",
+      content: "When you manifest a project, 21 specialized AI agents collaborate. The Scout researches the market, the Architect designs the UI, the Developer writes the code, the Sentinel hardens security, and the Overseer performs E2E browser tests.",
       tips: ["Check the 'Governance' tab in your project to see agent logs.", "The 'Healer' agent automatically fixes runtime errors."]
     },
     {

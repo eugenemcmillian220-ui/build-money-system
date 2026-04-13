@@ -23,7 +23,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
   const { id } = use(params);
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"strategy" | "docs" | "marketing" | "simulation" | "security" | "sentinel" | "economy" | "broker" | "legal">("strategy");
+  const [activeTab, setActiveTab] = useState<"strategy" | "docs" | "marketing" | "simulation" | "security" | "sentinel" | "economy" | "broker" | "legal" | "qa">("strategy");
 
   useEffect(() => {
     async function fetchProject() {

@@ -12,7 +12,7 @@ interface AiTerminalProps {
 export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
   const [input, setInput] = useState("");
   const [history, setHistory] = useState<{ type: "input" | "output" | "error"; text: string }[]>([
-    { type: "output", text: "Sovereign Forge OS v2.1 (Phase 20 Active)" },
+    { type: "output", text: "Sovereign Forge OS v2.7.1 (Phase 21 Active)" },
     { type: "output", text: "Type 'help' for available commands." },
   ]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -214,7 +214,7 @@ export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
 
     if (cmd.toLowerCase() === "restart") {
       setIsProcessing(true);
-      addLine("output", "Executing Sovereign Fresh Restart (Phase 20)...");
+      addLine("output", "Executing Sovereign Fresh Restart (Phase 21)...");
       try {
         const repair = await repairOrganization();
         if (repair.success) {

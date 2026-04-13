@@ -148,7 +148,7 @@ export default function DashboardPage() {
             <div className="space-y-2">
               <div className="flex items-center gap-3">
                 <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter italic">Command Center</h1>
-                <span className="px-3 py-1 bg-brand-500 text-black text-[10px] font-black uppercase tracking-widest rounded-full transform -rotate-2">Phase 20</span>
+                <span className="px-3 py-1 bg-brand-500 text-black text-[10px] font-black uppercase tracking-widest rounded-full transform -rotate-2">Phase 21</span>
               </div>
               <p className="text-muted-foreground font-bold italic tracking-tight">Welcome back, Sovereign. Your empire is operating at peak efficiency.</p>
             </div>

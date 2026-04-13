@@ -86,6 +86,7 @@ const PHASES = [
   { num: "18", name: "R&D", desc: "Autonomous Tech Scouting" },
   { num: "19", name: "Forge", desc: "Intent-Based Synthesis" },
   { num: "20", name: "Sovereign", desc: "Phantom UX & Herald Launch" },
+  { num: "21", name: "Overseer", desc: "Autonomous QA & E2E Testing" },
 ];
 
 
@@ -131,7 +132,7 @@ export default function LandingPage() {
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-500 opacity-75" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-500" />
           </span>
-          20-Phase Sovereign AI Empire
+          21-Phase Sovereign AI Empire
         </div>
 
         <h1 className="mx-auto max-w-5xl text-6xl font-black tracking-tight sm:text-8xl lg:text-9xl">
@@ -225,7 +226,7 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="border-t border-border/50 py-10 text-center text-xs tracking-widest text-muted-foreground uppercase font-black">
-        Sovereign Forge OS v2.2 · Built with Next.js 15 · React 19 · Tailwind CSS v4 · Supabase · Arize AI
+        Sovereign Forge OS v2.7.1 · Built with Next.js 15 · React 19 · Tailwind CSS v4 · Supabase · Arize AI
       </footer>
     </main>
   );

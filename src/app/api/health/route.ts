@@ -16,7 +16,7 @@ export async function GET() {
       github: !!process.env.GITHUB_TOKEN,
       stripe: !!process.env.STRIPE_SECRET_KEY,
     },
-    phases: Array.from({ length: 18 }, (_, i) => `phase-${i + 1}`),
+    phases: Array.from({ length: 21 }, (_, i) => `phase-${i + 1}`),
   };
 
   return NextResponse.json(health);
