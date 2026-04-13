@@ -56,7 +56,7 @@ export class MonetizationEngine {
   /**
    * Get dynamic cost for manifestation
    */
-  calculateManifestationCost(baseCost: number = 25): number {
+  calculateManifestationCost(baseCost: number = 50): number {
     const multiplier = this.getSurgeMultiplier();
     return Math.ceil(baseCost * multiplier);
   }

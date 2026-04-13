@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
       span.attributes["project.protocol"] = protocol;
 
       // STEP 0: CREDIT CHECK (Phase 10 Economy & Phase 6 Surge)
-      const baseManifestationCost = mode === "elite" ? 50 : 25;
+      const baseManifestationCost = mode === "elite" ? 100 : 50;
       const dynamicCost = monetizationEngine.calculateManifestationCost(baseManifestationCost);
 
       if (orgId) {

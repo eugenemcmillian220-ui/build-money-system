@@ -162,11 +162,11 @@ export const LIFETIME_LICENSES: Record<string, LifetimeLicense> = {
 
 // === CREDIT TOP-UP PACKS (5 Packs) ===
 export const CREDIT_PACKS: CreditPack[] = [
-  { id: "credits_5k", credits: 5000, price: 5000, label: "Starter Pack" },
-  { id: "credits_10k", credits: 10000, price: 9000, label: "Pro Boost", savings: "10% off" },
-  { id: "credits_25k", credits: 25000, price: 20000, label: "Empire Surge", savings: "20% off" },
-  { id: "credits_50k", credits: 50000, price: 35000, label: "Empire Overdrive", savings: "30% off" },
-  { id: "credits_100k", credits: 100000, price: 60000, label: "Empire Titan", savings: "40% off" },
+  { id: "credits_5k", credits: 5000, price: 2000, label: "Starter Pack" },
+  { id: "credits_10k", credits: 10000, price: 3800, label: "Pro Boost", savings: "5% off" },
+  { id: "credits_25k", credits: 25000, price: 9000, label: "Empire Surge", savings: "10% off" },
+  { id: "credits_50k", credits: 50000, price: 17000, label: "Empire Overdrive", savings: "15% off" },
+  { id: "credits_100k", credits: 100000, price: 32000, label: "Empire Titan", savings: "20% off" },
 ];
 
 // === MARKETPLACE & AFFILIATE CONFIG ===
