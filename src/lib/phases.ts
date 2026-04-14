@@ -2,7 +2,7 @@ import {
   Zap, Database, Rocket, ShieldCheck, TrendingUp, BarChart3, 
   Activity, Box, Eye, CreditCard, Globe, Lock, Users, 
   Handshake, Brain, Merge, FileText, Search, Code2, 
-  Cpu, Terminal
+  Cpu, Terminal, Gavel
 } from "lucide-react";
 
 export interface PhaseTool {
@@ -224,14 +224,15 @@ export const SOVEREIGN_PHASES: Phase[] = [
   },
   {
     id: 19,
-    name: "Universal Forge",
-    mission: "Intent-Based Synthesis",
-    icon: Cpu,
-    features: ["Modular prompt injection", "Stack selector", "Global plugin architecture"],
+    name: "Sovereign DAO",
+    mission: "Autonomous Governance & Profit Share",
+    icon: Gavel,
+    features: ["Tokenized voting (AGT/UGT)", "Automated treasury management", "On-chain entity integration"],
     tools: [
-      { name: "Synthesize", description: "Perform intent-based app synthesis.", action: "forge", endpoint: "/api/manifest", method: "POST" }
+      { name: "Create Proposal", description: "Submit a new governance proposal.", action: "propose", endpoint: "/api/dao/propose", method: "POST" },
+      { name: "Check Treasury", description: "Audit the swarm's managed assets.", action: "treasury", endpoint: "/api/dao/treasury", method: "GET" }
     ],
-    expectation: "A fully functional business empire tailored to your unique intent."
+    expectation: "A decentralized, indestructible, and profitable autonomous empire."
   },
   {
     id: 20,

@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "./supabase/db";
 import { AgentEconomy } from "./economy";
 import { MARKETPLACE_CONFIG, LIFETIME_LICENSES } from "./stripe";
+import { daoEngine } from "./dao-engine";
 
 /**
  * Billing Engine: Synchronizes Stripe events with the internal Credit System
@@ -8,6 +9,7 @@ import { MARKETPLACE_CONFIG, LIFETIME_LICENSES } from "./stripe";
  */
 export class BillingEngine {
   private economy = new AgentEconomy();
+  private dao = daoEngine;
 
   /**
    * Processes a successful one-time credit top-up
@@ -27,6 +29,17 @@ export class BillingEngine {
 
     // 2. Update the organization balance in the economy ledger
     await this.economy.grantCredits(orgId, credits, "top_up");
+
+    // 3. Phase 19: Distribute User Governance Tokens (UGT) - 1 UGT per 1000 credits purchased
+    const ugtToGrant = Math.floor(credits / 1000);
+    if (ugtToGrant > 0) {
+      await this.dao.distributeTokens({
+        orgId,
+        ownerId: orgId, // In this system, Org is the owner
+        type: "UGT",
+        amount: ugtToGrant
+      });
+    }
   }
 
   /**

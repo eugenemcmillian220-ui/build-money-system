@@ -17,7 +17,8 @@ import {
   X,
   LogOut,
   Book,
-  LayoutGrid
+  LayoutGrid,
+  Gavel
 } from "lucide-react";
 
 
@@ -33,6 +34,7 @@ export function Sidebar() {
     { name: "Guide", href: "/dashboard/guide", icon: Book },
     { name: "AI Terminal", href: "/dashboard/terminal", icon: Terminal },
     { name: "Projects", href: "/dashboard/projects", icon: Package },
+    { name: "Governance", href: "/dashboard/governance", icon: Gavel },
     { name: "Billing", href: "/dashboard/billing", icon: CreditCard },
   ];
 
@@ -55,7 +57,7 @@ export function Sidebar() {
     { id: 16, name: "Ph 16: M&A", href: "/dashboard/phases/16" },
     { id: 17, name: "Ph 17: Legal Vault", href: "/dashboard/phases/17" },
     { id: 18, name: "Ph 18: R&D Scout", href: "/dashboard/phases/18" },
-    { id: 19, name: "Ph 19: Forge", href: "/dashboard/phases/19" },
+    { id: 19, name: "Ph 19: Sovereign DAO", href: "/dashboard/phases/19" },
     { id: 20, name: "Ph 20: Lifecycle", href: "/dashboard/phases/20" },
     { id: 21, name: "Ph 21: Overseer", href: "/dashboard/phases/21" },
   ];
