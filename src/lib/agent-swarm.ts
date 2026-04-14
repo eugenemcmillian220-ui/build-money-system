@@ -3,6 +3,7 @@ import { FileMap, ProjectStatus } from "./types";
 import { LLMError } from "./llm";
 import { agentEconomy, AgentRole as EconomyRole } from "./economy";
 import { slackNotifier } from "./slack";
+import { discordNotifier } from "./discord";
 
 /**
  * Agent Swarm System for AI App Builder
@@ -77,6 +78,7 @@ export class AgentSwarm {
       }
 
       await slackNotifier.notifySwarmEvent("Architect", `Initializing build for: ${prompt}`, "info");
+      await discordNotifier.notifySwarmEvent("Architect", `Initializing build for: ${prompt}`, "info");
       
       const architectTask: SwarmTask = {
         id: 'task-architect',
@@ -99,6 +101,7 @@ export class AgentSwarm {
       architectTask.status = 'completed';
       architectTask.result = plan.files;
       await slackNotifier.notifySwarmEvent("Architect", "Project scaffolding generated.", "success");
+      await discordNotifier.notifySwarmEvent("Architect", "Project scaffolding generated.", "success");
 
       // Step 2: Implementation (Frontend & Backend)
       if (onProgress) {
@@ -106,6 +109,7 @@ export class AgentSwarm {
       }
 
       await slackNotifier.notifySwarmEvent("Dev Team", "Commencing implementation pass.", "info");
+      await discordNotifier.notifySwarmEvent("Dev Team", "Commencing implementation pass.", "info");
 
       const devTasks = [this.roles[1], this.roles[2]].map((role, index) => {
         const task: SwarmTask = {
@@ -134,6 +138,7 @@ export class AgentSwarm {
 
       devResults.forEach(files => Object.assign(combinedFiles, files));
       await slackNotifier.notifySwarmEvent("Dev Team", "Frontend and Backend components manifested.", "success");
+      await discordNotifier.notifySwarmEvent("Dev Team", "Frontend and Backend components manifested.", "success");
 
       // Step 3: Testing & Fixing (QA)
       if (onProgress) {
@@ -168,6 +173,7 @@ export class AgentSwarm {
       qaTask.result = finalFiles.files;
 
       await slackNotifier.notifySwarmEvent("QA Lead", "E2E audit passed. Security hardening applied.", "success");
+      await discordNotifier.notifySwarmEvent("QA Lead", "E2E audit passed. Security hardening applied.", "success");
 
       if (onProgress) {
         onProgress({ phase: 'complete', currentPass: 4, totalPasses: 4, message: 'Project build completed successfully by the swarm!' });
