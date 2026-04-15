@@ -2,6 +2,8 @@ import { FileMap, AppSpec, AgentConfig, defaultAgentConfig, ChatMessage } from "
 import { MemoryContext } from "./memory-store";
 import { llmRouter, LLMProvider } from "./llm-router";
 import { keyManager } from "./key-manager";
+import { llmCache } from "./llm-cache";
+import { logger } from "./logger";
 
 const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
 
@@ -57,39 +59,88 @@ export async function callLLMJson<T>(
     const parsed = JSON.parse(cleaned);
     return schema.parse(parsed);
   } catch (e) {
-    console.error("LLM JSON Parse Error:", e, "Raw Content:", content);
+    logger.error("LLM JSON parse error", { error: e, rawContentPreview: content.slice(0, 200) });
     throw new LLMError(`Failed to parse LLM response as JSON: ${e instanceof Error ? e.message : String(e)}`);
   }
 }
 
 export async function callLLM(
   messages: ChatMessage[],
-  config: Partial<AgentConfig> = {}
+  config: Partial<AgentConfig> = {},
+  options: { cache?: boolean; cacheTTL?: number } = {}
 ): Promise<string> {
   const fullConfig = { ...defaultAgentConfig, ...config };
+  const useCache = options.cache !== false; // Cache by default
+
+  // Check cache first (skip for streaming or explicitly disabled)
+  if (useCache) {
+    const cachedModel = fullConfig.model || "default";
+    const simpleMessages = messages.map(m => ({
+      role: m.role,
+      content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
+    }));
+    const cached = llmCache.get(cachedModel, simpleMessages);
+    if (cached) {
+      logger.debug("LLM cache hit", { model: cachedModel });
+      return cached;
+    }
+  }
+
+  let result: string | null = null;
 
   if (config.model && !config.model.includes(":free")) {
     try {
-      return await callProvider("openrouter", config.model, messages, fullConfig);
+      result = await callProvider("openrouter", config.model, messages, fullConfig);
     } catch (e) {
-      console.warn(`[LLM] Primary provider failed, falling back to rotation:`, e);
+      logger.warn("Primary provider failed, falling back to rotation", {
+        model: config.model,
+        error: e instanceof Error ? e.message : String(e),
+      });
     }
   }
 
-  let lastError: Error | null = null;
-  const maxAttempts = 4;
+  if (!result) {
+    let lastError: Error | null = null;
+    // Try all configured providers, not just 4 attempts
+    const maxAttempts = 7; // Match the 7 providers in priority chain
 
-  for (let i = 0; i < maxAttempts; i++) {
-    try {
-      const req = llmRouter.getNextRequest(messages, fullConfig);
-      return await callProvider(req.provider, req.model, messages, fullConfig);
-    } catch (e) {
-      lastError = e as Error;
-      console.warn(`[LLM] Rotation attempt ${i + 1} failed:`, e);
+    for (let i = 0; i < maxAttempts; i++) {
+      try {
+        const req = llmRouter.getNextRequest(messages, fullConfig);
+        result = await callProvider(req.provider, req.model, messages, fullConfig);
+        break;
+      } catch (e) {
+        lastError = e as Error;
+        logger.warn(`LLM rotation attempt ${i + 1}/${maxAttempts} failed`, {
+          error: (e as Error).message,
+        });
+      }
+    }
+
+    if (!result) {
+      logger.error("All LLM providers exhausted", {
+        lastError: lastError?.message,
+        configuredProviders: ["groq", "gemini", "openrouter", "openai", "cerebras", "deepseek", "cloudflare"]
+          .filter(p => keyManager.isConfigured(p as LLMProvider)),
+      });
+      throw new LLMError(
+        "All AI providers are currently unavailable. Please try again in a few moments, or check that at least one API key is configured.",
+        503
+      );
     }
   }
 
-  throw new LLMError(`All LLM providers failed: ${lastError?.message}`, 500);
+  // Store in cache
+  if (useCache && result) {
+    const cachedModel = fullConfig.model || "default";
+    const simpleMessages = messages.map(m => ({
+      role: m.role,
+      content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
+    }));
+    llmCache.set(cachedModel, simpleMessages, result);
+  }
+
+  return result;
 }
 
 async function callProvider(
@@ -170,7 +221,7 @@ export async function generateEmbedding(text: string): Promise<number[]> {
     }
     return vector.slice(0, 1536);
   } catch (err) {
-    console.error("[LLM] Embedding generation failed:", err);
+    logger.error("Embedding generation failed", { error: err });
     return new Array(1536).fill(0);
   }
 }

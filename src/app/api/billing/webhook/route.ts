@@ -1,6 +1,7 @@
 import Stripe from "stripe";
 import { billingEngine } from "@/lib/billing-engine";
 import { headers } from "next/headers";
+import { logger } from "@/lib/logger";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2026-03-25.dahlia",
@@ -19,7 +20,7 @@ export async function POST(request: Request): Promise<Response> {
   try {
     event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
   } catch (err) {
-    console.error(`[Stripe Webhook] Error verifying signature:`, err);
+    logger.error("Stripe webhook signature verification failed", { error: err });
     return new Response(`Webhook Error: ${(err as Error).message}`, { status: 400 });
   }
 
@@ -98,12 +99,12 @@ export async function POST(request: Request): Promise<Response> {
       }
 
       default:
-        console.log(`[Stripe Webhook] Unhandled event type ${event.type}`);
+        logger.info("Stripe webhook unhandled event type", { eventType: event.type });
     }
 
     return Response.json({ received: true });
   } catch (err) {
-    console.error(`[Stripe Webhook] Error processing event ${event.type}:`, err);
+    logger.error("Stripe webhook processing failed", { eventType: event.type, error: err });
     return new Response(`Webhook processing failed`, { status: 500 });
   }
 }
