@@ -7,7 +7,7 @@ export interface SocialPost {
 }
 
 export type LaunchAssets = {
-  twitterThread: { hook: string; posts: string[] };
+  socialThread: { hook: string; posts: string[] };
   productHunt: { tagline: string; description: string; makerComment: string };
   seoArticle: { title: string; content: string; keywords: string[] };
   hypeEngine?: {
@@ -22,7 +22,7 @@ export async function runHerald(project: Project): Promise<LaunchAssets> {
 Project Description: ${project.description}
 Return JSON ONLY:
 {
-  "twitterThread": { "hook": "...", "posts": ["...", "..."] },
+  "socialThread": { "hook": "...", "posts": ["...", "..."] },
   "productHunt": { "tagline": "...", "description": "...", "makerComment": "..." },
   "seoArticle": { "title": "...", "content": "...", "keywords": ["...", "..."] },
   "hypeEngine": {
@@ -44,7 +44,7 @@ Return JSON ONLY:
   } catch (err) {
     console.error("Herald parse failed, falling back to defaults.", err);
     return {
-      twitterThread: { hook: "Exciting new launch!", posts: ["Check it out!"] },
+      socialThread: { hook: "Exciting new launch!", posts: ["Check it out!"] },
       productHunt: { tagline: "Next-gen AI app", description: "Built with Build Money System", makerComment: "Hello world!" },
       seoArticle: { title: "How to use AI", content: "AI is the future.", keywords: ["AI", "Tech"] }
     };

@@ -3,7 +3,7 @@ import { Project } from "./types";
 import { createClient } from "./supabase/server";
 
 export interface SocialPost {
-  platform: "x" | "linkedin" | "reddit";
+  platform: "linkedin" | "reddit";
   content: string;
   mediaUrls?: string[];
 }
@@ -28,15 +28,13 @@ Project Description: ${project.description || "Next.js 15 Full-Stack App"}
 Core Features: ${project.integrations?.join(", ") || "Next.js 15, Tailwind CSS v4, AI-Powered"}
 Initial Prompt: ${project.prompt?.substring(0, 200) || "Build a high-potential SaaS"}
 
-Generate 3 posts:
-1. A viral X (Twitter) thread (5-7 parts).
-2. A professional LinkedIn thought-leadership post.
-3. A high-value Reddit post for r/webdev or r/saas.
+Generate 2 posts:
+1. A professional LinkedIn thought-leadership post.
+2. A high-value Reddit post for r/webdev or r/saas.
 
 Return ONLY a JSON object:
 {
   "posts": [
-    { "platform": "x", "content": "Thread part 1...\\n\\nPart 2..." },
     { "platform": "linkedin", "content": "Post content..." },
     { "platform": "reddit", "content": "Post content..." }
   ]

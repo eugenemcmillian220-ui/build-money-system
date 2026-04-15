@@ -83,10 +83,6 @@ const serverEnvSchema = z.object({
   CRON_SECRET: z.string().optional(),
 
   // Social
-  X_API_KEY: z.string().optional(),
-  X_API_SECRET: z.string().optional(),
-  X_ACCESS_TOKEN: z.string().optional(),
-  X_ACCESS_SECRET: z.string().optional(),
   LINKEDIN_CLIENT_ID: z.string().optional(),
   LINKEDIN_CLIENT_SECRET: z.string().optional(),
   DISCORD_TOKEN: z.string().optional(),

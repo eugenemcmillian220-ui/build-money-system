@@ -102,7 +102,6 @@ function checkIntegrations() {
   const integrations = {
     stripe: !!process.env.STRIPE_SECRET_KEY,
     e2b: !!process.env.E2B_API_KEY,
-    x: !!process.env.X_API_KEY,
     linkedin: !!process.env.LINKEDIN_CLIENT_ID,
     discord: !!process.env.DISCORD_TOKEN,
     slack: !!process.env.SLACK_TOKEN,
