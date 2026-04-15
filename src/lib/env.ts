@@ -194,15 +194,47 @@ export const clientEnv = new Proxy({} as ClientEnv, {
 });
 
 /**
- * Runtime validation - call this from middleware or a server component
- * to ensure critical environment variables are set.
+ * Runtime validation — call from middleware or instrumentation hook
+ * to ensure critical environment variables are set before serving traffic.
+ *
+ * Level 1 (always required): Supabase connection
+ * Level 2 (required for billing): Stripe keys
+ * Level 3 (required for AI): At least one LLM provider key
  */
-export function validateCriticalEnv(): { valid: boolean; missing: string[] } {
-  const critical = [
+export function validateCriticalEnv(): { valid: boolean; missing: string[]; warnings: string[] } {
+  // Level 1: Core infrastructure — app won't function without these
+  const coreCritical = [
     "NEXT_PUBLIC_SUPABASE_URL",
     "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY",
   ] as const;
 
-  const missing = critical.filter((key) => !process.env[key]);
-  return { valid: missing.length === 0, missing: [...missing] };
+  // Level 2: Billing — payments will fail without these
+  const billingCritical = [
+    "STRIPE_SECRET_KEY",
+    "STRIPE_WEBHOOK_SECRET",
+  ] as const;
+
+  const missing = coreCritical.filter((key) => !process.env[key]);
+  const warnings: string[] = [];
+
+  // Check billing vars
+  const missingBilling = billingCritical.filter((key) => !process.env[key]);
+  if (missingBilling.length > 0) {
+    warnings.push(`Billing disabled: missing ${missingBilling.join(", ")}`);
+  }
+
+  // Check that at least one AI provider is configured
+  const aiKeys = [
+    "OPENROUTER_API_KEY", "OPENROUTER_API_KEYS",
+    "OPENAI_API_KEY", "OPENAI_API_KEYS",
+    "GEMINI_API_KEY", "GEMINI_API_KEYS",
+    "GROQ_API_KEY", "GROQ_API_KEYS",
+  ];
+  const hasAiKey = aiKeys.some((key) => !!process.env[key]);
+  if (!hasAiKey) {
+    warnings.push("No AI provider API key configured — agent swarm will not function");
+  }
+
+  return { valid: missing.length === 0, missing: [...missing], warnings };
 }

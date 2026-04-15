@@ -5,8 +5,15 @@ import { redirect } from "next/navigation";
 import type { Route } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { rateLimit } from "@/lib/rate-limit";
+import { headers } from "next/headers";
 
 import { SupabaseClient, User } from "@supabase/supabase-js";
+
+async function getClientIp(): Promise<string> {
+  const h = await headers();
+  return h.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+}
 
 async function ensurePersonalOrg(supabase: SupabaseClient, user: User, email: string) {
   const { data: orgs } = await supabase
@@ -44,8 +51,22 @@ async function ensurePersonalOrg(supabase: SupabaseClient, user: User, email: st
 }
 
 export async function login(formData: FormData) {
-  const supabase = await createClient();
+  const ip = await getClientIp();
   const email = formData.get("email") as string;
+
+  // Rate limit: 10 login attempts per IP per minute
+  const ipLimit = await rateLimit(`login:ip:${ip}`, 10, 60000);
+  if (!ipLimit.success) {
+    return { error: "Too many login attempts. Please wait a minute and try again." };
+  }
+
+  // Rate limit: 5 login attempts per email per minute (prevents credential stuffing)
+  const emailLimit = await rateLimit(`login:email:${email}`, 5, 60000);
+  if (!emailLimit.success) {
+    return { error: "Too many login attempts for this email. Please wait a minute." };
+  }
+
+  const supabase = await createClient();
   const password = formData.get("password") as string;
   const redirectTo = formData.get("redirectTo") as string;
 
@@ -64,8 +85,22 @@ export async function login(formData: FormData) {
 }
 
 export async function signup(formData: FormData) {
-  const supabase = await createClient();
+  const ip = await getClientIp();
   const email = formData.get("email") as string;
+
+  // Rate limit: 3 signups per IP per hour (prevents mass account creation)
+  const ipLimit = await rateLimit(`signup:ip:${ip}`, 3, 3600000);
+  if (!ipLimit.success) {
+    return { error: "Too many signup attempts. Please try again later." };
+  }
+
+  // Rate limit: 2 signups per email per hour
+  const emailLimit = await rateLimit(`signup:email:${email}`, 2, 3600000);
+  if (!emailLimit.success) {
+    return { error: "A signup was already requested for this email. Check your inbox." };
+  }
+
+  const supabase = await createClient();
   const password = formData.get("password") as string;
 
   const { error, data } = await supabase.auth.signUp({
