@@ -99,25 +99,25 @@ class KeyManager {
     switch (provider) {
       case "openrouter":
         keys = this.parseKeysWithFallback(
-          process.env.OPENROUTER_KEYS,
+          process.env.OPENROUTER_API_KEYS,
           process.env.OPENROUTER_API_KEY
         );
         break;
       case "groq":
         keys = this.parseKeysWithFallback(
-          process.env.GROQ_KEYS,
+          process.env.GROQ_API_KEYS,
           process.env.GROQ_API_KEY
         );
         break;
       case "gemini":
         keys = this.parseKeysWithFallback(
-          process.env.GEMINI_KEYS,
+          process.env.GEMINI_API_KEYS,
           process.env.GEMINI_API_KEY
         );
         break;
       case "openai":
         keys = this.parseKeysWithFallback(
-          process.env.OPENAI_KEYS,
+          process.env.OPENAI_API_KEYS,
           process.env.OPENAI_API_KEY
         );
         break;

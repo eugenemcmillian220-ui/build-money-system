@@ -88,10 +88,10 @@ const serverEnvSchema = z.object({
   SLACK_BOT_TOKEN: z.string().optional(),
   SLACK_WEBHOOK_URL: z.string().optional(),
   SLACK_CHANNEL_ID: z.string().optional(),
-  GROQ_KEYS: z.string().optional(),
-  GEMINI_KEYS: z.string().optional(),
-  OPENAI_KEYS: z.string().optional(),
-  OPENROUTER_KEYS: z.string().optional(),
+  GROQ_API_KEYS: z.string().optional(),
+  GEMINI_API_KEYS: z.string().optional(),
+  OPENAI_API_KEYS: z.string().optional(),
+  OPENROUTER_API_KEYS: z.string().optional(),
 
   // Arize AI / OTel
   ARIZE_API_KEY: z.string().optional(),
