@@ -90,8 +90,6 @@ const serverEnvSchema = z.object({
   LINKEDIN_CLIENT_ID: z.string().optional(),
   LINKEDIN_CLIENT_SECRET: z.string().optional(),
   DISCORD_TOKEN: z.string().optional(),
-  DISCORD_WEBHOOK_URL: z.string().optional(),
-  DISCORD_CHANNEL_ID: z.string().optional(),
   SLACK_TOKEN: z.string().optional(),
   SLACK_BOT_TOKEN: z.string().optional(),
   SLACK_WEBHOOK_URL: z.string().optional(),
