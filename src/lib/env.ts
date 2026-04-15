@@ -83,8 +83,6 @@ const serverEnvSchema = z.object({
   CRON_SECRET: z.string().optional(),
 
   // Social
-  LINKEDIN_CLIENT_ID: z.string().optional(),
-  LINKEDIN_CLIENT_SECRET: z.string().optional(),
   DISCORD_TOKEN: z.string().optional(),
   SLACK_TOKEN: z.string().optional(),
   SLACK_BOT_TOKEN: z.string().optional(),

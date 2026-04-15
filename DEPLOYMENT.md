@@ -69,19 +69,6 @@ E2B_API_KEY=e2b_sk_your-e2b-key-here
 # Cron Jobs
 CRON_SECRET=your-cron-secret-here
 
-# Social Media Integration (Optional)
-X_API_KEY=your-twitter-key-here
-X_API_SECRET=your-twitter-secret-here
-X_ACCESS_TOKEN=your-twitter-access-token-here
-X_ACCESS_SECRET=your-twitter-access-secret-here
-
-# LinkedIn (Optional)
-LINKEDIN_CLIENT_ID=your-linkedin-client-id-here
-LINKEDIN_CLIENT_SECRET=your-linkedin-secret-here
-
-# Discord (Optional)
-DISCORD_TOKEN=your-discord-bot-token-here
-
 # Slack (Optional)
 SLACK_TOKEN=your-slack-bot-token-here
 ```

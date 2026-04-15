@@ -897,7 +897,7 @@ CREATE INDEX IF NOT EXISTS idx_agent_skills_category ON agent_skills(category);
 CREATE TABLE IF NOT EXISTS marketing_posts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
-  platform VARCHAR(50) NOT NULL, -- 'x', 'linkedin', 'reddit'
+  platform VARCHAR(50) NOT NULL, -- Platform name (e.g. 'slack')
   content TEXT NOT NULL,
   media_urls TEXT[],
   status VARCHAR(20) DEFAULT 'scheduled', -- 'scheduled', 'posted', 'failed'
