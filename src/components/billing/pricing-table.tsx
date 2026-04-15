@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BILLING_TIERS, LIFETIME_LICENSES, CREDIT_PACKS, BillingTier, LifetimeLicense } from "@/lib/stripe";
+import { BILLING_TIERS, LIFETIME_LICENSES, CREDIT_PACKS, BillingTier, LifetimeLicense } from "@/lib/stripe-config";
 
 interface PricingTableProps {
   orgId: string;

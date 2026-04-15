@@ -1,28 +1,56 @@
 import { NextRequest, NextResponse } from "next/server";
-import { classifyIntent } from "@/lib/agents/classifier";
-import { runScoutAgent } from "@/lib/agents/scout";
-import { runArchitectAgent } from "@/lib/agents/architect";
-import { runChroniclerAgent } from "@/lib/agents/chronicler";
-import { runPhantom } from "@/lib/agents/phantom";
-import { runHerald } from "@/lib/agents/herald";
-import { runOverseerAgent } from "@/lib/agents/overseer";
 import { traced } from "@/lib/telemetry";
-import { PHASE_19_SYSTEM_PROMPT } from "@/lib/prompts/phase-19";
 import { Project } from "@/lib/types";
 import { saveProjectDB } from "@/lib/supabase/db";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-
 import { rateLimit } from "@/lib/rate-limit";
-import { runSecurityAudit } from "@/lib/agents/security";
-import { runSentinelAgent } from "@/lib/agents/sentinel";
-import { runEconomyAgent } from "@/lib/agents/economy";
-import { runBrokerAgent } from "@/lib/agents/broker";
-import { runLegalAgent } from "@/lib/agents/legal";
 import { monetizationEngine } from "@/lib/monetization";
 import { requireAuth, isAuthError } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+/**
+ * Lazy-load heavy agent modules to reduce webpack memory during build.
+ * Each agent is only imported when the route is actually invoked.
+ */
+async function loadAgents() {
+  const [
+    { classifyIntent },
+    { runScoutAgent },
+    { runArchitectAgent },
+    { runChroniclerAgent },
+    { runPhantom },
+    { runHerald },
+    { runOverseerAgent },
+    { PHASE_19_SYSTEM_PROMPT },
+    { runSecurityAudit },
+    { runSentinelAgent },
+    { runEconomyAgent },
+    { runBrokerAgent },
+    { runLegalAgent },
+  ] = await Promise.all([
+    import("@/lib/agents/classifier"),
+    import("@/lib/agents/scout"),
+    import("@/lib/agents/architect"),
+    import("@/lib/agents/chronicler"),
+    import("@/lib/agents/phantom"),
+    import("@/lib/agents/herald"),
+    import("@/lib/agents/overseer"),
+    import("@/lib/prompts/phase-19"),
+    import("@/lib/agents/security"),
+    import("@/lib/agents/sentinel"),
+    import("@/lib/agents/economy"),
+    import("@/lib/agents/broker"),
+    import("@/lib/agents/legal"),
+  ]);
+
+  return {
+    classifyIntent, runScoutAgent, runArchitectAgent, runChroniclerAgent,
+    runPhantom, runHerald, runOverseerAgent, PHASE_19_SYSTEM_PROMPT,
+    runSecurityAudit, runSentinelAgent, runEconomyAgent, runBrokerAgent, runLegalAgent,
+  };
+}
 
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth();
@@ -30,7 +58,7 @@ export async function POST(request: NextRequest) {
 
   // Rate Limit
   const ip = request.headers.get("x-forwarded-for") || "unknown";
-  const { success, limit, remaining, reset } = rateLimit(ip, 5, 60000); // 5 requests per minute
+  const { success, limit, remaining, reset } = await rateLimit(ip, 5, 60000);
 
   if (!success) {
     return NextResponse.json(
@@ -48,6 +76,8 @@ export async function POST(request: NextRequest) {
 
   return traced("manifestationPipeline", {}, async (span) => {
     try {
+      const agents = await loadAgents();
+
       const body = await request.json().catch(() => ({}));
       const { prompt, orgId, options } = body;
 
@@ -58,15 +88,13 @@ export async function POST(request: NextRequest) {
       span.attributes["project.prompt"] = prompt;
       span.attributes["project.org_id"] = orgId;
 
-      // STEP 1: INTENT CLASSIFICATION
-      const classification = await traced("agent.classifier", { "agent.role": "Classifier" }, () => classifyIntent(prompt));
+      const classification = await traced("agent.classifier", { "agent.role": "Classifier" }, () => agents.classifyIntent(prompt));
       const mode = options?.mode || classification.mode;
       const protocol = options?.protocol || classification.protocol;
 
       span.attributes["project.mode"] = mode;
       span.attributes["project.protocol"] = protocol;
 
-      // STEP 0: CREDIT CHECK (Phase 10 Economy & Phase 6 Surge)
       const baseManifestationCost = mode === "elite" ? 100 : 50;
       const dynamicCost = monetizationEngine.calculateManifestationCost(baseManifestationCost);
 
@@ -88,14 +116,9 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // STEP 2: THE SCOUT (Pre-generation Research)
-      const strategy = await traced("agent.scout", { "agent.role": "Scout" }, () => runScoutAgent(prompt, protocol));
+      const strategy = await traced("agent.scout", { "agent.role": "Scout" }, () => agents.runScoutAgent(prompt, protocol));
+      const architecture = await traced("agent.architect", { "agent.role": "Architect" }, () => agents.runArchitectAgent(prompt, strategy.strategyMarkdown));
 
-      // STEP 3: THE ARCHITECT (Structural Planning)
-      const architecture = await traced("agent.architect", { "agent.role": "Architect" }, () => runArchitectAgent(prompt, strategy.strategyMarkdown));
-
-      // STEP 3.1: Visual Engine Expansion
-      // In Ph 1-3, we now inject visual tokens.
       const visualTokens = {
         theme: options?.theme || "dark",
         primaryColor: options?.primaryColor || "#f59e0b",
@@ -103,7 +126,7 @@ export async function POST(request: NextRequest) {
       };
 
       const finalPrompt = `
-${PHASE_19_SYSTEM_PROMPT}
+${agents.PHASE_19_SYSTEM_PROMPT}
 
 BUILD CONTEXT:
 Mode: ${mode.toUpperCase()}
@@ -121,7 +144,6 @@ DATABASE REQS: ${architecture.databaseRequirements.join(", ")}
 USER REQUEST: "${prompt}"
       `;
 
-      // STEP 4: THE DEVELOPER (Generate Files)
       const res = await traced("agent.developer", { "agent.role": "Developer" }, async () => {
         const fetchRes = await fetch(`${request.nextUrl.origin}/api/generate`, {
           method: "POST",
@@ -135,20 +157,11 @@ USER REQUEST: "${prompt}"
       const genData = res;
       const files = genData.result?.files;
 
-      // STEP 5: THE CHRONICLER
-      const docs = await traced("agent.chronicler", { "agent.role": "Chronicler" }, () => runChroniclerAgent(files));
-
-      // STEP 6: PHASE 8-10 - THE SECURITY AUDITOR
-      const security = await traced("agent.security", { "agent.role": "Security" }, () => runSecurityAudit(files));
-
-      // STEP 6.1: PHASE 4 - THE SENTINEL
-      const sentinel = await traced("agent.sentinel", { "agent.role": "Sentinel" }, () => runSentinelAgent(files));
-
-      // STEP 7: PHASE 20 - THE PHANTOM
-      const simulation = await traced("agent.phantom", { "agent.role": "Phantom" }, () => runPhantom({ files, id: "temp", createdAt: new Date().toISOString() } as Project));
-
-      // STEP 8: PHASE 20 - THE HERALD
-      const launch = await traced("agent.herald", { "agent.role": "Herald" }, () => runHerald({
+      const docs = await traced("agent.chronicler", { "agent.role": "Chronicler" }, () => agents.runChroniclerAgent(files));
+      const security = await traced("agent.security", { "agent.role": "Security" }, () => agents.runSecurityAudit(files));
+      const sentinel = await traced("agent.sentinel", { "agent.role": "Sentinel" }, () => agents.runSentinelAgent(files));
+      const simulation = await traced("agent.phantom", { "agent.role": "Phantom" }, () => agents.runPhantom({ files, id: "temp", createdAt: new Date().toISOString() } as Project));
+      const launch = await traced("agent.herald", { "agent.role": "Herald" }, () => agents.runHerald({
         description: genData.result.description || prompt,
         files,
         id: "temp",
@@ -156,14 +169,12 @@ USER REQUEST: "${prompt}"
         manifest: { strategy: strategy.strategyMarkdown, docs: docs as unknown as Record<string, unknown>, mode, protocol }
       } as unknown as Project));
 
-      // STEP 8.1: PHASE 10 & 13 - THE AUDITOR OF ECONOMY
-      const economy = await traced("agent.economy", { "agent.role": "Economy" }, () => runEconomyAgent({
+      const economy = await traced("agent.economy", { "agent.role": "Economy" }, () => agents.runEconomyAgent({
         name: genData.result.description?.split("\n")[0].slice(0, 100),
         description: genData.result.description || prompt,
         manifest: { protocol }
       } as unknown as Project));
 
-      // STEP 8.2: PHASE 14 & 16 - THE EMPIRE BROKER
       let broker: any = { mergerPotential: [], negotiationStrategy: "Audit pending." };
       if (orgId) {
         const { data: existingProjects } = await supabaseAdmin
@@ -172,21 +183,19 @@ USER REQUEST: "${prompt}"
           .eq("org_id", orgId)
           .limit(10);
         
-        broker = await traced("agent.broker", { "agent.role": "Broker" }, () => runBrokerAgent({
+        broker = await traced("agent.broker", { "agent.role": "Broker" }, () => agents.runBrokerAgent({
           description: genData.result.description || prompt,
           id: "temp"
         } as unknown as Project, existingProjects || []));
       }
 
-      // STEP 8.3: PHASE 17 - THE LEGAL VAULT
-      const legal = await traced("agent.legal", { "agent.role": "Legal" }, () => runLegalAgent({
+      const legal = await traced("agent.legal", { "agent.role": "Legal" }, () => agents.runLegalAgent({
         name: genData.result.description?.split("\n")[0].slice(0, 100),
         description: genData.result.description || prompt,
         manifest: { protocol }
       } as unknown as Project));
 
-      // STEP 8.4: PHASE 21 - THE OVERSEER (QA)
-      const qaResult = await traced("agent.overseer", { "agent.role": "Overseer" }, () => runOverseerAgent({
+      const qaResult = await traced("agent.overseer", { "agent.role": "Overseer" }, () => agents.runOverseerAgent({
         ...genData.result,
         files,
         id: "temp",
@@ -194,7 +203,6 @@ USER REQUEST: "${prompt}"
         manifest: { strategy: strategy.strategyMarkdown, docs, mode, protocol }
       } as unknown as Project));
 
-      // STEP 9: PERSISTENCE
       const projectData: Partial<Project> = {
         id: crypto.randomUUID(),
         files,
@@ -211,7 +219,7 @@ USER REQUEST: "${prompt}"
           visuals: visualTokens,
           security: {
             ...security,
-            auditLog: security.vulnerabilities.map(v => `${v.severity.toUpperCase()}: ${v.type} - ${v.description}`),
+            auditLog: security.vulnerabilities.map((v: any) => `${v.severity.toUpperCase()}: ${v.type} - ${v.description}`),
             lastScanAt: new Date().toISOString()
           },
           sentinel,
@@ -221,8 +229,8 @@ USER REQUEST: "${prompt}"
           qa: {
             status: qaResult.status === "pass" ? "pass" : "fail",
             lastRunAt: new Date().toISOString(),
-            errors: qaResult.testSteps.filter(s => s.result === "failure").map(s => s.error || s.step),
-            reportUrl: "/dashboard/qa/" + crypto.randomUUID(), // Mock report URL
+            errors: qaResult.testSteps.filter((s: any) => s.result === "failure").map((s: any) => s.error || s.step),
+            reportUrl: "/dashboard/qa/" + crypto.randomUUID(),
           },
           monetization: {
             affiliateCut: 0.20,
@@ -233,7 +241,6 @@ USER REQUEST: "${prompt}"
 
       const savedProject = await saveProjectDB(projectData as Project);
 
-      // STEP 10: CREDIT DEDUCTION (Phase 10 Economy & Phase 6 Surge)
       if (orgId) {
         await supabaseAdmin.rpc("decrement_org_balance", {
           org_id: orgId,

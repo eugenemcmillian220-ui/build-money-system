@@ -1,3 +1,5 @@
+// @server-only — do NOT import this file from client components.
+// Move client-safe types/constants to stripe-config.ts instead.
 import Stripe from "stripe";
 import { z } from "zod";
 import { serverEnv } from "./env";
