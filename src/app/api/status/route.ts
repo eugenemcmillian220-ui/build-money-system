@@ -11,7 +11,12 @@ export const runtime = "nodejs";
  * GET /api/status
  * Returns the operational status of all integrations and AI providers.
  */
+import { requireAuth, isAuthError } from "@/lib/api-auth";
+
 export async function GET(): Promise<Response> {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   const providers = (["openrouter", "groq", "gemini", "openai", "deepseek", "cerebras", "cloudflare"] as const).reduce(
     (acc, p) => {
       acc[p] = { available: keyManager.isConfigured(p) };
