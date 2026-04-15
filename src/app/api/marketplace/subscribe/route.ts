@@ -10,7 +10,12 @@ const subscribeSchema = z.object({
   orgId: z.string().uuid(),
 });
 
+import { requireAuth, isAuthError } from "@/lib/api-auth";
+
 export async function POST(request: Request): Promise<Response> {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const supabase = await createClient();
     const body = await request.json();

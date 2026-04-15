@@ -14,7 +14,12 @@ const requestSchema = z.object({
   affiliateCode: z.string().optional(), // For affiliate tracking
 });
 
+import { requireAuth, isAuthError } from "@/lib/api-auth";
+
 export async function POST(request: Request): Promise<Response> {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const body = await request.json();
     const parsed = requestSchema.parse(body);
