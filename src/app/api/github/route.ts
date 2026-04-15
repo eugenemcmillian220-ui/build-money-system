@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { isGitHubAvailable, exportToGitHub } from "@/lib/github";
 import { loadProjectDB, isDatabaseAvailable, updateProjectGitHubRepo } from "@/lib/supabase/db";

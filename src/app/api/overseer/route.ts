@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { runOverseerAgent } from "@/lib/agents/overseer";
 import { Project } from "@/lib/types";

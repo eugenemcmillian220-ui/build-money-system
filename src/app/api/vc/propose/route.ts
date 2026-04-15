@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { vcAgent } from "@/lib/vc-agent";
 import { z } from "zod";
 import { requireAuth, isAuthError } from "@/lib/api-auth";

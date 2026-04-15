@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { selfImprovementEngine } from "@/lib/self-improve";
 import { security } from "@/lib/security";

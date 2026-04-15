@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { diplomatAgent } from "@/lib/diplomat-agent";
 import { z } from "zod";
 import { requireAuth, isAuthError } from "@/lib/api-auth";

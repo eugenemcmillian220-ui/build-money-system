@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { isVercelAvailable } from "@/lib/agent";
 import { loadProjectDB, isDatabaseAvailable } from "@/lib/supabase/db";

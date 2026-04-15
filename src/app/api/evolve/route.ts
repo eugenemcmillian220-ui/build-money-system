@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { evolveApplication } from "@/lib/self-evolution";
 import { z } from "zod";
 import { requireAuth, isAuthError } from "@/lib/api-auth";

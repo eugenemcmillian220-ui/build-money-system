@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from 'next/server';
 import { learningStore } from '@/lib/learning-store';
 import { security, SecurityError } from '@/lib/security';

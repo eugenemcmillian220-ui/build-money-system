@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { stripeService } from "@/lib/stripe";
 import { z } from "zod";
 
