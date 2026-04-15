@@ -1,13 +1,13 @@
 # 🧠 CODEBASE.md — Build Money System
 > **Canonical AI Context File** — Read this before making changes.
-> Last updated: 2026-04-10 | Phase 20 Active | Unified Dashboard Restored | Expansion v2.2 Active
+> Last updated: 2026-04-15 | Phase 21 Active | Unified Dashboard Restored | Expansion v2.7.1 Active
 
 ---
 
 ## 🏗️ What This Is
 **Build Money System** is a 20-phase autonomous AI SaaS empire engine.
-**Expansion v2.3 (Elite Empire) Enhancements:**
-- **Sovereign Agent Swarm (Ph 1-20)**: 17 specialized agents for R&D, security, M&A, legal, and meta-management.
+**Expansion v2.7.1 (Elite Empire) Enhancements:**
+- **Sovereign Agent Swarm (Ph 1-21)**: 21 specialized agents for R&D, security, M&A, legal, and meta-management.
 - **Economic Intelligence**: Agent ROI tracking, Surge Pricing, and Staking/RevShare infrastructure.
 - **Autonomous Lifecycle**: Real-time UI refinement (Sculptor), self-healing error diagnosis (Healer), and design-to-code (Figma).
 - **IP & Compliance**: Autonomous patent drafting and custom legal vault generation.
