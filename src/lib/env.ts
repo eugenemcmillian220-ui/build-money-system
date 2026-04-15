@@ -192,3 +192,17 @@ export const clientEnv = new Proxy({} as ClientEnv, {
     return validateClientEnv()[prop as keyof ClientEnv];
   },
 });
+
+/**
+ * Runtime validation - call this from middleware or a server component
+ * to ensure critical environment variables are set.
+ */
+export function validateCriticalEnv(): { valid: boolean; missing: string[] } {
+  const critical = [
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  ] as const;
+
+  const missing = critical.filter((key) => !process.env[key]);
+  return { valid: missing.length === 0, missing: [...missing] };
+}

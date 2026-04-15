@@ -2,10 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { runOverseerAgent } from "@/lib/agents/overseer";
 import { Project } from "@/lib/types";
 import { traced } from "@/lib/telemetry";
+import { requireAuth, isAuthError } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   return traced("overseerStandalone", {}, async (span) => {
     try {
       const body = await request.json().catch(() => ({}));

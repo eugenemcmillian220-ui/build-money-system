@@ -3,6 +3,7 @@ import { loadProjectFromStorage } from "@/lib/agent";
 import { saveProjectDB } from "@/lib/supabase/db";
 import { Project } from "@/lib/types";
 import { z } from "zod";
+import { requireAuth, isAuthError } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 

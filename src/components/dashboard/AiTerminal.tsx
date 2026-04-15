@@ -9,6 +9,16 @@ interface AiTerminalProps {
   orgId?: string;
 }
 
+async function repairOrganization(): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch("/api/health/check");
+    if (!res.ok) return { success: false, error: "Health check failed" };
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+  }
+}
+
 export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
   const [input, setInput] = useState("");
   const [history, setHistory] = useState<{ type: "input" | "output" | "error"; text: string }[]>([

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { callLLMJson } from "@/lib/llm";
 import { traced } from "@/lib/telemetry";
 import { z } from "zod";
+import { requireAuth, isAuthError } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,6 +18,9 @@ const healResultSchema = z.object({
  * Phase 7: Self-Healing Cron - Error Diagnosis API
  */
 export async function POST(request: NextRequest) {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   return traced("healing.diagnosis", { "agent.role": "Healer" }, async (span) => {
     try {
       const { errorLog, stackTrace, context } = await request.json();

@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { AppBuildAgent, AgentError } from "@/lib/agent";
 import { z } from "zod";
+import { requireAuth, isAuthError } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 export const maxDuration = 120; // Extended duration for multi-pass generation

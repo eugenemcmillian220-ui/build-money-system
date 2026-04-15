@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { callLLMJson } from "@/lib/llm";
 import { traced } from "@/lib/telemetry";
 import { z } from "zod";
+import { requireAuth, isAuthError } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,6 +19,9 @@ const figmaResultSchema = z.object({
  * Converts a Figma design URL into a technical UI blueprint.
  */
 export async function POST(request: NextRequest) {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   return traced("figma.process", { "agent.role": "Designer" }, async (span) => {
     try {
       const { figmaUrl } = await request.json();

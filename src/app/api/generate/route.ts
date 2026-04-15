@@ -3,6 +3,7 @@ import { AppBuildAgent, AgentError } from "@/lib/agent";
 import { keyManager } from "@/lib/key-manager";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { z } from "zod";
+import { requireAuth, isAuthError } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;

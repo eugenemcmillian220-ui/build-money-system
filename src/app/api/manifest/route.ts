@@ -19,11 +19,15 @@ import { runEconomyAgent } from "@/lib/agents/economy";
 import { runBrokerAgent } from "@/lib/agents/broker";
 import { runLegalAgent } from "@/lib/agents/legal";
 import { monetizationEngine } from "@/lib/monetization";
+import { requireAuth, isAuthError } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   // Rate Limit
   const ip = request.headers.get("x-forwarded-for") || "unknown";
   const { success, limit, remaining, reset } = rateLimit(ip, 5, 60000); // 5 requests per minute

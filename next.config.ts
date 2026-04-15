@@ -21,11 +21,14 @@ export default withSentryConfig(nextConfig, {
   project: "httpsbuild-money-system-omd8vercelapp",
   silent: !process.env.CI,
   widenClientFileUpload: true,
-  reactComponentAnnotation: {
-    enabled: true,
+  sourcemaps: {
+    deleteSourcemapsAfterUpload: true,
+  },
+  webpack: {
+    reactComponentAnnotation: {
+      enabled: true,
+    },
+    automaticVercelMonitors: true,
   },
   tunnelRoute: "/monitoring",
-  hideSourceMaps: true,
-  disableLogger: true,
-  automaticVercelMonitors: true,
 });

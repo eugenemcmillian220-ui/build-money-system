@@ -329,7 +329,7 @@ export const chroniclerResultSchema = z.object({
 }).passthrough();
 
 export const heraldResultSchema = z.object({
-  twitterThread: z.object({
+  socialThread: z.object({
     hook: z.string(),
     posts: z.array(z.string()),
   }),

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { selfImprovementEngine } from "@/lib/self-improve";
 import { security } from "@/lib/security";
+import { requireAuth, isAuthError } from "@/lib/api-auth";
 
 /**
  * API route for the self-improvement system
@@ -8,6 +9,9 @@ import { security } from "@/lib/security";
  */
 
 export async function GET(req: NextRequest) {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     // Check for API key in either x-api-key header or Authorization header
     const apiKey = req.headers.get('x-api-key') || req.headers.get('authorization')?.replace('Bearer ', '');
@@ -33,6 +37,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     // Check for API key in either x-api-key header or Authorization header
     const apiKey = req.headers.get('x-api-key') || req.headers.get('authorization')?.replace('Bearer ', '');

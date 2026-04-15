@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { autoDeployer } from "@/lib/auto-deployer";
 import { z } from "zod";
+import { requireAuth, isAuthError } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 

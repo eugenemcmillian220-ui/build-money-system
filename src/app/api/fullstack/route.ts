@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fullStackGenerator } from "@/lib/fullstack-generator";
 import { z } from "zod";
+import { requireAuth, isAuthError } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;

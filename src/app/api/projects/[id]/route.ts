@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { loadProjectDB, saveProjectDB, deleteProjectDB, isDatabaseAvailable } from "@/lib/supabase/db";
 import { loadProject, saveProject } from "@/lib/memory";
 import { Project } from "@/lib/types";
+import { requireAuth, isAuthError } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 

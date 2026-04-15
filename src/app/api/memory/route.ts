@@ -3,6 +3,7 @@ import { isDatabaseAvailable } from "@/lib/supabase/db";
 import { getAllProjects, saveProject, getAllProjects as getAllMemProjects } from "@/lib/memory";
 import { Project } from "@/lib/types";
 import crypto from "crypto";
+import { requireAuth, isAuthError } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 
