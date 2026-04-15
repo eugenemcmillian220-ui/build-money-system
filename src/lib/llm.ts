@@ -136,6 +136,45 @@ async function callProvider(
   return content;
 }
 
+/**
+ * Generates a vector embedding for text using Cloudflare Workers AI (Free tier)
+ * Returns a 1536-dimensional vector (padded/truncated from 384/768 as needed for schema)
+ */
+export async function generateEmbedding(text: string): Promise<number[]> {
+  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+  const apiKey = process.env.CLOUDFLARE_API_KEY;
+
+  if (!accountId || !apiKey) {
+    console.warn("[LLM] Cloudflare credentials missing, returning zero-vector.");
+    return new Array(1536).fill(0);
+  }
+
+  try {
+    const response = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/@cf/baai/bge-small-en-v1.5`,
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({ text: [text] }),
+      }
+    );
+
+    if (!response.ok) throw new Error(`Cloudflare AI failed: ${response.statusText}`);
+
+    const json = await response.json();
+    const vector = json.result.data[0];
+
+    // Pad to 1536 if needed (bge-small is 384)
+    if (vector.length < 1536) {
+      return [...vector, ...new Array(1536 - vector.length).fill(0)];
+    }
+    return vector.slice(0, 1536);
+  } catch (err) {
+    console.error("[LLM] Embedding generation failed:", err);
+    return new Array(1536).fill(0);
+  }
+}
+
 export async function* streamLLM(
   messages: ChatMessage[],
   config: Partial<AgentConfig> = {}

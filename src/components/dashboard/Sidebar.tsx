@@ -34,6 +34,7 @@ export function Sidebar() {
     { name: "Guide", href: "/dashboard/guide", icon: Book },
     { name: "AI Terminal", href: "/dashboard/terminal", icon: Terminal },
     { name: "Projects", href: "/dashboard/projects", icon: Package },
+    { name: "QA Audit", href: "/dashboard/qa", icon: ShieldCheck },
     { name: "Governance", href: "/dashboard/governance", icon: Gavel },
     { name: "Billing", href: "/dashboard/billing", icon: CreditCard },
   ];

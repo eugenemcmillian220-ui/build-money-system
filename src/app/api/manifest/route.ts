@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { classifyIntent } from "@/lib/agents/classifier";
 import { runScoutAgent } from "@/lib/agents/scout";
+import { runArchitectAgent } from "@/lib/agents/architect";
 import { runChroniclerAgent } from "@/lib/agents/chronicler";
 import { runPhantom } from "@/lib/agents/phantom";
 import { runHerald } from "@/lib/agents/herald";
@@ -86,8 +87,10 @@ export async function POST(request: NextRequest) {
       // STEP 2: THE SCOUT (Pre-generation Research)
       const strategy = await traced("agent.scout", { "agent.role": "Scout" }, () => runScoutAgent(prompt, protocol));
 
-      // STEP 3: THE ARCHITECT (Visual Engine Expansion)
-      // For simulation, we assume Developer will handle the prompt. 
+      // STEP 3: THE ARCHITECT (Structural Planning)
+      const architecture = await traced("agent.architect", { "agent.role": "Architect" }, () => runArchitectAgent(prompt, strategy.strategyMarkdown));
+
+      // STEP 3.1: Visual Engine Expansion
       // In Ph 1-3, we now inject visual tokens.
       const visualTokens = {
         theme: options?.theme || "dark",
@@ -105,6 +108,11 @@ Visual Theme: ${visualTokens.theme} (Primary: ${visualTokens.primaryColor})
 
 STRATEGY:
 ${strategy.strategyMarkdown}
+
+ARCHITECTURE PLAN:
+${architecture.coreLogicPlan}
+FILE STRUCTURE: ${architecture.fileStructure.join(", ")}
+DATABASE REQS: ${architecture.databaseRequirements.join(", ")}
 
 USER REQUEST: "${prompt}"
       `;

@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "./supabase/db";
-import { callLLM, cleanJson } from "./llm";
+import { callLLM, cleanJson, generateEmbedding } from "./llm";
 
 export interface KnowledgePattern {
   type: "bug_fix" | "architecture" | "ui_pattern";
@@ -49,25 +49,27 @@ export class HiveMind {
   async contribute(pattern: KnowledgePattern, orgId?: string): Promise<void> {
     if (!supabaseAdmin) return;
 
-    // 1. Check if similar pattern exists (Simplified vector check mock)
-    const { data: existing } = await supabaseAdmin
-      .from("hive_knowledge_base")
-      .select("id, confidence_score, usage_count")
-      .eq("pattern_type", pattern.type)
-      .textSearch("problem_description", pattern.problem.split(' ').join(' | '))
-      .limit(1)
-      .single();
+    const embedding = await generateEmbedding(`${pattern.problem} ${pattern.tags.join(" ")}`);
 
-    if (existing) {
+    // 1. Check if similar pattern exists (Semantic vector check)
+    const { data: existing } = await supabaseAdmin.rpc("search_hive_knowledge", {
+      query_embedding: embedding,
+      match_threshold: 0.9,
+      match_count: 1
+    });
+
+    const existingMatch = existing?.[0];
+
+    if (existingMatch) {
       // 2. Increment confidence if pattern is rediscovered
       await supabaseAdmin
         .from("hive_knowledge_base")
-        .update({ 
-          confidence_score: (existing.confidence_score || 0) + 0.1,
-          usage_count: (existing.usage_count || 0) + 1,
+        .update({
+          confidence_score: (existingMatch.confidence_score || 0) + 0.1,
+          usage_count: (existingMatch.usage_count || 0) + 1,
           updated_at: new Date().toISOString()
         })
-        .eq("id", existing.id);
+        .eq("id", existingMatch.id);
     } else {
       // 3. Insert new knowledge asset
       const { data: newAsset } = await supabaseAdmin
@@ -77,6 +79,7 @@ export class HiveMind {
           problem_description: pattern.problem,
           solution_delta: pattern.solution,
           tags: pattern.tags,
+          embedding: embedding,
           confidence_score: 0.5,
           usage_count: 1
         })
@@ -94,24 +97,40 @@ export class HiveMind {
   }
 
   /**
-   * Recalls relevant knowledge for a given problem
+   * Recalls relevant knowledge for a given problem using semantic search
    */
   async recall(problem: string, tags: string[]): Promise<KnowledgePattern[]> {
     if (!supabaseAdmin) return [];
 
-    const { data } = await supabaseAdmin
-      .from("hive_knowledge_base")
-      .select("*")
-      .overlaps("tags", tags)
-      .order("confidence_score", { ascending: false })
-      .limit(3);
+    const embedding = await generateEmbedding(`${problem} ${tags.join(" ")}`);
 
-    return (data || []).map(d => ({
+    const { data, error } = await supabaseAdmin.rpc("search_hive_knowledge", {
+      query_embedding: embedding,
+      match_threshold: 0.7,
+      match_count: 3
+    });
+
+    if (error) {
+      console.warn("[HiveMind] Semantic recall failed, falling back to tag search:", error);
+      const { data: fallbackData } = await supabaseAdmin
+        .from("hive_knowledge_base")
+        .select("*")
+        .overlaps("tags", tags)
+        .order("confidence_score", { ascending: false })
+        .limit(3);
+      return (fallbackData || []).map(d => this.mapToPattern(d));
+    }
+
+    return (data || []).map((d: any) => this.mapToPattern(d));
+  }
+
+  private mapToPattern(d: any): KnowledgePattern {
+    return {
       type: d.pattern_type,
       problem: d.problem_description,
       solution: d.solution_delta,
       tags: d.tags
-    }));
+    };
   }
 }
 
