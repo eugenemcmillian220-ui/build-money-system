@@ -6,6 +6,7 @@ import { launchAgent } from "@/lib/launch-agent";
 import { communityAgent } from "@/lib/community-agent";
 import { loadProjectFromStorage } from "@/lib/agent";
 import { z } from "zod";
+import { requireAuth, isAuthError } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 export const maxDuration = 300; // Campaign generation can be slow

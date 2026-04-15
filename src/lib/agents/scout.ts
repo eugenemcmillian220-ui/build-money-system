@@ -14,7 +14,7 @@ export interface ScoutStrategy {
 async function fetchGithubTrends(query: string): Promise<string> {
   try {
     const res = await axios.get(`https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&sort=stars&order=desc&per_page=5`);
-    return res.data.items.map((repo: any) => `- ${repo.full_name}: ${repo.description} (${repo.stargazers_count} stars)`).join("\n");
+    return (res.data as { items: Array<{ full_name: string; description: string; stargazers_count: number }> }).items.map((repo) => `- ${repo.full_name}: ${repo.description} (${repo.stargazers_count} stars)`).join("\n");
   } catch (err) {
     return "No GitHub trends found.";
   }

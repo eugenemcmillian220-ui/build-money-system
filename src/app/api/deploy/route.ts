@@ -4,6 +4,7 @@ import { loadProjectDB, isDatabaseAvailable } from "@/lib/supabase/db";
 import { loadProject } from "@/lib/memory";
 import { createVercelDeploy, getDeploymentStatus } from "@/lib/deploy";
 import { z } from "zod";
+import { requireAuth, isAuthError } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;

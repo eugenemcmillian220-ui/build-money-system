@@ -3,6 +3,7 @@ import { listProjectsDB, saveProjectDB, isDatabaseAvailable } from "@/lib/supaba
 import { getAllProjects, saveProject } from "@/lib/memory";
 import { Project } from "@/lib/types";
 import crypto from "crypto";
+import { requireAuth, isAuthError } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 

@@ -1,9 +1,11 @@
+// @server-only — do NOT import this file from client components.
+// Move client-safe types/constants to stripe-config.ts instead.
 import Stripe from "stripe";
 import { z } from "zod";
 import { serverEnv } from "./env";
 
-const stripe = new Stripe(serverEnv.STRIPE_SECRET_KEY || "sk_test_placeholder", {
-  apiVersion: "2024-06-20",
+const stripe = new Stripe(serverEnv.STRIPE_SECRET_KEY!, {
+  apiVersion: "2026-03-25.dahlia",
   typescript: true,
 });
 

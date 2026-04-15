@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { scalingSimulation } from '@/lib/scaling';
+import { requireAuth, isAuthError } from "@/lib/api-auth";
 
 export async function GET() {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const metrics = scalingSimulation.getMetrics();
     return NextResponse.json({ success: true, data: { metrics } });
@@ -12,6 +16,9 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const body = await req.json();
     const { action, direction, metrics } = body;

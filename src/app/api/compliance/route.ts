@@ -1,6 +1,7 @@
 import { auditProject } from "@/lib/compliance";
 import { loadProjectFromStorage } from "@/lib/agent";
 import { z } from "zod";
+import { requireAuth, isAuthError } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 

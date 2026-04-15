@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { feedbackLoop } from '@/lib/feedback-loop';
 import { security, SecurityError } from '@/lib/security';
+import { requireAuth, isAuthError } from "@/lib/api-auth";
 
 export async function GET(req: NextRequest) {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const { searchParams } = req.nextUrl;
     const projectId = searchParams.get('projectId');
@@ -23,6 +27,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const body = await req.json();
     const { projectId, rating, comment, category } = body;

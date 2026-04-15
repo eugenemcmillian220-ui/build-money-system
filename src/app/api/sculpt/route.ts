@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { loadProjectDB, saveProjectDB } from "@/lib/supabase/db";
 import { callLLM, cleanJson, parseMultiFileJson } from "@/lib/llm";
 import { traced } from "@/lib/telemetry";
+import { requireAuth, isAuthError } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,6 +12,9 @@ export const dynamic = "force-dynamic";
  * Allows 'sculpting' an existing manifestation with specific UI or logic changes.
  */
 export async function POST(request: NextRequest) {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   return traced("sculptor.refinement", { "agent.role": "Sculptor" }, async (span) => {
     try {
       const { projectId, refinementPrompt } = await request.json();

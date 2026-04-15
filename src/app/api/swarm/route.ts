@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { AgentSwarm } from '@/lib/agent-swarm';
 import { ProjectStatus } from '@/lib/types';
+import { requireAuth, isAuthError } from "@/lib/api-auth";
 
 export async function POST(req: NextRequest) {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const body = await req.json();
     const { prompt, projectId } = body;

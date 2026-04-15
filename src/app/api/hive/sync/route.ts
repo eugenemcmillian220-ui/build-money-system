@@ -1,5 +1,6 @@
 import { hiveMind } from "@/lib/hive-mind";
 import { z } from "zod";
+import { requireAuth, isAuthError } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 

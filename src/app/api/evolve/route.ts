@@ -1,5 +1,6 @@
 import { evolveApplication } from "@/lib/self-evolution";
 import { z } from "zod";
+import { requireAuth, isAuthError } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 export const maxDuration = 120; // Self-evolution takes time

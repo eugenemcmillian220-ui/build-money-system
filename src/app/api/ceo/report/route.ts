@@ -3,11 +3,15 @@ import { runCeoAgent } from "@/lib/agents/ceo";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { traced } from "@/lib/telemetry";
 import { Project } from "@/lib/types";
+import { requireAuth, isAuthError } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   const { searchParams } = new URL(request.url);
   const orgId = searchParams.get("orgId");
 
