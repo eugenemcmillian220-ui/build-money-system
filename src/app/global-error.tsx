@@ -1,6 +1,5 @@
 "use client";
 
-import * as Sentry from "@sentry/nextjs";
 import { useEffect } from "react";
 
 export default function GlobalError({
@@ -11,14 +10,19 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    Sentry.captureException(error);
+    // Lazy-load Sentry to avoid build-time bundling overhead
+    import("@sentry/nextjs").then((Sentry) => {
+      Sentry.captureException(error);
+    }).catch(() => {
+      console.error("GlobalError:", error);
+    });
   }, [error]);
 
   return (
     <html>
       <body>
         <div className="flex min-h-screen flex-col items-center justify-center bg-black text-white p-4">
-          <h2 className="text-2xl font-bold mb-4 text-amber-500 underline decoration-amber-500/50 underline-offset-8">
+          <h2 className="text-2xl font-bold mb-4 text-amber-500">
             SYSTEM_CRITICAL_FAILURE
           </h2>
           <p className="text-gray-400 mb-8 max-w-md text-center">
