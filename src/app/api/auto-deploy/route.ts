@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { autoDeployer } from "@/lib/auto-deployer";
 import { z } from "zod";

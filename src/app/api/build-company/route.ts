@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from 'next/server';
 import { companyOrchestrator } from '@/lib/company-orchestrator';
 import { security } from '@/lib/security';

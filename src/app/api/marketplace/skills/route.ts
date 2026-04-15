@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { marketplace } from "@/lib/marketplace";
 import { createClient } from "@/lib/supabase/server";
 import { z } from "zod";

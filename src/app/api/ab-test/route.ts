@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { productManager } from "@/lib/product-manager";
 import { loadProjectFromStorage } from "@/lib/agent";
 import { saveProjectDB } from "@/lib/supabase/db";

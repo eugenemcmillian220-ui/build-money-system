@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from 'next/server';
 import { ideaValidator } from '@/lib/idea-validator';
 import { security } from '@/lib/security';

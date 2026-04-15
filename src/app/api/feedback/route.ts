@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from 'next/server';
 import { feedbackLoop } from '@/lib/feedback-loop';
 import { security, SecurityError } from '@/lib/security';

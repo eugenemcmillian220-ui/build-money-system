@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { maAgent } from "@/lib/ma-agent";
 import { z } from "zod";
 import { requireAuth, isAuthError } from "@/lib/api-auth";

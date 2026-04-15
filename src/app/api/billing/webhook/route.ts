@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import Stripe from "stripe";
 import { billingEngine } from "@/lib/billing-engine";
 import { headers } from "next/headers";

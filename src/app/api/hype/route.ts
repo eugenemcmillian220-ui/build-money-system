@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { hypeAgent } from "@/lib/hype-agent";
 import { seoLoop } from "@/lib/seo-loop";
 import { mediaAgent } from "@/lib/media-agent";

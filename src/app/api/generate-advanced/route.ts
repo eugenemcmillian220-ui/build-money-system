@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest } from "next/server";
 import { AppBuildAgent, AgentError } from "@/lib/agent";
 import { z } from "zod";

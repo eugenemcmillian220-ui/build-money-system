@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { generateText, generateTextStream, OpenRouterError } from "@/lib/openrouter";
 import { AppBuildAgent, AgentError } from "@/lib/agent";
 import { keyManager } from "@/lib/key-manager";

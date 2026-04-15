@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { loadProjectDB, saveProjectDB, deleteProjectDB, isDatabaseAvailable } from "@/lib/supabase/db";
 import { loadProject, saveProject } from "@/lib/memory";
