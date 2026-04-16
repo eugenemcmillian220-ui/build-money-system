@@ -154,7 +154,7 @@ USER REQUEST: "${prompt}"
           },
           body: JSON.stringify({ prompt: finalPrompt, multiFile: true, orgId }),
         });
-        if (!fetchRes.ok) throw new Error("Generation failed at Developer layer");
+        if (!fetchRes.ok) { const errBody = await fetchRes.text().catch(() => "no body"); throw new Error(`Generation failed at Developer layer (${fetchRes.status}): ${errBody}`); }
         return fetchRes.json();
       });
 
