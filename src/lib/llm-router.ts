@@ -14,6 +14,7 @@ export interface ProviderRequest {
 /**
  * Updated model list (April 2026) — ordered by priority within each provider.
  * Primary model tried first, fallbacks used on failure.
+ * gemini-2.0-flash-exp removed from OpenRouter — replaced with gemini-2.0-flash-001 + llama-4 fallbacks.
  */
 export const FREE_MODELS: Record<LLMProvider, string[]> = {
   openrouter: [
@@ -22,7 +23,9 @@ export const FREE_MODELS: Record<LLMProvider, string[]> = {
     "nvidia/llama-3.1-nemotron-ultra:free",
     "meta-llama/llama-3.3-70b-instruct:free",
     "deepseek/deepseek-r1:free",
-    "google/gemini-2.0-flash-exp:free",
+    "google/gemini-2.0-flash-001:free",
+    "meta-llama/llama-4-maverick:free",
+    "meta-llama/llama-4-scout:free",
   ],
   gemini: [
     "gemini-2.0-flash",
@@ -53,25 +56,24 @@ export const FREE_MODELS: Record<LLMProvider, string[]> = {
   ],
 };
 
-// ─── Circuit Breaker ──────────────────────────────────────────────────────────
+// ─── Circuit Breaker ────────────────────────────────────────────────────
 
 interface CircuitState {
   failures: number;
   lastFailure: number;
-  openUntil: number; // timestamp when circuit can be retried
+  openUntil: number;
 }
 
-const CIRCUIT_OPEN_DURATION_MS = 60_000; // 1 minute cooldown
-const CIRCUIT_FAILURE_THRESHOLD = 2; // open after 2 consecutive failures
+const CIRCUIT_OPEN_DURATION_MS = 60_000;
+const CIRCUIT_FAILURE_THRESHOLD = 2;
 
-// ─── Backoff ──────────────────────────────────────────────────────────────────
+// ─── Backoff ────────────────────────────────────────────────────────────────────
 
 const BASE_BACKOFF_MS = 500;
 const MAX_BACKOFF_MS = 8_000;
 
 function backoffDelay(attempt: number): number {
   const delay = Math.min(BASE_BACKOFF_MS * 2 ** attempt, MAX_BACKOFF_MS);
-  // add jitter ±25%
   return delay * (0.75 + Math.random() * 0.5);
 }
 
@@ -81,12 +83,6 @@ function sleep(ms: number): Promise<void> {
 
 /**
  * LLM Router v2: Circuit Breaker + Exponential Backoff + Model-Level Failover + Cache
- *
- * Improvements over v1:
- * 1. Circuit breaker per provider — skips providers that are rate-limited
- * 2. Exponential backoff with jitter on 429s
- * 3. Model-level failover — tries each model in priority order within a provider
- * 4. LLM cache integration — returns cached responses for identical prompts
  */
 export class LLMRouter {
   private circuits: Map<LLMProvider, CircuitState> = new Map();
@@ -101,8 +97,6 @@ export class LLMRouter {
     "cloudflare",
   ];
 
-  // ─── Circuit Breaker Logic ────────────────────────────────────────────────
-
   private getCircuit(provider: LLMProvider): CircuitState {
     if (!this.circuits.has(provider)) {
       this.circuits.set(provider, { failures: 0, lastFailure: 0, openUntil: 0 });
@@ -114,7 +108,6 @@ export class LLMRouter {
     const circuit = this.getCircuit(provider);
     if (circuit.openUntil === 0) return false;
     if (Date.now() >= circuit.openUntil) {
-      // half-open: allow one attempt
       circuit.openUntil = 0;
       circuit.failures = 0;
       return false;
@@ -140,35 +133,27 @@ export class LLMRouter {
     circuit.openUntil = 0;
   }
 
-  // ─── Provider Selection ───────────────────────────────────────────────────
-
   private getAvailableProviders(): LLMProvider[] {
     return this.priorityChain.filter(
       (p) => keyManager.isConfigured(p) && !this.isCircuitOpen(p)
     );
   }
 
-  /**
-   * Returns the ordered list of (provider, model) pairs to attempt.
-   * Within each provider, models are in priority order (best first).
-   */
   getFailoverChain(messages: ChatMessage[], config?: Partial<AgentConfig>): ProviderRequest[] {
     const available = this.getAvailableProviders();
     if (available.length === 0) {
-      // All circuits open — try the one that recovers soonest
       const sorted = this.priorityChain
         .filter((p) => keyManager.isConfigured(p))
-        .sort((a, b) => {
+        .sort((a, b)) => {
           const ca = this.getCircuit(a);
           const cb = this.getCircuit(b);
           return ca.openUntil - cb.openUntil;
         });
       if (sorted.length === 0) {
         throw new Error(
-          "No LLM providers configured. Add at least one API key: OPENROUTER_API_KEY, GROQ_API_KEY, GEMINI_API_KEY, or OPENAI_API_KEY."
+          "No LLM providers configured. Add at least one API key."
         );
       }
-      // Return the soonest-to-recover provider with its primary model
       const p = sorted[0];
       const models = FREE_MODELS[p];
       return [{ provider: p, model: models[0], messages, config }];
@@ -177,7 +162,6 @@ export class LLMRouter {
     const chain: ProviderRequest[] = [];
     for (const provider of available) {
       const models = FREE_MODELS[provider];
-      // Add primary model first, then fallbacks
       for (const model of models) {
         chain.push({ provider, model, messages, config });
       }
@@ -185,20 +169,11 @@ export class LLMRouter {
     return chain;
   }
 
-  /**
-   * Legacy compat — returns the next single request (primary model of first available provider).
-   */
   getNextRequest(messages: ChatMessage[], config?: Partial<AgentConfig>): ProviderRequest {
     const chain = this.getFailoverChain(messages, config);
     return chain[0];
   }
 
-  // ─── Execute with Full Failover ───────────────────────────────────────────
-
-  /**
-   * Execute an LLM call with circuit breaker, model-level failover, exponential backoff, and cache.
-   * This is the recommended entry point for all LLM calls.
-   */
   async executeWithFailover(
     messages: ChatMessage[],
     config?: Partial<AgentConfig>,
@@ -206,9 +181,7 @@ export class LLMRouter {
   ): Promise<{ provider: LLMProvider; model: string; content: string; cached: boolean }> {
     const maxRetries = options?.maxRetries ?? 2;
 
-    // ── Check cache first ──
     if (!options?.skipCache) {
-      // Try cache with each possible model (use first available provider's primary model as key)
       const chain = this.getFailoverChain(messages, config);
       if (chain.length > 0) {
         const formattedMsgs = this.formatMessages(messages) as Array<{ role: string; content: string }>;
@@ -224,7 +197,6 @@ export class LLMRouter {
       }
     }
 
-    // ── Try each provider/model in the failover chain ──
     const chain = this.getFailoverChain(messages, config);
     let lastError: Error | null = null;
 
@@ -240,40 +212,45 @@ export class LLMRouter {
           });
 
           if (response.status === 429) {
-            // Rate limited — backoff & maybe try next model
             keyManager.reportError(req.provider, apiKey);
             if (attempt < maxRetries) {
               const delay = backoffDelay(attempt);
               console.warn(
-                `[LLMRouter] 429 from ${req.provider}/${req.model} — backing off ${Math.round(delay)}ms (attempt ${attempt + 1}/${maxRetries + 1})`
+                `[LLMRouter] 429 from ${req.provider}/${req.model} — backing off ${Math.round(delay)}ms`
               );
               await sleep(delay);
               continue;
             }
-            // Exhausted retries for this model — record circuit failure and move to next
             this.recordFailure(req.provider);
             lastError = new Error(`429 rate limited: ${req.provider}/${req.model}`);
-            break; // next model/provider in chain
+            break;
           }
 
           if (!response.ok) {
             const text = await response.text().catch(() => "");
-            lastError = new Error(`${req.provider}/${req.model} returned ${response.status}: ${text}`);
-            // Non-429 errors: skip to next model immediately
+            lastError = new Error(`${req.provider}/${req.model} HTTP ${response.status}: ${text.slice(0, 200)}`);
+            if (response.status >= 500) {
+              this.recordFailure(req.provider);
+            }
             break;
           }
 
-          // ── Parse response ──
-          const content = await this.parseResponse(req.provider, response);
+          const data = (await response.json()) as {
+            choices?: Array<{ message?: { content?: string }; delta?: { content?: string } }>;
+            content?: Array<{ text?: string }>;
+            candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+            result?: string;
+          };
 
-          // ── Success — reset circuit & cache ──
-          this.recordSuccess(req.provider);
-          keyManager.reportSuccess(req.provider, apiKey);
-
-          if (!options?.skipCache) {
-            const formattedMsgs = this.formatMessages(messages) as Array<{ role: string; content: string }>;
-            llmCache.set(req.model, formattedMsgs, content);
+          const content = this.extractContent(data, req.provider);
+          if (!content) {
+            lastError = new Error(`Empty response from ${req.provider}/${req.model}`);
+            break;
           }
+
+          this.recordSuccess(req.provider);
+          const formattedMsgs = this.formatMessages(messages) as Array<{ role: string; content: string }>;
+          llmCache.set(req.model, formattedMsgs, content);
 
           return {
             provider: req.provider,
@@ -287,8 +264,7 @@ export class LLMRouter {
             await sleep(backoffDelay(attempt));
             continue;
           }
-          this.recordFailure(req.provider);
-          break; // next model/provider
+          break;
         }
       }
     }
@@ -296,118 +272,140 @@ export class LLMRouter {
     throw lastError ?? new Error("All LLM providers exhausted");
   }
 
-  // ─── Response Parsing ─────────────────────────────────────────────────────
+  private getFetchParams(req: ProviderRequest): {
+    url: string;
+    headers: Record<string, string>;
+    body: unknown;
+    apiKey: string;
+  } {
+    const apiKey = keyManager.getKey(req.provider);
+    if (!apiKey) throw new Error(`No API key for provider: ${req.provider}`);
 
-  private async parseResponse(provider: LLMProvider, response: Response): Promise<string> {
-    const json = await response.json();
+    const messages = this.formatMessages(req.messages);
+    const temperature = req.config?.temperature ?? 0.7;
+    const maxTokens = req.config?.maxTokens ?? 4096;
 
-    if (provider === "gemini") {
-      const text = json?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!text) throw new Error("Gemini returned empty response");
-      return text;
-    }
-
-    // OpenAI-compatible format (openrouter, groq, openai, deepseek, cerebras)
-    const content = json?.choices?.[0]?.message?.content;
-    if (!content) throw new Error(`${provider} returned empty response`);
-    return content;
-  }
-
-  // ─── Fetch Params (unchanged API, used by executeWithFailover) ────────────
-
-  getFetchParams(req: ProviderRequest): { url: string; headers: Record<string, string>; body: unknown; apiKey: string } {
-    const { provider, model, messages, config } = req;
-
-    const apiKey = keyManager.getKey(provider) ?? "";
-
-    if (!apiKey && provider !== "cloudflare") {
-      throw new Error(`API key for ${provider} not found.`);
-    }
-
-    let url = "";
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
-    let body: unknown;
-
-    const temp = config?.temperature ?? 0.7;
-    const maxTokens = config?.maxTokens ?? 4096;
-
-    switch (provider) {
+    switch (req.provider) {
       case "openrouter":
-        url = "https://openrouter.ai/api/v1/chat/completions";
-        headers["Authorization"] = `Bearer ${apiKey}`;
-        headers["HTTP-Referer"] = process.env.NEXT_PUBLIC_SITE_URL ?? "https://localhost:3000";
-        headers["X-Title"] = "AI App Builder";
-        body = { model, messages: this.formatMessages(messages), temperature: temp, max_tokens: maxTokens };
-        break;
-
-      case "gemini":
-        url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-        body = {
-          contents: messages.map((m) => ({
-            role: m.role === "assistant" ? "model" : "user",
-            parts: [{ text: typeof m.content === "string" ? m.content : JSON.stringify(m.content) }],
-          })),
-          generationConfig: { temperature: temp, maxOutputTokens: maxTokens },
+        return {
+          url: "https://openrouter.ai/api/v1/chat/completions",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+            "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL ?? "https://localhost:3000",
+            "X-Title": "AI App Builder",
+          },
+          body: { model: req.model, messages, temperature, max_tokens: maxTokens },
+          apiKey,
         };
-        break;
 
       case "groq":
-        url = "https://api.groq.com/openai/v1/chat/completions";
-        headers["Authorization"] = `Bearer ${apiKey}`;
-        body = { model, messages: this.formatMessages(messages), temperature: temp, max_tokens: maxTokens };
-        break;
+        return {
+          url: "https://api.groq.com/openai/v1/chat/completions",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: { model: req.model, messages, temperature, max_tokens: maxTokens },
+          apiKey,
+        };
+
+      case "gemini": {
+        const geminiMessages = req.messages.map((m) => ({
+          role: m.role === "assistant" ? "model" : "user",
+          parts: [{ text: m.content }],
+        }));
+        return {
+          url: `https://generativelanguage.googleapis.com/v1beta/models/${req.model}:generateContent?key=${apiKey}`,
+          headers: { "Content-Type": "application/json" },
+          body: {
+            contents: geminiMessages,
+            generationConfig: { temperature, maxOutputTokens: maxTokens },
+          },
+          apiKey,
+        };
+      }
 
       case "openai":
-        url = "https://api.openai.com/v1/chat/completions";
-        headers["Authorization"] = `Bearer ${apiKey}`;
-        body = { model, messages: this.formatMessages(messages), temperature: temp, max_tokens: maxTokens };
-        break;
+        return {
+          url: "https://api.openai.com/v1/chat/completions",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: { model: req.model, messages, temperature, max_tokens: maxTokens },
+          apiKey,
+        };
 
       case "deepseek":
-        url = "https://api.deepseek.com/chat/completions";
-        headers["Authorization"] = `Bearer ${apiKey}`;
-        body = { model, messages: this.formatMessages(messages), temperature: temp, max_tokens: maxTokens };
-        break;
+        return {
+          url: "https://api.deepseek.com/chat/completions",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: { model: req.model, messages, temperature, max_tokens: maxTokens },
+          apiKey,
+        };
 
       case "cerebras":
-        url = "https://api.cerebras.ai/v1/chat/completions";
-        headers["Authorization"] = `Bearer ${apiKey}`;
-        body = { model, messages: this.formatMessages(messages), temperature: temp, max_tokens: maxTokens };
-        break;
+        return {
+          url: "https://api.cerebras.ai/v1/chat/completions",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: { model: req.model, messages, temperature, max_tokens: maxTokens },
+          apiKey,
+        };
 
       case "cloudflare": {
         const accountId = process.env.CLOUDFLARE_ACCOUNT_ID ?? "";
-        url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${model}`;
-        headers["Authorization"] = `Bearer ${apiKey}`;
-        body = { messages: this.formatMessages(messages), stream: false };
-        break;
+        return {
+          url: `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${req.model}`,
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: { messages },
+          apiKey,
+        };
       }
-    }
 
-    return { url, headers, body, apiKey };
+      default:
+        throw new Error(`Unsupported provider: ${req.provider}`);
+    }
   }
 
   private formatMessages(messages: ChatMessage[]): unknown[] {
-    return messages.map((m) => ({
-      role: m.role,
-      content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
-    }));
+    return messages.map((m) => ({ role: m.role, content: m.content }));
   }
 
-  // ─── Debug / Health ───────────────────────────────────────────────────────
+  private extractContent(data: Record<string, unknown>, provider: LLMProvider): string | null {
+    if (provider === "gemini") {
+      const candidates = (data as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> }).candidates;
+      return candidates?.[0]?.content?.parts?.[0]?.text ?? null;
+    }
+    if (provider === "cloudflare") {
+      const result = (data as { result?: string }).result;
+      return result ?? null;
+    }
+    const choices = (data as { choices?: Array<{ message?: { content?: string } }> }).choices;
+    return choices?.[0]?.message?.content ?? null;
+  }
 
-  getCircuitStatus(): Record<string, { open: boolean; failures: number; cooldownRemaining: number }> {
-    const status: Record<string, { open: boolean; failures: number; cooldownRemaining: number }> = {};
+  getCircuitStatus(): Record<LLMProvider, { open: boolean; failures: number; recoversAt?: string }> {
+    const status: Record<string, { open: boolean; failures: number; recoversAt?: string }> = {};
     for (const provider of this.priorityChain) {
       const circuit = this.getCircuit(provider);
-      const isOpen = this.isCircuitOpen(provider);
+      const open = this.isCircuitOpen(provider);
       status[provider] = {
-        open: isOpen,
+        open,
         failures: circuit.failures,
-        cooldownRemaining: isOpen ? Math.max(0, circuit.openUntil - Date.now()) : 0,
+        ...(open ? { recoversAt: new Date(circuit.openUntil).toISOString() } : {}),
       };
     }
-    return status;
+    return status as Record<LLMProvider, { open: boolean; failures: number; recoversAt?: string }>;
   }
 }
 
