@@ -59,8 +59,6 @@ const MODEL_FALLBACK_CHAIN = [
   "meta-llama/llama-3.3-70b-instruct:free",
   "deepseek/deepseek-r1:free",
   "google/gemini-2.0-flash-001:free",
-  "meta-llama/llama-4-maverick:free",
-  "meta-llama/llama-4-scout:free",
 ];
 
 function buildHeaders(): Record<string, string> {
