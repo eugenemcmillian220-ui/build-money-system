@@ -159,14 +159,14 @@ USER REQUEST: "${prompt}"
       });
 
       const genData = res;
-      const files = genData.result?.files;
+      const files = genData.files;
 
       const docs = await traced("agent.chronicler", { "agent.role": "Chronicler" }, () => agents.runChroniclerAgent(files));
       const security = await traced("agent.security", { "agent.role": "Security" }, () => agents.runSecurityAudit(files));
       const sentinel = await traced("agent.sentinel", { "agent.role": "Sentinel" }, () => agents.runSentinelAgent(files));
       const simulation = await traced("agent.phantom", { "agent.role": "Phantom" }, () => agents.runPhantom({ files, id: "temp", createdAt: new Date().toISOString() } as Project));
       const launch = await traced("agent.herald", { "agent.role": "Herald" }, () => agents.runHerald({
-        description: genData.result?.description || prompt,
+        description: genData.description || prompt,
         files,
         id: "temp",
         createdAt: new Date().toISOString(),
@@ -174,8 +174,8 @@ USER REQUEST: "${prompt}"
       } as unknown as Project));
 
       const economy = await traced("agent.economy", { "agent.role": "Economy" }, () => agents.runEconomyAgent({
-        name: (genData.result?.description || "Untitled").split("\n")[0].slice(0, 100),
-        description: genData.result?.description || prompt,
+        name: (genData.description || "Untitled").split("\n")[0].slice(0, 100),
+        description: genData.description || prompt,
         manifest: { protocol }
       } as unknown as Project));
 
@@ -188,19 +188,19 @@ USER REQUEST: "${prompt}"
           .limit(10);
         
         broker = await traced("agent.broker", { "agent.role": "Broker" }, () => agents.runBrokerAgent({
-          description: genData.result?.description || prompt,
+          description: genData.description || prompt,
           id: "temp"
         } as unknown as Project, existingProjects || []));
       }
 
       const legal = await traced("agent.legal", { "agent.role": "Legal" }, () => agents.runLegalAgent({
-        name: (genData.result?.description || "Untitled").split("\n")[0].slice(0, 100),
-        description: genData.result.description || prompt,
+        name: (genData.description || "Untitled").split("\n")[0].slice(0, 100),
+        description: genData.description || prompt,
         manifest: { protocol }
       } as unknown as Project));
 
       const qaResult = await traced("agent.overseer", { "agent.role": "Overseer" }, () => agents.runOverseerAgent({
-        ...(genData.result || {}),
+        ...genData,
         files,
         id: "temp",
         createdAt: new Date().toISOString(),
@@ -210,7 +210,7 @@ USER REQUEST: "${prompt}"
       const projectData: Partial<Project> = {
         id: crypto.randomUUID(),
         files,
-        description: genData.result.description || prompt,
+        description: genData.description || prompt,
         orgId,
         createdAt: new Date().toISOString(),
         manifest: {
