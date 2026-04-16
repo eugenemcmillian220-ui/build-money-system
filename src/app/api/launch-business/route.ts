@@ -88,13 +88,15 @@ Return ONLY valid JSON.`;
     const content = result.content;
     let componentCount = 0;
     try {
-      const cleaned = content.replace(/```json\n?/g, "").replace(/```/g, "").trim();
+      const cleaned = content.replace(/```json\n?/g, "").replace(/```\w*\n?/g, "").trim();
       const parsed = JSON.parse(cleaned);
-      componentCount = parsed.components?.length || 0;
+      componentCount = parsed.components?.length || Object.keys(parsed.files || parsed).length || 0;
     } catch {
-      // Count export/function statements as component indicators
-      const exportCount = (content.match(/export\s+(default\s+)?function|export\s+const|const\s+\w+\s*[:=]\s*(React\.FC|\(\))/g) || []).length;
-      componentCount = Math.max(exportCount, (content.match(/function\s+[A-Z]\w+/g) || []).length);
+      // Count React component patterns in raw output
+      const funcComponents = (content.match(/function\s+[A-Z]\w+/g) || []).length;
+      const constComponents = (content.match(/const\s+[A-Z]\w+\s*[:=]/g) || []).length;
+      const exportComponents = (content.match(/export\s+(default\s+)?function\s+[A-Z]/g) || []).length;
+      componentCount = Math.max(funcComponents, constComponents, exportComponents, content.length > 200 ? 1 : 0);
     }
     return {
       phase: 1, name,
