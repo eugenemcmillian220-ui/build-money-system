@@ -50,12 +50,12 @@ async function timed<T>(fn: () => Promise<T>): Promise<{ result: T; elapsed: num
 async function phase1(): Promise<PhaseResult> {
   const name = "Component Forge";
   try {
-    const { generateText } = await import("@/lib/openrouter");
-    const { result: code, elapsed } = await timed(() =>
-      generateText("Generate a simple React button component using Tailwind CSS. Return only code.")
-    );
+    const { llmRouter } = await import("@/lib/llm-router");
+    const messages = [{ role: "user" as const, content: "Generate a simple React button component using Tailwind CSS. Return only the code." }];
+    const { result, elapsed } = await timed(() => llmRouter.executeWithFailover(messages));
+    const code = result.content;
     const hasCode = code.length > 50 && (code.includes("function") || code.includes("export") || code.includes("const"));
-    return { phase: 1, name, status: hasCode ? "pass" : "degraded", elapsed, detail: `Generated ${code.length} chars` };
+    return { phase: 1, name, status: hasCode ? "pass" : "degraded", elapsed, detail: `Generated ${code.length} chars via ${result.provider}/${result.model}` };
   } catch (e) {
     return { phase: 1, name, status: "fail", elapsed: 0, detail: "LLM generation failed", error: String(e) };
   }
@@ -64,12 +64,12 @@ async function phase1(): Promise<PhaseResult> {
 async function phase2(): Promise<PhaseResult> {
   const name = "SQL Forge";
   try {
-    const { generateText } = await import("@/lib/openrouter");
-    const { result: sql, elapsed } = await timed(() =>
-      generateText("Generate a PostgreSQL CREATE TABLE statement for a users table. Return only SQL.")
-    );
+    const { llmRouter } = await import("@/lib/llm-router");
+    const messages = [{ role: "user" as const, content: "Generate a PostgreSQL CREATE TABLE statement for a users table with id, email, name, created_at. Return only SQL." }];
+    const { result, elapsed } = await timed(() => llmRouter.executeWithFailover(messages));
+    const sql = result.content;
     const hasSql = sql.toLowerCase().includes("create") || sql.length > 30;
-    return { phase: 2, name, status: hasSql ? "pass" : "degraded", elapsed, detail: `Generated ${sql.length} chars` };
+    return { phase: 2, name, status: hasSql ? "pass" : "degraded", elapsed, detail: `Generated ${sql.length} chars via ${result.provider}/${result.model}` };
   } catch (e) {
     return { phase: 2, name, status: "fail", elapsed: 0, detail: "SQL generation failed", error: String(e) };
   }
