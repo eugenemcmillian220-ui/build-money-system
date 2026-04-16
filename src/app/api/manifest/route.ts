@@ -147,7 +147,11 @@ USER REQUEST: "${prompt}"
       const res = await traced("agent.developer", { "agent.role": "Developer" }, async () => {
         const fetchRes = await fetch(`${request.nextUrl.origin}/api/generate`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(request.headers.get("authorization") ? { "Authorization": request.headers.get("authorization")! } : {}),
+            ...(request.headers.get("cookie") ? { "Cookie": request.headers.get("cookie")! } : {}),
+          },
           body: JSON.stringify({ prompt: finalPrompt, multiFile: true, orgId }),
         });
         if (!fetchRes.ok) throw new Error("Generation failed at Developer layer");
