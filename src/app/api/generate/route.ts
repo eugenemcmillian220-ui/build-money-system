@@ -7,7 +7,7 @@ import { z } from "zod";
 import { requireAuth, isAuthError } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 const requestSchema = z.object({
   prompt: z.string().min(1, "Prompt is required").max(2000, "Prompt is too long").optional(),
@@ -153,14 +153,21 @@ export async function POST(request: Request): Promise<Response> {
       return Response.json(result);
     }
 
-    const result = await agent.run(prompt || "");
+    try {
+      const result = await agent.run(prompt || "");
 
-    // CREDIT DEDUCTION
-    if (orgId) {
-      await supabaseAdmin.rpc("decrement_org_balance", { org_id: orgId, amount: creditCost });
+      // CREDIT DEDUCTION
+      if (orgId) {
+        await supabaseAdmin.rpc("decrement_org_balance", { org_id: orgId, amount: creditCost });
+      }
+
+      return Response.json(result);
+    } catch (error) {
+      console.error("[Generate] Multi-file generation error:", error);
+      const message = error instanceof Error ? error.message : "Multi-file generation failed";
+      const status = (error as any)?.status === 429 ? 429 : 502;
+      return Response.json({ error: message }, { status });
     }
-
-    return Response.json(result);
   }
 
   if (llmAvailable) {
