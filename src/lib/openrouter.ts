@@ -1,7 +1,8 @@
 import { keyManager } from "./key-manager";
+import { llmCache } from "./llm-cache";
 
 const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
-const FREE_MODEL_FALLBACK = "meta-llama/llama-3.3-70b-instruct:free";
+const FREE_MODEL_FALLBACK = "qwen/qwen3-coder-480b-a35b-instruct:free";
 
 function getModel(): string {
   return process.env.OPENROUTER_MODEL ?? FREE_MODEL_FALLBACK;
@@ -32,6 +33,32 @@ interface OpenRouterRequestBody {
   response_format?: { type: "json_object" };
 }
 
+// ─── Backoff helpers ────────────────────────────────────────────────────────
+
+const BACKOFF_BASE_MS = 500;
+const BACKOFF_MAX_MS = 8_000;
+const MAX_RETRIES = 2;
+
+function backoffDelay(attempt: number): number {
+  const delay = Math.min(BACKOFF_BASE_MS * 2 ** attempt, BACKOFF_MAX_MS);
+  return delay * (0.75 + Math.random() * 0.5);
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// ─── Model fallback chain ───────────────────────────────────────────────────
+
+const MODEL_FALLBACK_CHAIN = [
+  "qwen/qwen3-coder-480b-a35b-instruct:free",
+  "mistralai/devstral:free",
+  "nvidia/llama-3.1-nemotron-ultra:free",
+  "meta-llama/llama-3.3-70b-instruct:free",
+  "deepseek/deepseek-r1:free",
+  "google/gemini-2.0-flash-exp:free",
+];
+
 function buildHeaders(): Record<string, string> {
   const apiKey = keyManager.getKey("openrouter");
 
@@ -55,7 +82,7 @@ async function handleBadResponse(response: Response, label = "OpenRouter"): Prom
   if (response.status === 402) {
     throw new OpenRouterError(
       `${label} 402: Insufficient credits. ` +
-        `Top-up your OpenRouter account or set OPENROUTER_MODEL=meta-llama/llama-3.3-70b-instruct:free. Raw: ${text}`,
+        `Top-up your OpenRouter account or set OPENROUTER_MODEL to a free model. Raw: ${text}`,
       402,
     );
   }
@@ -70,97 +97,161 @@ async function handleBadResponse(response: Response, label = "OpenRouter"): Prom
   throw new OpenRouterError(`${label} returned ${response.status}: ${text}`, response.status);
 }
 
+/**
+ * generateText with cache + model-level failover + exponential backoff on 429s.
+ */
 export async function generateText(prompt: string): Promise<string> {
-  const body: OpenRouterRequestBody = {
-    model: getModel(),
-    messages: [{ role: "user", content: prompt }],
-    temperature: 0.7,
-    max_tokens: 8192,
-  };
+  const model = getModel();
+  const messages: ChatMessage[] = [{ role: "user", content: prompt }];
 
-  let response: Response;
-  try {
-    response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-      method: "POST",
-      headers: buildHeaders(),
-      body: JSON.stringify(body),
-    });
-  } catch (cause) {
-    throw new OpenRouterError("Failed to reach OpenRouter API", undefined, cause);
+  // ── Check cache ──
+  const cached = llmCache.get(model, messages);
+  if (cached) return cached;
+
+  // ── Build fallback chain: configured model first, then the rest ──
+  const models = [model, ...MODEL_FALLBACK_CHAIN.filter((m) => m !== model)];
+
+  let lastError: Error | null = null;
+
+  for (const currentModel of models) {
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const body: OpenRouterRequestBody = {
+          model: currentModel,
+          messages,
+          temperature: 0.7,
+          max_tokens: 8192,
+        };
+
+        const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+          method: "POST",
+          headers: buildHeaders(),
+          body: JSON.stringify(body),
+        });
+
+        if (response.status === 429) {
+          if (attempt < MAX_RETRIES) {
+            const delay = backoffDelay(attempt);
+            console.warn(
+              `[OpenRouter] 429 on ${currentModel} — backing off ${Math.round(delay)}ms (attempt ${attempt + 1}/${MAX_RETRIES + 1})`
+            );
+            await sleep(delay);
+            continue;
+          }
+          lastError = new OpenRouterError(`Rate limited on ${currentModel}`, 429);
+          break; // try next model
+        }
+
+        if (!response.ok) await handleBadResponse(response, `OpenRouter/${currentModel}`);
+
+        const json = (await response.json()) as {
+          choices: Array<{ message: { content: string } }>;
+        };
+
+        const content = json.choices[0]?.message?.content;
+        if (!content) throw new OpenRouterError("OpenRouter returned an empty response");
+
+        // ── Cache & return ──
+        llmCache.set(currentModel, messages, content);
+        return content;
+      } catch (err) {
+        lastError = err instanceof Error ? err : new Error(String(err));
+        if (err instanceof OpenRouterError && err.status === 429 && attempt < MAX_RETRIES) {
+          await sleep(backoffDelay(attempt));
+          continue;
+        }
+        break; // next model
+      }
+    }
   }
 
-  if (!response.ok) await handleBadResponse(response);
-
-  const json = (await response.json()) as {
-    choices: Array<{ message: { content: string } }>;
-  };
-
-  const content = json.choices[0]?.message?.content;
-  if (!content) throw new OpenRouterError("OpenRouter returned an empty response");
-
-  return content;
+  throw lastError ?? new OpenRouterError("All OpenRouter models exhausted");
 }
 
 export async function generateTextStream(prompt: string): Promise<ReadableStream<Uint8Array>> {
-  const body: OpenRouterRequestBody = {
-    model: getModel(),
-    messages: [{ role: "user", content: prompt }],
-    stream: true,
-    temperature: 0.7,
-    max_tokens: 8192,
-  };
+  const model = getModel();
+  const models = [model, ...MODEL_FALLBACK_CHAIN.filter((m) => m !== model)];
 
-  let response: Response;
-  try {
-    response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-      method: "POST",
-      headers: buildHeaders(),
-      body: JSON.stringify(body),
-    });
-  } catch (cause) {
-    throw new OpenRouterError("Failed to reach OpenRouter API", undefined, cause);
+  let lastError: Error | null = null;
+
+  for (const currentModel of models) {
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const body: OpenRouterRequestBody = {
+          model: currentModel,
+          messages: [{ role: "user", content: prompt }],
+          stream: true,
+          temperature: 0.7,
+          max_tokens: 8192,
+        };
+
+        const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+          method: "POST",
+          headers: buildHeaders(),
+          body: JSON.stringify(body),
+        });
+
+        if (response.status === 429) {
+          if (attempt < MAX_RETRIES) {
+            await sleep(backoffDelay(attempt));
+            continue;
+          }
+          lastError = new OpenRouterError(`Rate limited on ${currentModel}`, 429);
+          break;
+        }
+
+        if (!response.ok) await handleBadResponse(response, `OpenRouter/${currentModel}`);
+        if (!response.body) throw new OpenRouterError("OpenRouter returned no response body");
+
+        const encoder = new TextEncoder();
+        const decoder = new TextDecoder();
+
+        return new ReadableStream<Uint8Array>({
+          async start(controller) {
+            const reader = response.body!.getReader();
+            try {
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value, { stream: true });
+                for (const line of chunk.split("\n")) {
+                  const trimmed = line.trim();
+                  if (!trimmed.startsWith("data: ")) continue;
+                  const data = trimmed.slice(6);
+                  if (data === "[DONE]") {
+                    controller.close();
+                    return;
+                  }
+                  try {
+                    const parsed = JSON.parse(data) as {
+                      choices: Array<{ delta: { content?: string } }>;
+                    };
+                    const delta = parsed.choices[0]?.delta?.content;
+                    if (delta) controller.enqueue(encoder.encode(delta));
+                  } catch {
+                    // skip malformed chunks
+                  }
+                }
+              }
+              controller.close();
+            } catch (cause) {
+              controller.error(new OpenRouterError("Stream read error", undefined, cause));
+            }
+          },
+        });
+      } catch (err) {
+        lastError = err instanceof Error ? err : new Error(String(err));
+        if (attempt < MAX_RETRIES) {
+          await sleep(backoffDelay(attempt));
+          continue;
+        }
+        break;
+      }
+    }
   }
 
-  if (!response.ok) await handleBadResponse(response);
-  if (!response.body) throw new OpenRouterError("OpenRouter returned no response body");
-
-  const encoder = new TextEncoder();
-  const decoder = new TextDecoder();
-
-  return new ReadableStream<Uint8Array>({
-    async start(controller) {
-      const reader = response.body!.getReader();
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const chunk = decoder.decode(value, { stream: true });
-          for (const line of chunk.split("\n")) {
-            const trimmed = line.trim();
-            if (!trimmed.startsWith("data: ")) continue;
-            const data = trimmed.slice(6);
-            if (data === "[DONE]") {
-              controller.close();
-              return;
-            }
-            try {
-              const parsed = JSON.parse(data) as {
-                choices: Array<{ delta: { content?: string } }>;
-              };
-              const delta = parsed.choices[0]?.delta?.content;
-              if (delta) controller.enqueue(encoder.encode(delta));
-            } catch {
-              // skip malformed chunks
-            }
-          }
-        }
-        controller.close();
-      } catch (cause) {
-        controller.error(new OpenRouterError("Stream read error", undefined, cause));
-      }
-    },
-  });
+  throw lastError ?? new OpenRouterError("All OpenRouter models exhausted for streaming");
 }
 
 const MULTI_FILE_SYSTEM_PROMPT = `You are an AI app builder. Generate a Next.js application with multiple files.
@@ -219,34 +310,14 @@ function parseMultiFileJson(content: string): MultiFileResponse {
 export async function generateMultiFileApp(prompt: string): Promise<MultiFileResponse> {
   const fullPrompt = `${MULTI_FILE_SYSTEM_PROMPT}\n\nUser request: ${prompt}\n\nGenerate a complete multi-file Next.js app now:`;
 
-  const body: OpenRouterRequestBody = {
-    model: getModel(),
-    messages: [{ role: "user", content: fullPrompt }],
-    temperature: 0.7,
-    max_tokens: 16384,
-    response_format: { type: "json_object" },
-  };
+  const model = getModel();
+  const messages: ChatMessage[] = [{ role: "user", content: fullPrompt }];
 
-  let response: Response;
-  try {
-    response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-      method: "POST",
-      headers: buildHeaders(),
-      body: JSON.stringify(body),
-    });
-  } catch (cause) {
-    throw new OpenRouterError("Failed to reach OpenRouter API", undefined, cause);
-  }
+  // ── Check cache ──
+  const cached = llmCache.get(model, messages);
+  if (cached) return parseMultiFileJson(cached);
 
-  if (!response.ok) await handleBadResponse(response);
-
-  const json = (await response.json()) as {
-    choices: Array<{ message: { content: string } }>;
-  };
-
-  const content = json.choices[0]?.message?.content;
-  if (!content) throw new OpenRouterError("OpenRouter returned an empty response");
-
+  const content = await generateText(fullPrompt);
   return parseMultiFileJson(content);
 }
 
@@ -256,115 +327,18 @@ export async function generateMultiFileAppStream(
 ): Promise<MultiFileResponse> {
   const fullPrompt = `${MULTI_FILE_SYSTEM_PROMPT}\n\nUser request: ${prompt}\n\nGenerate a complete multi-file Next.js app now:`;
 
-  const body: OpenRouterRequestBody = {
-    model: getModel(),
-    messages: [{ role: "user", content: fullPrompt }],
-    stream: true,
-    temperature: 0.7,
-    max_tokens: 16384,
-  };
-
-  let response: Response;
-  try {
-    response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-      method: "POST",
-      headers: buildHeaders(),
-      body: JSON.stringify(body),
-    });
-  } catch (cause) {
-    throw new OpenRouterError("Failed to reach OpenRouter API", undefined, cause);
-  }
-
-  if (!response.ok) await handleBadResponse(response);
-  if (!response.body) throw new OpenRouterError("OpenRouter returned no response body");
-
+  const stream = await generateTextStream(fullPrompt);
+  const reader = stream.getReader();
   const decoder = new TextDecoder();
   let accumulated = "";
 
-  const reader = response.body.getReader();
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      const chunk = decoder.decode(value, { stream: true });
-      for (const line of chunk.split("\n")) {
-        const trimmed = line.trim();
-        if (!trimmed.startsWith("data: ")) continue;
-        const data = trimmed.slice(6);
-        if (data === "[DONE]") break;
-        try {
-          const parsed = JSON.parse(data) as {
-            choices: Array<{ delta: { content?: string } }>;
-          };
-          const delta = parsed.choices[0]?.delta?.content;
-          if (delta) {
-            accumulated += delta;
-            let partialFiles: MultiFileResponse | undefined;
-            try {
-              partialFiles = parseMultiFileJson(accumulated);
-            } catch {
-              // not valid JSON yet
-            }
-            onChunk(accumulated, partialFiles);
-          }
-        } catch {
-          // skip malformed chunks
-        }
-      }
-    }
-  } finally {
-    reader.releaseLock();
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    const chunk = decoder.decode(value);
+    accumulated += chunk;
+    onChunk(chunk);
   }
 
   return parseMultiFileJson(accumulated);
-}
-
-export async function debugFiles(
-  files: Record<string, string>,
-  error?: string
-): Promise<Record<string, string>> {
-  const prompt = `You are an expert debugger. Fix any syntax or runtime issues in the following Next.js files.
-${error ? `Reported error: ${error}` : "Ensure the code is modern, bug-free, and follows Next.js 15 / React 19 patterns."}
-
-Current files:
-${Object.entries(files).map(([path, content]) => `File: ${path}\n\`\`\`\n${content}\n\`\`\``).join("\n\n")}
-
-Return ONLY the fixed files in the same JSON format:
-{
-  "files": {
-    "path/to/file.tsx": "fixed code here"
-  }
-}`;
-
-  const body: OpenRouterRequestBody = {
-    model: getModel(),
-    messages: [{ role: "user", content: prompt }],
-    temperature: 0.2,
-    max_tokens: 16384,
-    response_format: { type: "json_object" },
-  };
-
-  let response: Response;
-  try {
-    response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-      method: "POST",
-      headers: buildHeaders(),
-      body: JSON.stringify(body),
-    });
-  } catch (cause) {
-    throw new OpenRouterError("Failed to reach OpenRouter API", undefined, cause);
-  }
-
-  if (!response.ok) await handleBadResponse(response);
-
-  const json = (await response.json()) as {
-    choices: Array<{ message: { content: string } }>;
-  };
-
-  const content = json.choices[0]?.message?.content;
-  if (!content) throw new OpenRouterError("OpenRouter returned an empty response during debug");
-
-  const parsed = parseMultiFileJson(content);
-  return parsed.files;
 }
