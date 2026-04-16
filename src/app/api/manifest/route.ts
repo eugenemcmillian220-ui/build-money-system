@@ -9,6 +9,7 @@ import { requireAuth, isAuthError } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 300;
 
 /**
  * Lazy-load heavy agent modules to reduce webpack memory during build.
@@ -154,7 +155,7 @@ USER REQUEST: "${prompt}"
           },
           body: JSON.stringify({ prompt: finalPrompt, multiFile: true, orgId }),
         });
-        if (!fetchRes.ok) { const errBody = await fetchRes.text().catch(() => "no body"); throw new Error(`Generation failed at Developer layer (${fetchRes.status}): ${errBody}`); }
+        if (!fetchRes.ok) { const errBody = await fetchRes.text().catch(() => "no body"); console.error(`[Manifest] /api/generate returned ${fetchRes.status}:`, errBody); throw new Error(`Generation failed at Developer layer (${fetchRes.status}): ${errBody}`); }
         return fetchRes.json();
       });
 
