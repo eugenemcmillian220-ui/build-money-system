@@ -48,7 +48,9 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// ─── Model fallback chain ───────────────────────────────────────────────────
+// ─── Model fallback chain (updated April 2026) ──────────────────────────────
+// gemini-2.0-flash-exp was removed from OpenRouter — replaced with:
+// gemini-2.0-flash-001 (stable release) + llama-4-maverick/scout as additional fallbacks
 
 const MODEL_FALLBACK_CHAIN = [
   "qwen/qwen3-coder-480b-a35b-instruct:free",
@@ -56,7 +58,9 @@ const MODEL_FALLBACK_CHAIN = [
   "nvidia/llama-3.1-nemotron-ultra:free",
   "meta-llama/llama-3.3-70b-instruct:free",
   "deepseek/deepseek-r1:free",
-  "google/gemini-2.0-flash-exp:free",
+  "google/gemini-2.0-flash-001:free",
+  "meta-llama/llama-4-maverick:free",
+  "meta-llama/llama-4-scout:free",
 ];
 
 function buildHeaders(): Record<string, string> {
