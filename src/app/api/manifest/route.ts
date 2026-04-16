@@ -166,7 +166,7 @@ USER REQUEST: "${prompt}"
       const sentinel = await traced("agent.sentinel", { "agent.role": "Sentinel" }, () => agents.runSentinelAgent(files));
       const simulation = await traced("agent.phantom", { "agent.role": "Phantom" }, () => agents.runPhantom({ files, id: "temp", createdAt: new Date().toISOString() } as Project));
       const launch = await traced("agent.herald", { "agent.role": "Herald" }, () => agents.runHerald({
-        description: genData.result.description || prompt,
+        description: genData.result?.description || prompt,
         files,
         id: "temp",
         createdAt: new Date().toISOString(),
@@ -174,8 +174,8 @@ USER REQUEST: "${prompt}"
       } as unknown as Project));
 
       const economy = await traced("agent.economy", { "agent.role": "Economy" }, () => agents.runEconomyAgent({
-        name: genData.result.description?.split("\n")[0].slice(0, 100),
-        description: genData.result.description || prompt,
+        name: (genData.result?.description || "Untitled").split("\n")[0].slice(0, 100),
+        description: genData.result?.description || prompt,
         manifest: { protocol }
       } as unknown as Project));
 
@@ -188,19 +188,19 @@ USER REQUEST: "${prompt}"
           .limit(10);
         
         broker = await traced("agent.broker", { "agent.role": "Broker" }, () => agents.runBrokerAgent({
-          description: genData.result.description || prompt,
+          description: genData.result?.description || prompt,
           id: "temp"
         } as unknown as Project, existingProjects || []));
       }
 
       const legal = await traced("agent.legal", { "agent.role": "Legal" }, () => agents.runLegalAgent({
-        name: genData.result.description?.split("\n")[0].slice(0, 100),
+        name: (genData.result?.description || "Untitled").split("\n")[0].slice(0, 100),
         description: genData.result.description || prompt,
         manifest: { protocol }
       } as unknown as Project));
 
       const qaResult = await traced("agent.overseer", { "agent.role": "Overseer" }, () => agents.runOverseerAgent({
-        ...genData.result,
+        ...(genData.result || {}),
         files,
         id: "temp",
         createdAt: new Date().toISOString(),
@@ -222,8 +222,8 @@ USER REQUEST: "${prompt}"
           launch,
           visuals: visualTokens,
           security: {
-            ...security,
-            auditLog: security.vulnerabilities.map((v: any) => `${v.severity.toUpperCase()}: ${v.type} - ${v.description}`),
+            ...(security || {}),
+            auditLog: (security?.vulnerabilities || []).map((v: any) => `${v.severity?.toUpperCase?.() || 'UNKNOWN'}: ${v.type || 'unknown'} - ${v.description || 'No description'}`),
             lastScanAt: new Date().toISOString()
           },
           sentinel,
@@ -231,9 +231,9 @@ USER REQUEST: "${prompt}"
           broker,
           legal,
           qa: {
-            status: qaResult.status === "pass" ? "pass" : "fail",
+            status: qaResult?.status === "pass" ? "pass" : "fail",
             lastRunAt: new Date().toISOString(),
-            errors: qaResult.testSteps.filter((s: any) => s.result === "failure").map((s: any) => s.error || s.step),
+            errors: (qaResult?.testSteps || []).filter((s: any) => s.result === "failure").map((s: any) => s.error || s.step),
             reportUrl: "/dashboard/qa/" + crypto.randomUUID(),
           },
           monetization: {
