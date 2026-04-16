@@ -149,7 +149,7 @@ USER REQUEST: "${prompt}"
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            ...(request.headers.get("authorization") ? { "Authorization": request.headers.get("authorization")! } : {}),
+            "Authorization": request.headers.get("authorization") || `Internal ${process.env.E2E_TEST_SECRET || "server-call"}`,
             ...(request.headers.get("cookie") ? { "Cookie": request.headers.get("cookie")! } : {}),
           },
           body: JSON.stringify({ prompt: finalPrompt, multiFile: true, orgId }),
