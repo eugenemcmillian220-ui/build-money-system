@@ -232,80 +232,74 @@ export async function* streamLLM(
 ): AsyncIterable<string> {
   const fullConfig = { ...defaultAgentConfig, ...config };
 
-  const apiKey = keyManager.getKey("openrouter");
-  if (!apiKey) {
-    throw new LLMError("No OpenRouter API key configured for streaming");
-  }
+  // Try OpenRouter streaming first (best UX for real-time output)
+  const openrouterKey = keyManager.getKey("openrouter");
+  if (openrouterKey) {
+    try {
+      const body: OpenRouterRequestBody = {
+        model: fullConfig.model,
+        messages,
+        stream: true,
+        temperature: fullConfig.temperature,
+        max_tokens: fullConfig.maxTokens,
+      };
 
-  const body: OpenRouterRequestBody = {
-    model: fullConfig.model,
-    messages,
-    stream: true,
-    temperature: fullConfig.temperature,
-    max_tokens: fullConfig.maxTokens,
-  };
+      const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${openrouterKey}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL ?? "https://localhost:3000",
+          "X-Title": "AI App Builder",
+        },
+        body: JSON.stringify(body),
+      });
 
-  let response: Response;
-  try {
-    response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL ?? "https://localhost:3000",
-        "X-Title": "AI App Builder",
-      },
-      body: JSON.stringify(body),
-    });
-  } catch (cause) {
-    keyManager.reportError("openrouter", apiKey);
-    throw new LLMError("Failed to reach LLM API", undefined, cause);
-  }
+      if (response.ok && response.body) {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
 
-  if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    keyManager.reportError("openrouter", apiKey);
-    throw new LLMError(`LLM API returned ${response.status}: ${text}`, response.status);
-  }
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
 
-  if (!response.body) {
-    throw new LLMError("LLM API returned no response body");
-  }
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
 
-  keyManager.reportSuccess("openrouter", apiKey);
-
-  const decoder = new TextDecoder();
-  const reader = response.body.getReader();
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split("\n");
-
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed.startsWith("data: ")) continue;
-        const data = trimmed.slice(6);
-        if (data === "[DONE]") return;
-        try {
-          const parsed = JSON.parse(data) as {
-            choices: Array<{ delta: { content?: string } }>;
-          };
-          const delta = parsed.choices[0]?.delta?.content;
-          if (delta) {
-            yield delta;
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed || !trimmed.startsWith("data: ")) continue;
+            const data = trimmed.slice(6);
+            if (data === "[DONE]") return;
+            try {
+              const parsed = JSON.parse(data);
+              const delta = parsed.choices?.[0]?.delta?.content;
+              if (delta) yield delta;
+            } catch {
+              // skip malformed SSE chunks
+            }
           }
-        } catch {
-          // skip malformed SSE chunks
         }
+        return; // streaming succeeded
       }
+
+      // Non-OK response from OpenRouter — fall through to failover
+      logger.warn("streamLLM: OpenRouter streaming failed, falling back to executeWithFailover", {
+        status: response.status,
+      });
+    } catch (e) {
+      logger.warn("streamLLM: OpenRouter streaming error, falling back to executeWithFailover", {
+        error: (e as Error).message,
+      });
     }
-  } finally {
-    reader.releaseLock();
   }
+
+  // Fallback: use the multi-provider failover chain (non-streaming, but works across all providers)
+  logger.info("streamLLM: Using executeWithFailover as fallback");
+  const result = await llmRouter.executeWithFailover(messages, fullConfig);
+  yield result.content;
 }
 
 export async function planSpec(prompt: string, context: MemoryContext[] = []): Promise<AppSpec> {
