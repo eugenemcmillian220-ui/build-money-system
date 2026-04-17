@@ -193,7 +193,7 @@ export interface ValidationFailure {
 export type ValidationResponse<T> = ValidationResult<T> | ValidationFailure;
 
 export const singleFileRequestSchema = z.object({
-  prompt: z.string().min(1, "Prompt is required").max(2000, "Prompt is too long"),
+  prompt: z.string().min(1, "Prompt is required").max(100000, "Prompt is too long"),
   stream: z.boolean().optional().default(false),
   multiFile: z.boolean().optional().default(false),
 });
