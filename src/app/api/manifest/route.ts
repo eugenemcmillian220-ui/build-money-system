@@ -11,6 +11,13 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
+
+/** Throttle between agent calls to avoid rate limits on free-tier LLM providers */
+const AGENT_THROTTLE_MS = 3000;
+function agentThrottle(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, AGENT_THROTTLE_MS));
+}
+
 /**
  * Lazy-load heavy agent modules to reduce webpack memory during build.
  * Each agent is only imported when the route is actually invoked.
@@ -117,7 +124,9 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      await agentThrottle();
       const strategy = await traced("agent.scout", { "agent.role": "Scout" }, () => agents.runScoutAgent(prompt, protocol));
+      await agentThrottle();
       const architecture = await traced("agent.architect", { "agent.role": "Architect" }, () => agents.runArchitectAgent(prompt, strategy.strategyMarkdown));
 
       const visualTokens = {
@@ -145,6 +154,7 @@ DATABASE REQS: ${architecture.databaseRequirements.join(", ")}
 USER REQUEST: "${prompt}"
       `;
 
+      await agentThrottle();
       const res = await traced("agent.developer", { "agent.role": "Developer" }, async () => {
         const fetchRes = await fetch(`${request.nextUrl.origin}/api/generate`, {
           method: "POST",
@@ -162,10 +172,15 @@ USER REQUEST: "${prompt}"
       const genData = res;
       const files = genData.files;
 
-      const docs = await traced("agent.chronicler", { "agent.role": "Chronicler" }, () => agents.runChroniclerAgent(files));
-      const security = await traced("agent.security", { "agent.role": "Security" }, () => agents.runSecurityAudit(files));
-      const sentinel = await traced("agent.sentinel", { "agent.role": "Sentinel" }, () => agents.runSentinelAgent(files));
-      const simulation = await traced("agent.phantom", { "agent.role": "Phantom" }, () => agents.runPhantom({ files, id: "temp", createdAt: new Date().toISOString() } as Project));
+      // Run post-generation agents in parallel to reduce total time & serial rate-limit pressure
+      await agentThrottle();
+      const [docs, security, sentinel, simulation] = await Promise.all([
+        traced("agent.chronicler", { "agent.role": "Chronicler" }, () => agents.runChroniclerAgent(files)),
+        traced("agent.security", { "agent.role": "Security" }, () => agents.runSecurityAudit(files)),
+        traced("agent.sentinel", { "agent.role": "Sentinel" }, () => agents.runSentinelAgent(files)),
+        traced("agent.phantom", { "agent.role": "Phantom" }, () => agents.runPhantom({ files, id: "temp", createdAt: new Date().toISOString() } as Project)),
+      ]);
+      await agentThrottle();
       const launch = await traced("agent.herald", { "agent.role": "Herald" }, () => agents.runHerald({
         description: genData.description || prompt,
         files,
@@ -174,14 +189,27 @@ USER REQUEST: "${prompt}"
         manifest: { strategy: strategy.strategyMarkdown, docs: docs as unknown as Record<string, unknown>, mode, protocol }
       } as unknown as Project));
 
-      const economy = await traced("agent.economy", { "agent.role": "Economy" }, () => agents.runEconomyAgent({
-        name: (genData.description || "Untitled").split("\n")[0].slice(0, 100),
-        description: genData.description || prompt,
-        manifest: { protocol }
-      } as unknown as Project));
+      await agentThrottle();
+      const projectName = (genData.description || "Untitled").split("\n")[0].slice(0, 100);
+      const projectDesc = genData.description || prompt;
+
+      // Run economy + legal in parallel (independent of each other)
+      const [economy, legal] = await Promise.all([
+        traced("agent.economy", { "agent.role": "Economy" }, () => agents.runEconomyAgent({
+          name: projectName,
+          description: projectDesc,
+          manifest: { protocol }
+        } as unknown as Project)),
+        traced("agent.legal", { "agent.role": "Legal" }, () => agents.runLegalAgent({
+          name: projectName,
+          description: projectDesc,
+          manifest: { protocol }
+        } as unknown as Project)),
+      ]);
 
       let broker: any = { mergerPotential: [], negotiationStrategy: "Audit pending." };
       if (orgId) {
+        await agentThrottle();
         const { data: existingProjects } = await supabaseAdmin
           .from("projects")
           .select("*")
@@ -189,17 +217,12 @@ USER REQUEST: "${prompt}"
           .limit(10);
         
         broker = await traced("agent.broker", { "agent.role": "Broker" }, () => agents.runBrokerAgent({
-          description: genData.description || prompt,
+          description: projectDesc,
           id: "temp"
         } as unknown as Project, existingProjects || []));
       }
 
-      const legal = await traced("agent.legal", { "agent.role": "Legal" }, () => agents.runLegalAgent({
-        name: (genData.description || "Untitled").split("\n")[0].slice(0, 100),
-        description: genData.description || prompt,
-        manifest: { protocol }
-      } as unknown as Project));
-
+      await agentThrottle();
       const qaResult = await traced("agent.overseer", { "agent.role": "Overseer" }, () => agents.runOverseerAgent({
         ...genData,
         files,
