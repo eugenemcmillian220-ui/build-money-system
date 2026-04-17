@@ -262,7 +262,7 @@ export function validateFilePaths(files: FileMap): ValidationResponse<FileMap> {
   const errors: string[] = [];
   
   for (const path of Object.keys(files)) {
-    if (path.includes("..")) {
+    if (path.includes("../") || path.startsWith("..")) {
       errors.push(`Invalid path: ${path} - path traversal detected`);
     }
     if (
