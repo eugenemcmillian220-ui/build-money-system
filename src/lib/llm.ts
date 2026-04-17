@@ -100,26 +100,17 @@ export async function callLLM(
   }
 
   if (!result) {
-    let lastError: Error | null = null;
-    // Try all configured providers, not just 4 attempts
-    const maxAttempts = 7; // Match the 7 providers in priority chain
-
-    for (let i = 0; i < maxAttempts; i++) {
-      try {
-        const req = llmRouter.getNextRequest(messages, fullConfig);
-        result = await callProvider(req.provider, req.model, messages, fullConfig);
-        break;
-      } catch (e) {
-        lastError = e as Error;
-        logger.warn(`LLM rotation attempt ${i + 1}/${maxAttempts} failed`, {
-          error: (e as Error).message,
-        });
-      }
-    }
-
-    if (!result) {
-      logger.error("All LLM providers exhausted", {
-        lastError: lastError?.message,
+    try {
+      const failoverResult = await llmRouter.executeWithFailover(messages, fullConfig, { skipCache: !useCache });
+      result = failoverResult.content;
+      logger.info("callLLM succeeded via executeWithFailover", {
+        provider: failoverResult.provider,
+        model: failoverResult.model,
+        cached: failoverResult.cached,
+      });
+    } catch (e) {
+      logger.error("All LLM providers exhausted via executeWithFailover", {
+        error: e instanceof Error ? e.message : String(e),
         configuredProviders: ["groq", "gemini", "openrouter", "openai", "cerebras", "deepseek", "cloudflare"]
           .filter(p => keyManager.isConfigured(p as LLMProvider)),
       });
