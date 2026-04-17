@@ -10,7 +10,7 @@ export const runtime = "nodejs";
 export const maxDuration = 300;
 
 const requestSchema = z.object({
-  prompt: z.string().min(1, "Prompt is required").max(2000, "Prompt is too long").optional(),
+  prompt: z.string().min(1, "Prompt is required").max(100000, "Prompt is too long").optional(),
   imageUrl: z.string().optional(),
   stream: z.boolean().optional().default(false),
   multiFile: z.boolean().optional().default(false),
