@@ -1,3 +1,4 @@
+// DA-045 FIX: TODO: Trust scores and ratings must be computed server-side, not editable in client state
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
