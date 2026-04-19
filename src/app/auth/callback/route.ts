@@ -1,3 +1,4 @@
+// DA-042 FIX: Redirect logic consolidated with DA-011 safeRedirectUrl
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
