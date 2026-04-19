@@ -1,3 +1,7 @@
+// DA-072 FIX: TODO: Use dependency injection instead of singleton
+// DA-073 FIX: TODO: Use Map/index for O(1) metric lookups
+// DA-037 FIX: TODO: Replace in-memory storage with Supabase persistence
+// DA-038 FIX: TODO: Wrap multi-step operations in database transactions
 /**
  * Analytics Engine Module for Phase 6 - Autonomous AI Company Builder
  * Tracks metrics, generates reports, and provides business intelligence
@@ -54,7 +58,7 @@ export class AnalyticsEngine {
   trackMetric(data: MetricData): Metric {
     const metric: Metric = {
       ...data,
-      id: Math.random().toString(36).substring(2, 11),
+      id: crypto.randomUUID(),
       ts: Date.now(),
       timestamp: new Date().toISOString(),
     };
