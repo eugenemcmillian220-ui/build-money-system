@@ -138,7 +138,7 @@ resource "azurerm_key_vault" "main" {
   tenant_id                  = data.azurerm_client_config.current.tenant_id
   sku_name                   = "standard"
   soft_delete_retention_days = 7
-  purge_protection_enabled   = false
+  purge_protection_enabled = true  # DA-051 FIX: Enable purge protection
 
   access_policy {
     tenant_id = data.azurerm_client_config.current.tenant_id
@@ -325,6 +325,7 @@ output "app_service_name" {
 output "key_vault_name" {
   description = "Azure Key Vault name"
   value       = azurerm_key_vault.main.name
+  sensitive = true
 }
 
 output "app_insights_instrumentation_key" {
