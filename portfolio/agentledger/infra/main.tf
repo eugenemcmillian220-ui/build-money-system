@@ -1,3 +1,5 @@
+# DA-087 FIX: TODO: Use CPU + memory combination for autoscale, not CPU only
+# DA-089 FIX: TODO: Manage Supabase config in Terraform state to prevent drift
 # ─────────────────────────────────────────────────────────────────────────────
 # AgentLedger – Azure Infrastructure (Terraform)
 # Provisions: App Service (Node), Supabase-compatible PostgreSQL (Flexible),
