@@ -325,6 +325,7 @@ output "app_service_name" {
 output "key_vault_name" {
   description = "Azure Key Vault name"
   value       = azurerm_key_vault.main.name
+  sensitive = true
 }
 
 output "app_insights_instrumentation_key" {
