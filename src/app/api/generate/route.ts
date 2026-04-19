@@ -5,6 +5,7 @@ import { keyManager } from "@/lib/key-manager";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { z } from "zod";
 import { requireAuth, isAuthError } from "@/lib/api-auth";
+import { agentEconomy } from "@/lib/economy";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -74,21 +75,29 @@ export async function POST(request: Request): Promise<Response> {
 
   const { prompt, imageUrl, stream, multiFile, mode, orgId } = parsed.data;
 
-  // STEP 0: CREDIT CHECK
+  // STEP 0: CREDIT CHECK — use atomic reservation to prevent race conditions
   const creditCost = multiFile ? 25 : 5;
   if (orgId) {
-    const { data: org, error: orgError } = await supabaseAdmin
-      .from("organizations")
-      .select("credit_balance")
-      .eq("id", orgId)
-      .single();
+    const { data: reserved, error: reserveError } = await supabaseAdmin.rpc("reserve_credits", {
+      p_org_id: orgId,
+      p_amount: creditCost,
+    });
 
-    if (orgError || !org) {
-      return Response.json({ error: "Organization not found" }, { status: 404 });
-    }
+    if (reserveError || !reserved) {
+      // Fallback: manual check if RPC not available
+      const { data: org, error: orgError } = await supabaseAdmin
+        .from("organizations")
+        .select("credit_balance")
+        .eq("id", orgId)
+        .single();
 
-    if (Number(org.credit_balance) < creditCost) {
-      return Response.json({ error: `Insufficient credits. This operation requires ${creditCost} units.` }, { status: 402 });
+      if (orgError || !org) {
+        return Response.json({ error: "Organization not found" }, { status: 404 });
+      }
+
+      if (Number(org.credit_balance) < creditCost) {
+        return Response.json({ error: `Insufficient credits. This operation requires ${creditCost} units.` }, { status: 402 });
+      }
     }
   }
 
@@ -156,9 +165,13 @@ export async function POST(request: Request): Promise<Response> {
     try {
       const result = await agent.run(prompt || "");
 
-      // CREDIT DEDUCTION
+      // CREDIT DEDUCTION + USAGE TRACKING
       if (orgId) {
-        await supabaseAdmin.rpc("decrement_org_balance", { org_id: orgId, amount: creditCost });
+        await supabaseAdmin.rpc("decrement_org_balance", { p_org_id: orgId, p_amount: creditCost });
+        // Track resource cost in the economy ledger for analytics
+        agentEconomy.chargeResourceCost(orgId, "Developer", creditCost * 1000, "multi-file-generation").catch(
+          (err) => console.warn("[Generate] Usage tracking failed (non-blocking):", err)
+        );
       }
 
       return Response.json(result);
@@ -213,9 +226,13 @@ export async function POST(request: Request): Promise<Response> {
         `${SYSTEM_PROMPT}\n\nUser request: ${prompt}\n\nGenerate a complete Next.js component with Tailwind CSS:`,
       );
 
-      // CREDIT DEDUCTION
+      // CREDIT DEDUCTION + USAGE TRACKING
       if (orgId) {
-        await supabaseAdmin.rpc("decrement_org_balance", { org_id: orgId, amount: creditCost });
+        await supabaseAdmin.rpc("decrement_org_balance", { p_org_id: orgId, p_amount: creditCost });
+        // Track resource cost in the economy ledger
+        agentEconomy.chargeResourceCost(orgId, "Developer", creditCost * 1000, "single-component-generation").catch(
+          (err) => console.warn("[Generate] Usage tracking failed (non-blocking):", err)
+        );
       }
 
       return Response.json({ code });
