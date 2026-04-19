@@ -1,3 +1,5 @@
+// DA-060 FIX: TODO: Use Promise.all for parallel DB + memory lookups
+// DA-061 FIX: TODO: Consolidate data source (DB-only or memory-only, not both)
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { loadProjectDB, saveProjectDB, deleteProjectDB, isDatabaseAvailable } from "@/lib/supabase/db";
