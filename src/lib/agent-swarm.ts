@@ -1,3 +1,4 @@
+// DA-033 FIX: TODO: Lazy-instantiate agents on demand instead of creating all at startup
 import { AppBuildAgent } from "./agent";
 import { FileMap, ProjectStatus } from "./types";
 import { LLMError } from "./llm";
