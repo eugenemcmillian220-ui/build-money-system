@@ -1,3 +1,16 @@
+
+// DA-025 FIX: Sanitize file paths to prevent traversal
+function sanitizeFilePaths(files: Record<string, any>): Record<string, any> {
+  const sanitized: Record<string, any> = {};
+  for (const [key, value] of Object.entries(files)) {
+    const safePath = key.replace(/\.\.\//g, '').replace(/^\//, '');
+    if (safePath && !safePath.includes('..')) {
+      sanitized[safePath] = value;
+    }
+  }
+  return sanitized;
+}
+
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from 'next/server';
 import { aiDebugger } from '@/lib/ai-debugger';
@@ -5,6 +18,11 @@ import { security, SecurityError } from '@/lib/security';
 import { requireAuth, isAuthError } from "@/lib/api-auth";
 
 export async function POST(req: NextRequest) {
+  // DA-003 FIX: Block in production
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'debug endpoint disabled in production' }, { status: 404 });
+  }
+
   const authResult = await requireAuth();
   if (isAuthError(authResult)) return authResult;
 
