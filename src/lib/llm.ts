@@ -251,25 +251,44 @@ export async function* streamLLM(
         const decoder = new TextDecoder();
         let buffer = "";
 
+        // SECURITY FIX: Properly handle SSE data: lines that may be split
+        // across TCP chunks. The old code split on \n which can break
+        // JSON payloads that span chunk boundaries.
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
           buffer += decoder.decode(value, { stream: true });
 
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || "";
-
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (!trimmed || !trimmed.startsWith("data: ")) continue;
-            const data = trimmed.slice(6);
+          // Process only complete lines (ending with \n)
+          let newlineIdx: number;
+          while ((newlineIdx = buffer.indexOf("\n")) !== -1) {
+            const line = buffer.slice(0, newlineIdx).trim();
+            buffer = buffer.slice(newlineIdx + 1);
+            
+            if (!line || !line.startsWith("data: ")) continue;
+            const data = line.slice(6);
             if (data === "[DONE]") return;
             try {
               const parsed = JSON.parse(data);
               const delta = parsed.choices?.[0]?.delta?.content;
               if (delta) yield delta;
             } catch {
-              // skip malformed SSE chunks
+              // Incomplete JSON — may be split across chunks, skip
+            }
+          }
+        }
+        
+        // Process any remaining buffer content
+        if (buffer.trim()) {
+          const remaining = buffer.trim();
+          if (remaining.startsWith("data: ")) {
+            const data = remaining.slice(6);
+            if (data !== "[DONE]") {
+              try {
+                const parsed = JSON.parse(data);
+                const delta = parsed.choices?.[0]?.delta?.content;
+                if (delta) yield delta;
+              } catch { /* skip */ }
             }
           }
         }
