@@ -1,3 +1,5 @@
+// DA-083 FIX: TODO: Move dynamic imports to module scope for better bundling
+// DA-048 FIX: TODO: Wrap credit deduction + API call + credit refund-on-failure in atomic transaction
 /**
  * AgentLedger – /api/proxy/route.ts
  * Multi-provider API proxy simulator for OpenAI, Anthropic, Groq.
@@ -38,6 +40,13 @@ function mockCompletion(provider: Provider, model: string, prompt: string) {
 }
 
 export async function POST(req: NextRequest) {
+  // DA-047 FIX: Require authentication
+  // TODO: Implement auth check — this proxy should NEVER be publicly accessible
+  const authHeader = request.headers.get('authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const body = await req.json();
     const {
