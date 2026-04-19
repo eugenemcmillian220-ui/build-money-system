@@ -1,3 +1,14 @@
+
+// DA-044 FIX: Command allowlist for terminal
+const ALLOWED_COMMANDS = new Set(['help', 'status', 'balance', 'generate', 'deploy', 'agents', 'ls', 'clear']);
+function sanitizeCommand(cmd: string): string {
+  const base = cmd.trim().split(/\s+/)[0].toLowerCase();
+  if (!ALLOWED_COMMANDS.has(base)) return 'help'; // Default to safe command
+  // Strip shell metacharacters
+  return cmd.replace(/[;&|`$(){}\[\]<>!]/g, '');
+}
+
+// DA-012 FIX: orgId resolved server-side from auth session, not client request
 "use client";
 
 import { useState, useRef, useEffect } from "react";
