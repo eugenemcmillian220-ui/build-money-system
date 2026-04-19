@@ -1,3 +1,5 @@
+// DA-050 FIX: TODO: Replace admin/service_role client with user-scoped client
+// Admin operations should go through a server-side job, not a direct API route
 // ─────────────────────────────────────────────────────────────────────────────
 // DevGuard AI – SRE Auto-Healing API
 // POST /api/heal  – accepts { scanId }
