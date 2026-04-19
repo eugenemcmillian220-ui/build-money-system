@@ -76,7 +76,7 @@ export class Marketplace {
   addSkill(skill: Omit<AgentSkill, 'id' | 'createdAt' | 'rating' | 'usageCount' | 'isVerified'>): AgentSkill {
     const newSkill: AgentSkill = {
       ...skill,
-      id: Math.random().toString(36).substring(2, 11),
+      id: crypto.randomUUID(),
       rating: 0,
       usageCount: 0,
       isVerified: false,
@@ -93,7 +93,7 @@ export class Marketplace {
   addListing(item: ListingInput): Listing {
     const listing: Listing = {
       ...item,
-      id: Math.random().toString(36).substring(2, 11),
+      id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       purchaseCount: 0,
@@ -130,7 +130,7 @@ export class Marketplace {
     if (listing.status !== 'active') throw new Error(`Listing ${listingId} is not available`);
 
     const purchase: Purchase = {
-      id: Math.random().toString(36).substring(2, 11),
+      id: crypto.randomUUID(),
       listingId,
       buyerId,
       amount: listing.price,
@@ -150,7 +150,7 @@ export class Marketplace {
     if (!listing) throw new Error(`Listing ${listingId} not found`);
 
     const review: Review = {
-      id: Math.random().toString(36).substring(2, 11),
+      id: crypto.randomUUID(),
       listingId,
       userId,
       rating,
