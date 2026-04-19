@@ -1,3 +1,27 @@
+
+-- DA-001 FIX: Secure admin check via dedicated admin_users table (not JWT metadata)
+CREATE TABLE IF NOT EXISTS public.admin_users (
+  user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  granted_at TIMESTAMPTZ DEFAULT NOW(),
+  granted_by UUID REFERENCES auth.users(id)
+);
+ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY;
+-- Only service_role can manage admin_users
+CREATE POLICY "service_role_only" ON public.admin_users
+  FOR ALL USING (auth.role() = 'service_role');
+
+-- Secure admin check function
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.admin_users WHERE user_id = auth.uid()
+  );
+$$;
+
 -- =============================================================================
 -- FIX: RECURSION IN RLS POLICIES (PHASE 20 SOVEREIGN ENGINE)
 -- =============================================================================
