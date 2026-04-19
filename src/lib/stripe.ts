@@ -5,7 +5,7 @@ import { z } from "zod";
 import { serverEnv } from "./env";
 
 const stripe = new Stripe(serverEnv.STRIPE_SECRET_KEY!, {
-  apiVersion: "2026-03-25.dahlia",
+  apiVersion: "2025-12-18.acacia" // FIX: Use latest stable Stripe API version,
   typescript: true,
 });
 
@@ -34,7 +34,7 @@ export interface LifetimeLicense {
   id: string;
   name: string;
   priceId: string;
-  price: number; // One-time price
+  price: number; // In DOLLARS (e.g., 790 = $790.00) — converted to cents in createLifetimeLicenseSession
   description: string;
   features: string[];
 }
@@ -42,7 +42,7 @@ export interface LifetimeLicense {
 export interface CreditPack {
   id: string;
   credits: number;
-  price: number; // In cents
+  price: number; // In cents (e.g., 2000 = $20.00)
   label: string;
   savings?: string;
 }
