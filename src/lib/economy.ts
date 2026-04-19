@@ -1,3 +1,4 @@
+import "server-only"; // SECURITY FIX: Prevent client-side bundling
 import { supabaseAdmin } from "./supabase/db";
 
 export type AgentRole = "Architect" | "Developer" | "QA" | "SecurityAuditor" | "ProductManager" | "SRE";
@@ -10,6 +11,79 @@ export interface Transaction {
   amount: number;
   type: "hiring" | "resource_cost" | "top_up" | "subscription_grant" | "subscription_renewal" | "lifetime_grant";
   description: string;
+}
+
+/**
+ * Per-model cost rates (credits per token).
+ * 
+ * Pricing tiers:
+ * - free:   0 credits (free-tier models on OpenRouter, Cloudflare)
+ * - micro:  0.000005 credits/token (~$0.01/1M tokens equivalent)
+ * - small:  0.00001  credits/token (~$0.02/1M tokens)
+ * - medium: 0.00005  credits/token (~$0.10/1M tokens)
+ * - large:  0.0001   credits/token (~$0.20/1M tokens)
+ * - xl:     0.0003   credits/token (~$0.60/1M tokens)
+ *
+ * Update this table when adding new models to llm-router.ts FREE_MODELS.
+ */
+const MODEL_COST_TABLE: Record<string, number> = {
+  // === Free tier (OpenRouter free models) ===
+  "qwen/qwen3-coder-480b-a35b-instruct:free": 0,
+  "mistralai/devstral:free": 0,
+  "nvidia/llama-3.1-nemotron-ultra:free": 0,
+  "meta-llama/llama-3.3-70b-instruct:free": 0,
+  "deepseek/deepseek-r1:free": 0,
+  "google/gemini-2.0-flash-001:free": 0,
+  "meta-llama/llama-4-maverick:free": 0,
+  "meta-llama/llama-4-scout:free": 0,
+
+  // === Micro tier ===
+  "llama-3.1-8b-instant": 0.000005,
+  "llama3.1-8b": 0.000005,
+  "@cf/meta/llama-3.2-1b-instruct": 0,
+  "@cf/meta/llama-3.2-3b-instruct": 0,
+
+  // === Small tier ===
+  "gemini-2.0-flash": 0.00001,
+  "gemini-2.0-flash-lite": 0.000005,
+  "gemini-1.5-flash": 0.00001,
+  "gpt-3.5-turbo": 0.00001,
+  "qwen-2.5-coder-32b": 0.00001,
+  "deepseek-chat": 0.00001,
+
+  // === Medium tier ===
+  "meta-llama/llama-4-scout-17b-16e-instruct": 0.00005,
+  "llama-3.3-70b-versatile": 0.00005,
+  "llama3.1-70b": 0.00005,
+  "gpt-4o-mini": 0.00005,
+
+  // === Large tier ===
+  "deepseek-reasoner": 0.0001,
+
+  // === XL tier (if user brings own key for premium models) ===
+  "gpt-4o": 0.0003,
+  "gpt-4-turbo": 0.0003,
+  "claude-3-opus": 0.0005,
+};
+
+/** Default rate when a model isn't in the table */
+const DEFAULT_COST_RATE = 0.00005; // medium tier
+
+/**
+ * Look up cost rate for a model. Tries exact match first,
+ * then partial match (for models like "gpt-4o-mini-2024-07-18").
+ */
+function getModelCostRate(model: string): number {
+  // Exact match
+  if (model in MODEL_COST_TABLE) return MODEL_COST_TABLE[model];
+
+  // Partial match: check if any key is a prefix of the model string
+  for (const [key, rate] of Object.entries(MODEL_COST_TABLE)) {
+    if (model.startsWith(key) || model.includes(key)) return rate;
+  }
+
+  console.warn(`[Economy] Unknown model "${model}" — using default rate ${DEFAULT_COST_RATE}`);
+  return DEFAULT_COST_RATE;
 }
 
 /**
@@ -32,55 +106,81 @@ export class AgentEconomy {
   }
 
   /**
-   * Record a transaction in the ledger and update organization balance
+   * Record a transaction in the ledger and update organization balance atomically.
    */
   async recordTransaction(tx: Transaction): Promise<void> {
     if (!supabaseAdmin) throw new Error("Supabase admin not configured");
 
-    // 1. Insert into ledger
-    const { error: ledgerError } = await supabaseAdmin
-      .from("agent_ledger")
-      .insert({
-        org_id: tx.orgId,
-        project_id: tx.projectId,
-        from_agent: tx.fromAgent,
-        to_agent: tx.toAgent,
-        amount: tx.amount,
-        transaction_type: tx.type,
-        description: tx.description,
-      });
+    // Use atomic RPC (created in migration)
+    const delta = (tx.type === "top_up" || tx.type === "subscription_grant" || tx.type === "subscription_renewal" || tx.type === "lifetime_grant")
+      ? tx.amount
+      : -tx.amount;
 
-    if (ledgerError) throw new Error(`Ledger error: ${ledgerError.message}`);
-
-    // 2. Update organization balance
-    // If it's a top_up or subscription_grant, we add.
-    const delta = (tx.type === "top_up" || tx.type === "subscription_grant") ? tx.amount : -tx.amount;
-
-    const { error: balanceError } = await supabaseAdmin.rpc("increment_org_balance", {
-      org_id: tx.orgId,
-      amount: delta,
+    const { error: rpcError } = await supabaseAdmin.rpc("record_transaction_atomic", {
+      p_org_id: tx.orgId,
+      p_project_id: tx.projectId ?? null,
+      p_from_agent: tx.fromAgent,
+      p_to_agent: tx.toAgent ?? null,
+      p_amount: tx.amount,
+      p_transaction_type: tx.type,
+      p_description: tx.description,
+      p_balance_delta: delta,
     });
 
-    if (balanceError) {
-      // Fallback if RPC isn't defined yet
-      const currentBalance = await this.getBalance(tx.orgId);
-      await supabaseAdmin
-        .from("organizations")
-        .update({ credit_balance: currentBalance + delta })
-        .eq("id", tx.orgId);
+    if (rpcError) {
+      // Fallback: separate insert + update (non-atomic but functional)
+      console.warn("[Economy] Atomic RPC failed, falling back to separate operations:", rpcError.message);
+
+      const { error: ledgerError } = await supabaseAdmin
+        .from("agent_ledger")
+        .insert({
+          org_id: tx.orgId,
+          project_id: tx.projectId,
+          from_agent: tx.fromAgent,
+          to_agent: tx.toAgent,
+          amount: tx.amount,
+          transaction_type: tx.type,
+          description: tx.description,
+        });
+
+      if (ledgerError) throw new Error(`Ledger error: ${ledgerError.message}`);
+
+      const { error: balanceError } = await supabaseAdmin.rpc("increment_org_balance", {
+        p_org_id: tx.orgId,
+        p_amount: delta,
+      });
+
+      if (balanceError) {
+        // Last resort: read-then-write (non-atomic)
+        const currentBalance = await this.getBalance(tx.orgId);
+        await supabaseAdmin
+          .from("organizations")
+          .update({ credit_balance: currentBalance + delta })
+          .eq("id", tx.orgId);
+      }
     }
   }
 
   /**
    * Grant credits to an organization (e.g., from top-up or subscription)
    */
-  async grantCredits(orgId: string, amount: number, type: "top_up" | "subscription_grant" | "subscription_renewal" | "lifetime_grant" = "top_up"): Promise<void> {
+  async grantCredits(
+    orgId: string,
+    amount: number,
+    type: "top_up" | "subscription_grant" | "subscription_renewal" | "lifetime_grant" = "top_up"
+  ): Promise<void> {
+    const descriptions: Record<string, string> = {
+      top_up: "Manual Credit Top-up",
+      subscription_grant: "Monthly Subscription Allowance",
+      subscription_renewal: "Subscription Renewal Allowance",
+      lifetime_grant: "Lifetime License Monthly Grant",
+    };
     await this.recordTransaction({
       orgId,
       fromAgent: "System",
       amount,
       type,
-      description: type === "top_up" ? "Manual Credit Top-up" : "Monthly Subscription Allowance",
+      description: descriptions[type] || "Credit Grant",
     });
   }
 
@@ -88,9 +188,9 @@ export class AgentEconomy {
    * Negotiate and hire another agent for a subtask
    */
   async hireAgent(
-    orgId: string, 
-    from: AgentRole | "System", 
-    to: AgentRole, 
+    orgId: string,
+    from: AgentRole | "System",
+    to: AgentRole,
     task: string,
     projectId?: string
   ): Promise<boolean> {
@@ -100,7 +200,7 @@ export class AgentEconomy {
       QA: 1.0,
       SecurityAuditor: 2.5,
       ProductManager: 2.0,
-      SRE: 3.0
+      SRE: 3.0,
     };
 
     const cost = costMap[to];
@@ -125,19 +225,20 @@ export class AgentEconomy {
   }
 
   /**
-   * Account for LLM token usage/resource costs
+   * Account for LLM token usage/resource costs using per-model pricing table.
    */
   async chargeResourceCost(
-    orgId: string, 
-    agent: AgentRole, 
+    orgId: string,
+    agent: AgentRole,
     tokens: number,
     model: string,
     projectId?: string
-  ): Promise<void> {
-    // Basic calculation: 1 credit per 100k tokens for mini, 10 credits for large
-    const isLarge = model.includes("gpt-4o") && !model.includes("mini");
-    const rate = isLarge ? 0.0001 : 0.00001;
+  ): Promise<number> {
+    const rate = getModelCostRate(model);
     const cost = tokens * rate;
+
+    // Skip recording for free models (0 cost)
+    if (cost === 0) return 0;
 
     await this.recordTransaction({
       orgId,
@@ -145,8 +246,10 @@ export class AgentEconomy {
       fromAgent: agent,
       amount: cost,
       type: "resource_cost",
-      description: `LLM Resource Usage: ${tokens} tokens on ${model}`,
+      description: `LLM: ${tokens} tokens on ${model} @ ${rate}/tok`,
     });
+
+    return cost;
   }
 }
 
