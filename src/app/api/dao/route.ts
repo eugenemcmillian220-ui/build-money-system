@@ -1,3 +1,4 @@
+// DA-028 TODO: Refactor action-switch pattern into dedicated sub-routes (e.g., /api/federation/register/route.ts)
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
