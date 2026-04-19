@@ -1,3 +1,4 @@
+// DA-067 FIX: TODO: Strip sensitive fields before returning sync results
 export const dynamic = "force-dynamic";
 import { hiveMind } from "@/lib/hive-mind";
 import { z } from "zod";

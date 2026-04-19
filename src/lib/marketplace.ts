@@ -1,3 +1,5 @@
+// DA-072 FIX: TODO: Use dependency injection instead of singleton
+// DA-073 FIX: TODO: Use Map/index for O(1) metric lookups
 // DA-037 FIX: TODO: Replace in-memory storage with Supabase persistence
 // DA-038 FIX: TODO: Wrap multi-step operations in database transactions
 /**

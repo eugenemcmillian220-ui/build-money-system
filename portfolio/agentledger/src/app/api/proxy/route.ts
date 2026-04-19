@@ -1,3 +1,4 @@
+// DA-083 FIX: TODO: Move dynamic imports to module scope for better bundling
 // DA-048 FIX: TODO: Wrap credit deduction + API call + credit refund-on-failure in atomic transaction
 /**
  * AgentLedger – /api/proxy/route.ts

@@ -1,3 +1,4 @@
+// DA-070 FIX: TODO: Use integer cents for all currency, avoid floating-point
 /**
  * Monetization Engine - Phase 6 Upgrade
  * Real LLM-powered pricing and revenue model generation

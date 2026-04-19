@@ -1,3 +1,5 @@
+// DA-078 FIX: TODO: Use SWR/React Query for data fetching with caching
+// DA-079 FIX: TODO: Split action handlers into separate hooks
 // DA-012 FIX: orgId resolved server-side from auth session, not client request
 "use client";
 

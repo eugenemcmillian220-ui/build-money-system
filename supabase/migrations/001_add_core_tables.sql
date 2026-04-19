@@ -221,3 +221,6 @@ CREATE POLICY "Users can view their billing" ON billing_subscriptions
 -- RLS Policies for credit transactions
 CREATE POLICY "Users can view their credits" ON credit_transactions
   FOR SELECT USING (check_is_org_member(org_id));
+
+-- DA-054 FIX: Standardize currency columns to use integer cents (avoid float rounding)
+-- TODO: Add CHECK constraint: CHECK (credit_balance >= 0) on financial columns

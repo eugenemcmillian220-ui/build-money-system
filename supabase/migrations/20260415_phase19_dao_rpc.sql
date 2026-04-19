@@ -1,3 +1,4 @@
+-- DA-055 FIX: TODO: Replace RETURNS json with explicit composite types for type safety
 -- Phase 19: Sovereign DAO - RPC Functions
 -- These functions power the DAO governance engine
 
