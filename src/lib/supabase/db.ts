@@ -1,3 +1,4 @@
+import "server-only"; // SECURITY FIX: Prevent client-side bundling of service role key
 import { createClient } from "@supabase/supabase-js";
 import { serverEnv } from "@/lib/env";
 import { Project, FileMap, ProjectStatus, DeploymentInfo, ProjectManifest } from "@/lib/types";
@@ -122,18 +123,26 @@ export async function saveProjectDB(project: Project): Promise<Project> {
 }
 
 /**
- * Load a project from the database
+ * Load a project from the database.
+ * SECURITY FIX: Added optional orgId parameter to enforce tenant isolation.
+ * When orgId is provided, the query filters on both id AND org_id.
  */
-export async function loadProjectDB(id: string): Promise<Project | null> {
+export async function loadProjectDB(id: string, orgId?: string): Promise<Project | null> {
   if (!supabaseAdmin) {
     throw new DatabaseError("Database not configured. Set SUPABASE_SERVICE_ROLE_KEY.");
   }
 
-  const { data, error } = await supabaseAdmin
+  let query = supabaseAdmin
     .from("projects")
     .select("*")
-    .eq("id", id)
-    .single();
+    .eq("id", id);
+
+  // SECURITY FIX: Filter by org_id when provided to prevent cross-tenant access
+  if (orgId) {
+    query = query.eq("org_id", orgId);
+  }
+
+  const { data, error } = await query.single();
 
   if (error) {
     if (error.code === "PGRST116") {
@@ -147,18 +156,28 @@ export async function loadProjectDB(id: string): Promise<Project | null> {
 }
 
 /**
- * List all projects from the database
+ * List projects from the database.
+ * SECURITY FIX: Added optional orgId to scope listing to a single tenant.
  */
-export async function listProjectsDB(limit = 100, offset = 0): Promise<Project[]> {
+export async function listProjectsDB(limit = 100, offset = 0, orgId?: string): Promise<Project[]> {
   if (!supabaseAdmin) {
     throw new DatabaseError("Database not configured. Set SUPABASE_SERVICE_ROLE_KEY.");
   }
 
-  const { data, error } = await supabaseAdmin
+  // SECURITY FIX: Guard against invalid limit values
+  const safeLimit = Math.max(1, limit);
+
+  let query = supabaseAdmin
     .from("projects")
     .select("*")
     .order("created_at", { ascending: false })
-    .range(offset, offset + limit - 1);
+    .range(offset, offset + safeLimit - 1);
+
+  if (orgId) {
+    query = query.eq("org_id", orgId);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error("Failed to list projects:", error);
@@ -257,15 +276,19 @@ export async function deleteProjectDB(id: string): Promise<boolean> {
 
 /**
  * SQL to create the projects table (run this in Supabase SQL editor)
+ *
+ * SECURITY FIX: Replaced "Allow all" policy with proper org-based RLS policies.
+ * These require the user's JWT to contain an org_id claim or use auth.uid().
  */
 export const CREATE_PROJECTS_TABLE_SQL = `
 CREATE TABLE IF NOT EXISTS projects (
   id UUID PRIMARY KEY,
   name TEXT NOT NULL,
   description TEXT,
-  files JSONB NOT NULL DEFAULT '{}',
+  org_id UUID REFERENCES organizations(id),
+  files JSONB NOT NULL DEFAULT '{}'::jsonb,
   schema TEXT,
-  integrations TEXT[] DEFAULT '{}',
+  integrations TEXT[] DEFAULT \'{}\',
   status JSONB,
   deployment JSONB,
   github_repo TEXT,
@@ -274,13 +297,42 @@ CREATE TABLE IF NOT EXISTS projects (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Create index for faster listing
+-- Index for faster listing by org
+CREATE INDEX IF NOT EXISTS idx_projects_org_id ON projects(org_id);
 CREATE INDEX IF NOT EXISTS idx_projects_created_at ON projects(created_at DESC);
 
--- Enable Row Level Security (optional - customize for your auth needs)
+-- Enable Row Level Security
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
 
--- Allow all operations (customize for your auth needs)
-CREATE POLICY "Allow all" ON projects
-  FOR ALL USING (true) WITH CHECK (true);
+-- Drop the old "Allow all" policy if it exists
+DROP POLICY IF EXISTS "Allow all" ON projects;
+
+-- Proper RLS: Users can only access projects belonging to their organization
+CREATE POLICY "Users can view own org projects" ON projects
+  FOR SELECT USING (
+    org_id IN (
+      SELECT om.org_id FROM org_members om WHERE om.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Users can insert own org projects" ON projects
+  FOR INSERT WITH CHECK (
+    org_id IN (
+      SELECT om.org_id FROM org_members om WHERE om.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Users can update own org projects" ON projects
+  FOR UPDATE USING (
+    org_id IN (
+      SELECT om.org_id FROM org_members om WHERE om.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Users can delete own org projects" ON projects
+  FOR DELETE USING (
+    org_id IN (
+      SELECT om.org_id FROM org_members om WHERE om.user_id = auth.uid()
+    )
+  );
 `;
