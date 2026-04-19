@@ -1,3 +1,5 @@
+// DA-081 FIX: TODO: Add pagination (virtual scroll) for large swarm lists
+// DA-082 FIX: TODO: Validate URLs server-side, not just in client
 // DA-045 FIX: TODO: Trust scores and ratings must be computed server-side, not editable in client state
 "use client";
 
