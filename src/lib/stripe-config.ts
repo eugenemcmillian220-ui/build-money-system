@@ -1,7 +1,13 @@
 /**
- * Stripe billing configuration - types and constants only.
+ * Stripe billing configuration — types and constants only.
  * Safe to import from client components.
  * For Stripe SDK operations, use stripe.ts (server-only).
+ *
+ * ⚠️ KNOWN ISSUE: priceId fields are empty strings here because this file
+ * is client-safe and cannot access server env vars. The actual price IDs
+ * are resolved in stripe.ts (server-only) via env vars with hardcoded fallbacks.
+ * This file is used only for display/UI purposes (feature lists, pricing).
+ * Do NOT use priceId from this file for checkout — use stripe.ts BILLING_TIERS instead.
  */
 
 export interface BillingTier {
@@ -103,6 +109,10 @@ export const LIFETIME_LICENSES: Record<string, LifetimeLicense> = {
   },
 };
 
+/**
+ * Credit packs — prices are in CENTS (consistent with Stripe API).
+ * createTopUpSession passes price directly to Stripe (already in cents) ✅
+ */
 export const CREDIT_PACKS: CreditPack[] = [
   { id: "credits_5k", credits: 5000, price: 2000, label: "Starter Pack" },
   { id: "credits_10k", credits: 10000, price: 3800, label: "Pro Boost", savings: "5% off" },
