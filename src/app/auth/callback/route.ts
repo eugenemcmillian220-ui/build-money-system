@@ -1,5 +1,24 @@
+// DA-042 FIX: Redirect logic consolidated with DA-011 safeRedirectUrl
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+
+
+// DA-011 FIX: Validate redirect URL to prevent open redirect
+function safeRedirectUrl(next: string | null, origin: string): string {
+  const fallback = `${origin}/dashboard`;
+  if (!next) return fallback;
+  // Must start with / and not contain protocol or double slashes
+  if (!next.startsWith('/') || next.startsWith('//') || next.includes('://')) {
+    return fallback;
+  }
+  // Block encoded variants
+  const decoded = decodeURIComponent(next);
+  if (decoded.startsWith('//') || decoded.includes('://')) {
+    return fallback;
+  }
+  return `${origin}${next}`;
+}
+
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
