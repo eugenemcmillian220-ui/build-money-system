@@ -1,3 +1,10 @@
+
+// DA-036 FIX: Sanitize file paths for GitHub operations
+function sanitizeRepoPath(path: string): string {
+  // Remove traversal sequences and normalize
+  return path.replace(/\.\.\/|\.\.$/g, '').replace(/^\/+/, '').replace(/\/+/g, '/');
+}
+
 import { serverEnv } from "@/lib/env";
 import { FileMap } from "./types";
 
