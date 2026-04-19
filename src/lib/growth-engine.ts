@@ -1,3 +1,4 @@
+// DA-071 FIX: TODO: Use structured LLM output instead of regex JSON extraction
 /**
  * Growth Engine Module - Phase 6 Upgrade
  * Real LLM-powered growth strategy generation (replaces hardcoded channel lists)
