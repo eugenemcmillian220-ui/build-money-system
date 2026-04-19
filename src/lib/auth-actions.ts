@@ -22,7 +22,10 @@ async function ensurePersonalOrg(supabase: SupabaseClient, user: User, email: st
     .eq("user_id", user.id);
 
   if (!orgs || orgs.length === 0) {
-    const slug = email.split("@")[0].replace(/[^a-zA-Z0-9]/g, "").toLowerCase() + "-" + Math.random().toString(36).slice(2, 5);
+    // FIX: Use crypto for slug randomness (Math.random is predictable) 
+    // and use 8 chars instead of 3 to avoid collisions at scale
+    const crypto = await import("crypto");
+    const slug = email.split("@")[0].replace(/[^a-zA-Z0-9]/g, "").toLowerCase() + "-" + crypto.randomUUID().slice(0, 8);
     const { data: newOrg, error: insertError } = await supabase
       .from("organizations")
       .insert({
