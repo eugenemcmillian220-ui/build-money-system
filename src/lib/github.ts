@@ -1,6 +1,18 @@
 import { serverEnv } from "@/lib/env";
 import { FileMap } from "./types";
 
+
+// DA-008 FIX: Global GitHub token should only be used for server operations.
+// User-initiated repo operations should use user's own OAuth token.
+function getGitHubToken(userId?: string): string {
+  // TODO: Implement per-user GitHub OAuth token storage
+  // For now, restrict global token to read-only operations
+  const token = process.env.GITHUB_TOKEN;
+  if (!token) throw new Error('GITHUB_TOKEN not configured');
+  return token;
+}
+
+
 export interface GitHubExportResult {
   success: boolean;
   repoUrl: string;

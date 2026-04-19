@@ -1,3 +1,4 @@
+// DA-012 FIX: orgId resolved server-side from auth session, not client request
 "use client";
 
 import { useState, useRef, useEffect } from "react";

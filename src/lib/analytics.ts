@@ -54,7 +54,7 @@ export class AnalyticsEngine {
   trackMetric(data: MetricData): Metric {
     const metric: Metric = {
       ...data,
-      id: Math.random().toString(36).substring(2, 11),
+      id: crypto.randomUUID(),
       ts: Date.now(),
       timestamp: new Date().toISOString(),
     };

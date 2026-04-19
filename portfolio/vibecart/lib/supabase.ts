@@ -55,77 +55,7 @@ export function createSupabaseAdminClient() {
 
 // ─── DDL: SQL schema (run once via Supabase SQL editor) ──────────────────────────
 
-export const SCHEMA_SQL = `
--- Enable RLS on all tables
-
-create table if not exists public.searches (
-  id           uuid primary key default gen_random_uuid(),
-  user_id      uuid references auth.users(id) on delete set null,
-  image_url    text not null,
-  room_style   text not null,
-  detected_items jsonb not null default '[]',
-  color_palette  jsonb not null default '[]',
-  confidence   float4 not null default 0,
-  created_at   timestamptz not null default now()
-);
-
-alter table public.searches enable row level security;
-
-create policy "Users can read their own searches"
-  on public.searches for select
-  using (user_id = auth.uid() or user_id is null);
-
-create policy "Anyone can insert searches"
-  on public.searches for insert
-  with check (true);
-
-create table if not exists public.products (
-  id           uuid primary key default gen_random_uuid(),
-  external_id  text not null,
-  store_id     text not null,
-  name         text not null,
-  description  text not null default '',
-  price        numeric(10,2) not null,
-  currency     text not null default 'USD',
-  image_url    text not null,
-  product_url  text not null,
-  category     text not null,
-  style        text not null,
-  colors       jsonb not null default '[]',
-  in_stock     boolean not null default true,
-  rating       float4 not null default 0,
-  review_count int not null default 0,
-  ar_supported boolean not null default false,
-  dimensions   jsonb,
-  created_at   timestamptz not null default now(),
-  updated_at   timestamptz not null default now(),
-  unique (external_id, store_id)
-);
-
-alter table public.products enable row level security;
-
-create policy "Products are publicly readable"
-  on public.products for select
-  using (true);
-
-create policy "Only service role can mutate products"
-  on public.products for all
-  using (auth.role() = 'service_role');
-
-create table if not exists public.carts (
-  id           uuid primary key default gen_random_uuid(),
-  user_id      uuid references auth.users(id) on delete cascade,
-  items        jsonb not null default '[]',
-  created_at   timestamptz not null default now(),
-  updated_at   timestamptz not null default now()
-);
-
-alter table public.carts enable row level security;
-
-create policy "Users manage their own cart"
-  on public.carts for all
-  using (user_id = auth.uid());
-`;
+export // DA-013 FIX: DDL removed — use Supabase CLI migrations instead
 
 // ─── Repository helpers ─────────────────────────────────────────────────────────────
 

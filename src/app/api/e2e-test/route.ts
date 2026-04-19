@@ -288,6 +288,11 @@ const PHASE_RUNNERS = [
 ];
 
 export async function POST(req: NextRequest) {
+  // DA-003 FIX: Block in production
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'e2e-test endpoint disabled in production' }, { status: 404 });
+  }
+
   if (!validateAdminKey(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

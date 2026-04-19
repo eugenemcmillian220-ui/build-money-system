@@ -1,6 +1,15 @@
 import { keyManager } from "./key-manager";
 import { llmCache } from "./llm-cache";
 
+
+// DA-007 FIX: Model allowlist from env
+const ALLOWED_MODELS = new Set((process.env.LLM_ALLOWED_MODELS || '').split(',').filter(Boolean));
+
+function validateModel(model: string): boolean {
+  if (ALLOWED_MODELS.size === 0) return true; // No allowlist = allow all (dev mode)
+  return ALLOWED_MODELS.has(model);
+}
+
 const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
 const FREE_MODEL_FALLBACK = "qwen/qwen3-coder-480b-a35b-instruct:free";
 
