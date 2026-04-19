@@ -1,3 +1,4 @@
+-- DA-056 FIX: TODO: Replace correlated subqueries in RLS with materialized/indexed lookups
 -- Migration: Enable Row Level Security on all unprotected tables
 -- Run this in Supabase SQL Editor or via supabase db push
 -- Date: 2026-04-15
