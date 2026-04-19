@@ -1,3 +1,4 @@
+// DA-069 TODO: Add integration tests with mock task queue
 /**
  * AI Scheduler Module for Phase 7 - Automated Task Scheduling
  * Intelligent scheduling of autonomous tasks, builds, and maintenance
