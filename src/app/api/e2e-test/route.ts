@@ -1,3 +1,4 @@
+// DA-059 FIX: TODO: Add test coverage for all phases, not just a subset
 /**
  * E2E Test Runner — exercises all 22 phases internally.
  * Protected by ADMIN_API_KEYS (env var) or CRON_SECRET or E2E_TEST_SECRET.
@@ -288,6 +289,11 @@ const PHASE_RUNNERS = [
 ];
 
 export async function POST(req: NextRequest) {
+  // DA-003 FIX: Block in production
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'e2e-test endpoint disabled in production' }, { status: 404 });
+  }
+
   if (!validateAdminKey(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
