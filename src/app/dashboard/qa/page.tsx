@@ -18,7 +18,7 @@ export default function QADashboard() {
       } catch (err) {
         console.error("Failed to load QA data:", err);
       } finally {
-        setLoading(setLoading(false) as any);
+        setLoading(false);
       }
     }
     loadData();
