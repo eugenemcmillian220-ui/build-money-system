@@ -1,3 +1,5 @@
+# DA-086 FIX: TODO: Use least-privilege IAM roles instead of broad access
+# DA-088 FIX: TODO: Use 'latest' or data source for secret versions
 # ─────────────────────────────────────────────────────────────────────────────
 # VibeCart — GCP Infrastructure (Terraform)
 # Provisions: Cloud Run (Next.js), Artifact Registry, Secret Manager,
