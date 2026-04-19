@@ -1,3 +1,4 @@
+// DA-084 FIX: TODO: Review SECURITY DEFINER functions for privilege escalation
 /**
  * AgentLedger – supabase.ts
  * Supabase browser/edge client + full schema SQL + RLS policies.
