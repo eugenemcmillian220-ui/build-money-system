@@ -1,3 +1,4 @@
+// DA-030 FIX: TODO: Move swarm operations to background job queue with webhook callback
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from 'next/server';
 import { AgentSwarm } from '@/lib/agent-swarm';
