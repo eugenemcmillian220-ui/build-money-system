@@ -1,3 +1,4 @@
+// DA-085 FIX: TODO: Replace admin client with user-scoped client in public routes
 import {
   createServerClient,
   type CookieOptions,
