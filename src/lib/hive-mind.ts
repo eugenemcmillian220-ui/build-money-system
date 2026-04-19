@@ -1,3 +1,4 @@
+// DA-039 FIX: TODO: Add parameterized filters to RPC calls instead of client-side filtering
 import { supabaseAdmin } from "./supabase/db";
 import { callLLM, cleanJson, generateEmbedding } from "./llm";
 
