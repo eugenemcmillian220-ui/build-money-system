@@ -73,3 +73,7 @@ BEGIN
   RETURN TRUE;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- DA-019 FIX: Prevent negative balances at the DB level
+ALTER TABLE organizations ADD CONSTRAINT IF NOT EXISTS balance_non_negative 
+  CHECK (credit_balance >= 0);
