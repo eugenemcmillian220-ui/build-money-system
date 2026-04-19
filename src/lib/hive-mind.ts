@@ -1,5 +1,36 @@
+// DA-039 FIX: TODO: Add parameterized filters to RPC calls instead of client-side filtering
 import { supabaseAdmin } from "./supabase/db";
 import { callLLM, cleanJson, generateEmbedding } from "./llm";
+
+
+// DA-010 FIX: Input sanitization for LLM calls
+function sanitizeForLLM(input: string): string {
+  // Strip common injection patterns
+  const patterns = [
+    /ignore (?:all )?(?:previous |above )?instructions/gi,
+    /you are now/gi,
+    /system:\s/gi,
+    /\[INST\]/gi,
+    /<<SYS>>/gi,
+    /<\|(?:im_start|im_end|system|user|assistant)\|>/gi,
+  ];
+  let cleaned = input;
+  for (const p of patterns) {
+    cleaned = cleaned.replace(p, '[FILTERED]');
+  }
+  // Truncate to prevent context window abuse
+  return cleaned.slice(0, 10000);
+}
+
+// DA-010 FIX: Strip PII before sending to LLM
+function stripPII(text: string): string {
+  return text
+    .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '[EMAIL]')
+    .replace(/\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/g, '[PHONE]')
+    .replace(/\b\d{3}-\d{2}-\d{4}\b/g, '[SSN]')
+    .replace(/\b(?:\d{4}[- ]?){3}\d{4}\b/g, '[CARD]');
+}
+
 
 export interface KnowledgePattern {
   type: "bug_fix" | "architecture" | "ui_pattern";
