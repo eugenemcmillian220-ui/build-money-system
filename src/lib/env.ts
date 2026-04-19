@@ -25,11 +25,11 @@ const serverEnvSchema = z.object({
   GITHUB_USERNAME: z.string().optional(),
   GITHUB_REPO: z.string().optional(),
   GITHUB_DEFAULT_BRANCH: z.string().optional().default("main"),
-  GITHUB_TOKEN: z.string().optional(), // Legacy
+  GITHUB_TOKEN: z.string().optional(), // @deprecated — use GITHUB_ACCESS_TOKEN instead
   VERCEL_ACCESS_TOKEN: z.string().optional(),
   VERCEL_PROJECT_ID: z.string().optional(),
   VERCEL_TEAM_ID: z.string().optional(),
-  VERCEL_TOKEN: z.string().optional(), // Legacy
+  VERCEL_TOKEN: z.string().optional(), // @deprecated — use VERCEL_ACCESS_TOKEN instead
 
   // Admin
   ADMIN_API_KEYS: z.string().optional(),
@@ -88,10 +88,8 @@ const serverEnvSchema = z.object({
   SLACK_BOT_TOKEN: z.string().optional(),
   SLACK_WEBHOOK_URL: z.string().optional(),
   SLACK_CHANNEL_ID: z.string().optional(),
-  GROQ_API_KEYS: z.string().optional(),
-  GEMINI_API_KEYS: z.string().optional(),
-  OPENAI_API_KEYS: z.string().optional(),
-  OPENROUTER_API_KEYS: z.string().optional(),
+  // FIX: Removed duplicate GROQ_API_KEYS, GEMINI_API_KEYS, OPENAI_API_KEYS, 
+  // OPENROUTER_API_KEYS entries (already declared above under AI providers)
 
   // Arize AI / OTel
   ARIZE_API_KEY: z.string().optional(),
