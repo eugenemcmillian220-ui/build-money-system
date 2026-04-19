@@ -51,13 +51,14 @@ export async function createVercelDeploy(
     const axios = axiosModule.default;
     
     // Convert files to Vercel format (array of objects)
-    const vercelFiles: { file: string; data: string; encoding: string }[] = [];
+    // SECURITY FIX: Vercel v13/deployments expects utf8 content directly, 
+    // not base64 encoded. Base64 encoding causes garbled source files in deployed apps.
+    const vercelFiles: { file: string; data: string }[] = [];
 
     for (const [path, content] of Object.entries(files)) {
       vercelFiles.push({
         file: path,
-        data: Buffer.from(content).toString("base64"),
-        encoding: "base64",
+        data: content,
       });
     }
 
@@ -65,7 +66,7 @@ export async function createVercelDeploy(
     if (!files["package.json"]) {
       vercelFiles.push({
         file: "package.json",
-        data: Buffer.from(JSON.stringify({
+        data: JSON.stringify({
           name: name?.toLowerCase().replace(/\s+/g, "-") || `ai-app-${projectId.slice(0, 8)}`,
           version: "1.0.0",
           private: true,
@@ -88,8 +89,7 @@ export async function createVercelDeploy(
             "@types/react": "latest",
             "@types/react-dom": "latest"
           },
-        }, null, 2)).toString("base64"),
-        encoding: "base64",
+        }, null, 2),
       });
     }
 
@@ -97,11 +97,10 @@ export async function createVercelDeploy(
     if (!files["next.config.js"] && !files["next.config.ts"]) {
       vercelFiles.push({
         file: "next.config.js",
-        data: Buffer.from(`/** @type {import('next').NextConfig} */
+        data: `/** @type {import('next').NextConfig} */
 const nextConfig = {}
 module.exports = nextConfig
-`).toString("base64"),
-        encoding: "base64",
+`,
       });
     }
 
