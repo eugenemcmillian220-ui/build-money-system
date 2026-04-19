@@ -411,3 +411,9 @@ output "ecs_cluster_name" {
   description = "ECS cluster name"
   value       = aws_ecs_cluster.main.name
 }
+
+# DA-015 FIX: Add VPC endpoints for ECR and CloudWatch (required for private subnet tasks)
+# resource "aws_vpc_endpoint" "ecr_api" { ... }
+# resource "aws_vpc_endpoint" "ecr_dkr" { ... }
+# resource "aws_vpc_endpoint" "logs" { ... }
+# Or add a NAT Gateway for internet access from private subnets
