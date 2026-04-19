@@ -5,6 +5,11 @@ import { security, SecurityError } from '@/lib/security';
 import { requireAuth, isAuthError } from "@/lib/api-auth";
 
 export async function POST(req: NextRequest) {
+  // DA-003 FIX: Block in production
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'debug endpoint disabled in production' }, { status: 404 });
+  }
+
   const authResult = await requireAuth();
   if (isAuthError(authResult)) return authResult;
 
