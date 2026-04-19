@@ -8,7 +8,9 @@ const SECURITY_HEADERS: Record<string, string> = {
   "X-XSS-Protection": "1; mode=block",
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
-  "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
+  // FIX: Reduced HSTS max-age from 2 years to 6 months for launch period.
+  // Once stable in production for 3+ months, increase to 63072000 and add preload.
+  "Strict-Transport-Security": "max-age=15768000; includeSubDomains",
   "Content-Security-Policy":
     "default-src 'self'; " +
     "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com; " +
