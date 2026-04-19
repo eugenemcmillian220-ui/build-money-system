@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revenueOptimizer } from "@/lib/revenue-optimizer";
 import { z } from "zod";
+import { requireAuth, isAuthError } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 
@@ -44,6 +45,9 @@ const optimizeSuggestionsSchema = z.object({
  * Optimize pricing tiers based on current MRR
  */
 export async function POST(request: NextRequest): Promise<Response> {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const body = await request.json();
     const { action } = body;
@@ -150,6 +154,9 @@ export async function POST(request: NextRequest): Promise<Response> {
  * Get revenue history and pricing history
  */
 export async function GET(): Promise<Response> {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     return NextResponse.json({
       success: true,
