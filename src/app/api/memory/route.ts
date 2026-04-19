@@ -1,3 +1,4 @@
+// DA-066 FIX: TODO: Replace global mutable state with DB-backed store
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { isDatabaseAvailable } from "@/lib/supabase/db";
