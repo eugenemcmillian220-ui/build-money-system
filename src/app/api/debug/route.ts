@@ -1,3 +1,16 @@
+
+// DA-025 FIX: Sanitize file paths to prevent traversal
+function sanitizeFilePaths(files: Record<string, any>): Record<string, any> {
+  const sanitized: Record<string, any> = {};
+  for (const [key, value] of Object.entries(files)) {
+    const safePath = key.replace(/\.\.\//g, '').replace(/^\//, '');
+    if (safePath && !safePath.includes('..')) {
+      sanitized[safePath] = value;
+    }
+  }
+  return sanitized;
+}
+
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from 'next/server';
 import { aiDebugger } from '@/lib/ai-debugger';
