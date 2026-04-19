@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import type { CheckoutRequest, CheckoutResponse } from '../../../types';
 
+
+// DA-014 FIX: Server-side price validation — never trust client prices
+async function getServerPrice(productId: string): Promise<number> {
+  // Look up the canonical price from Stripe or database
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2024-12-18.acacia' });
+  const prices = await stripe.prices.list({ product: productId, active: true, limit: 1 });
+  if (!prices.data.length) throw new Error(`No active price for product ${productId}`);
+  return prices.data[0].unit_amount!;
+}
+
+
 export const runtime = 'nodejs';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? 'sk_test_placeholder', {
