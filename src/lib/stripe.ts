@@ -5,7 +5,7 @@ import { z } from "zod";
 import { serverEnv } from "./env";
 
 const stripe = new Stripe(serverEnv.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-12-18.acacia" // FIX: Use latest stable Stripe API version,
+  apiVersion: "2025-12-18.acacia", // FIX: Use latest stable Stripe API version
   typescript: true,
 });
 
