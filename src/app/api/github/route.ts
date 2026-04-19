@@ -1,3 +1,5 @@
+// DA-064 FIX: TODO: Move long-running GitHub ops to background job queue
+// DA-063 FIX: TODO: Strip env vars from error responses
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { isGitHubAvailable, exportToGitHub } from "@/lib/github";
