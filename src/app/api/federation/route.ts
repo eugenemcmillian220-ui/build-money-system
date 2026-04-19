@@ -1,3 +1,4 @@
+// DA-028 TODO: Refactor action-switch pattern into dedicated sub-routes (e.g., /api/federation/register/route.ts)
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
@@ -129,7 +130,7 @@ export async function POST(request: NextRequest) {
     switch (action) {
       case "register": {
         const parsed = registerSchema.parse(body);
-        const orgId = body.orgId || authResult.user.id;
+        const orgId = authResult.user.id /* DA-027 FIX: Always use authenticated user's org, never from body */;
         const empire = await swarmMesh.registerEmpire({ ...parsed, orgId });
         return NextResponse.json({ empire }, { status: 201 });
       }
