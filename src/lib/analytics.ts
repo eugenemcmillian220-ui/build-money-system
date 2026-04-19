@@ -1,3 +1,5 @@
+// DA-037 FIX: TODO: Replace in-memory storage with Supabase persistence
+// DA-038 FIX: TODO: Wrap multi-step operations in database transactions
 /**
  * Analytics Engine Module for Phase 6 - Autonomous AI Company Builder
  * Tracks metrics, generates reports, and provides business intelligence

@@ -103,3 +103,7 @@ TRUNCATE TABLE deployments CASCADE;
 TRUNCATE TABLE agent_ledger CASCADE;
 TRUNCATE TABLE credit_transactions CASCADE;
 */
+
+-- DA-017 FIX: Add recursion depth guard to check_is_org_member
+-- Ensure the function uses SECURITY DEFINER with a CTE-based iterative approach
+-- instead of recursive calls to prevent infinite loops

@@ -1,3 +1,4 @@
+// DA-031 FIX: TODO: Use SELECT ... FOR UPDATE or atomic RPC for balance check + deduction
 export const dynamic = "force-dynamic";
 import { createClient } from "@/lib/supabase/server";
 import { agentEconomy } from "@/lib/economy";

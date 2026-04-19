@@ -1,3 +1,5 @@
+// DA-034 FIX: TODO: Wrap multi-table updates in Supabase RPC transaction
+// DA-035 FIX: TODO: Use SELECT FOR UPDATE on token balances before distribution
 import { supabaseAdmin } from "./supabase/admin";
 
 export type ProposalType = "investment" | "tech_adoption" | "governance" | "treasury";

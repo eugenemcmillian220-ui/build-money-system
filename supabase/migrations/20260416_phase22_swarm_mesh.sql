@@ -178,7 +178,7 @@ BEGIN
     
     -- Distribute AGT to seller
     PERFORM public.upsert_token_balance(
-        p_owner_id := trade.seller_empire_id::text,
+        p_owner_id := trade.seller_empire_id -- DA-020 FIX: Keep as UUID, don't cast to text,
         p_token_type := 'AGT',
         p_amount := trade.price_agt
     );

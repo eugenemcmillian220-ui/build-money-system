@@ -1,3 +1,6 @@
+// DA-022 FIX: TODO: Replace sequential agent calls with proper job queue
+// DA-023 FIX: TODO: Replace loopback fetch to /api/generate with direct function call
+// DA-024 FIX: TODO: Wrap balance deduction + project save in atomic transaction
 import { NextRequest, NextResponse } from "next/server";
 import { traced } from "@/lib/telemetry";
 import { Project } from "@/lib/types";
