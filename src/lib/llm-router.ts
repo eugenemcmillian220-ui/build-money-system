@@ -379,6 +379,12 @@ export class LLMRouter {
 
       case "cloudflare": {
         const accountId = process.env.CLOUDFLARE_ACCOUNT_ID ?? "";
+        // FIX: Validate accountId before building URL to avoid malformed requests
+        if (!accountId) {
+          throw new Error(
+            "CLOUDFLARE_ACCOUNT_ID is not set. Cannot use Cloudflare AI provider."
+          );
+        }
         url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${model}`;
         headers["Authorization"] = `Bearer ${apiKey}`;
         body = { messages: this.formatMessages(messages), stream: false };
