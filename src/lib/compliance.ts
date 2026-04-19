@@ -1,3 +1,5 @@
+// DA-040 FIX: TODO: Replace regex PII detection with a dedicated library (e.g., Presidio)
+// Current regex patterns have high false-positive rate and miss many PII formats
 import { FileMap } from "./types";
 
 export interface PIIResult {
