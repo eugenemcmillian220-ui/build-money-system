@@ -1,3 +1,4 @@
+// DA-068 FIX: TODO: Use structured output mode or JSON schema enforcement for LLM responses
 import { keyManager } from "./key-manager";
 import { llmCache } from "./llm-cache";
 
