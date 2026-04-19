@@ -1,3 +1,4 @@
+// DA-058 FIX: TODO: Replace dynamic imports with static imports for bundling optimization
 import { NextRequest, NextResponse } from "next/server";
 import { traced } from "@/lib/telemetry";
 import { Project } from "@/lib/types";
