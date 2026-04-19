@@ -1,3 +1,4 @@
+# DA-053 FIX: TODO: Add multi-AZ subnets, NAT gateway, and VPC endpoints for HA
 # ─────────────────────────────────────────────────────────────────────────────
 # DevGuard AI – AWS Infrastructure as Code (Terraform)
 # Provisions: ECS Fargate + ALB + RDS Aurora Serverless + S3 + CloudWatch
