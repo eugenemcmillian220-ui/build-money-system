@@ -142,7 +142,15 @@ Rules:
           });
         }
       } catch (e) {
-        console.error("Failed to save to database, falling back to memory:", e);
+        // FIX: Log the failure clearly. In serverless (Vercel), in-memory fallback
+        // is volatile and will be lost on the next request. We still save to memory
+        // as a last resort, but warn loudly so this gets noticed in monitoring.
+        console.error(
+          "[CRITICAL] Failed to save project to database. " +
+          "In-memory fallback is NOT durable in serverless environments. " +
+          "Project data may be lost on next request.",
+          e
+        );
         saveProject(project);
       }
     } else {

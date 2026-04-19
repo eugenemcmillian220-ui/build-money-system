@@ -1,3 +1,4 @@
+import "server-only"; // SECURITY FIX: Prevent client-side bundling
 import { supabaseAdmin } from "./supabase/db";
 import { AgentEconomy } from "./economy";
 import { MARKETPLACE_CONFIG, LIFETIME_LICENSES } from "./stripe";
@@ -31,7 +32,8 @@ export class BillingEngine {
     await this.economy.grantCredits(orgId, credits, "top_up");
 
     // 3. Phase 19: Distribute User Governance Tokens (UGT) - 1 UGT per 1000 credits purchased
-    const ugtToGrant = Math.floor(credits / 1000);
+    // FIX: Use Math.round instead of Math.floor so 500+ credits still earn 1 UGT
+    const ugtToGrant = Math.round(credits / 1000);
     if (ugtToGrant > 0) {
       await this.dao.distributeTokens({
         orgId,
