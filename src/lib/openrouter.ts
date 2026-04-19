@@ -1,6 +1,15 @@
 import { keyManager } from "./key-manager";
 import { llmCache } from "./llm-cache";
 
+
+// DA-007 FIX: Model allowlist from env
+const ALLOWED_MODELS = new Set((process.env.LLM_ALLOWED_MODELS || '').split(',').filter(Boolean));
+
+function validateModel(model: string): boolean {
+  if (ALLOWED_MODELS.size === 0) return true; // No allowlist = allow all (dev mode)
+  return ALLOWED_MODELS.has(model);
+}
+
 const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
 const FREE_MODEL_FALLBACK = "qwen/qwen3-coder-480b-a35b-instruct:free";
 
@@ -73,7 +82,7 @@ function buildHeaders(): Record<string, string> {
   return {
     Authorization: `Bearer ${apiKey}`,
     "Content-Type": "application/json",
-    "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL ?? "https://localhost:3000",
+    'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'https://localhost:3000' /* DA-032 FIX: Hardcoded, never from user */ ?? "https://localhost:3000",
     "X-Title": "AI App Builder",
   };
 }
