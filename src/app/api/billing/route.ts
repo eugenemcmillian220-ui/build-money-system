@@ -1,26 +1,29 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from 'next/server';
 import { billingSystem } from '@/lib/billing';
-import { security } from '@/lib/security';
 import { requireAuth, isAuthError } from "@/lib/api-auth";
+
+// SECURITY FIX: Removed mixed session+API key auth. 
+// Session auth via requireAuth() is the single source of truth.
+// The old code accepted any valid API key alongside a session,
+// without verifying the key belonged to the session user.
 
 export async function GET(req: NextRequest) {
   const authResult = await requireAuth();
   if (isAuthError(authResult)) return authResult;
 
   try {
-    // Check for API key in either x-api-key header or Authorization header
-    const apiKey = req.headers.get('x-api-key') || req.headers.get('authorization')?.replace('Bearer ', '');
-    if (!apiKey || !security.validateApiKey(apiKey)) {
-      return NextResponse.json({ error: 'Unauthorized access' }, { status: 401 });
-    }
-
     const { searchParams } = req.nextUrl;
     const userId = searchParams.get('userId');
 
     if (!userId) {
       const plans = billingSystem.getAvailablePlans();
       return NextResponse.json({ success: true, data: { plans } });
+    }
+
+    // SECURITY FIX: Verify user can only access their own billing data
+    if (userId !== authResult.userId) {
+      return NextResponse.json({ error: 'Cannot access other user billing data' }, { status: 403 });
     }
 
     const subscription = billingSystem.getSubscription(userId);
@@ -39,17 +42,16 @@ export async function POST(req: NextRequest) {
   if (isAuthError(authResult)) return authResult;
 
   try {
-    // Check for API key in either x-api-key header or Authorization header
-    const apiKey = req.headers.get('x-api-key') || req.headers.get('authorization')?.replace('Bearer ', '');
-    if (!apiKey || !security.validateApiKey(apiKey)) {
-      return NextResponse.json({ error: 'Unauthorized access' }, { status: 401 });
-    }
-
     const body = await req.json();
     const { action, userId } = body;
 
     if (!userId || typeof userId !== 'string') {
       return NextResponse.json({ error: 'A userId is required' }, { status: 400 });
+    }
+
+    // SECURITY FIX: Verify user can only modify their own billing
+    if (userId !== authResult.userId) {
+      return NextResponse.json({ error: 'Cannot modify other user billing' }, { status: 403 });
     }
 
     if (action === 'cancel') {

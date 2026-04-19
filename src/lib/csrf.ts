@@ -6,6 +6,10 @@
  *
  * - GET/HEAD/OPTIONS are safe methods → skip check
  * - POST/PUT/PATCH/DELETE must have a matching Origin or Referer header
+ *
+ * NOTE: Webhook routes (e.g., /api/webhooks/*, /api/billing/webhook)
+ * should be excluded from CSRF at the middleware/route level, NOT here.
+ * Each webhook route is responsible for its own signature verification.
  */
 
 import { headers } from "next/headers";
@@ -41,9 +45,9 @@ function getAllowedOrigins(): string[] {
  * Validates CSRF for mutation requests.
  * Returns null if valid, or a NextResponse error if invalid.
  *
- * Usage in API routes:
- *   const csrfError = await validateCsrf(request);
- *   if (csrfError) return csrfError;
+ * SECURITY FIX: Removed the stripe-signature bypass. Attackers could add a
+ * fake stripe-signature header to any request to bypass CSRF entirely.
+ * Webhook routes should be excluded from CSRF at the middleware level instead.
  */
 export async function validateCsrf(request: Request): Promise<NextResponse | null> {
   if (SAFE_METHODS.has(request.method.toUpperCase())) {
@@ -53,14 +57,6 @@ export async function validateCsrf(request: Request): Promise<NextResponse | nul
   const headerStore = await headers();
   const origin = headerStore.get("origin");
   const referer = headerStore.get("referer");
-
-  // Stripe webhooks and other server-to-server calls won't have Origin/Referer
-  // They should be authenticated via signature verification instead
-  const stripeSignature = headerStore.get("stripe-signature");
-  if (stripeSignature) {
-    return null; // Webhook requests are verified by signature, not CSRF
-  }
-
   const allowedOrigins = getAllowedOrigins();
 
   // Check Origin header first (most reliable)

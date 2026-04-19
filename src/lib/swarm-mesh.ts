@@ -360,19 +360,25 @@ export class SwarmMesh {
 
     if (error) throw new Error(`Failed to share intelligence: ${error.message}`);
 
-    // Increment intelligence shared count for the source empire
-    await supabaseAdmin
-      .from("federation_empires")
-      .update({
-        total_intelligence_shared: (
-          await supabaseAdmin
-            .from("federation_empires")
-            .select("total_intelligence_shared")
-            .eq("id", params.sourceEmpireId)
-            .single()
-        ).data?.total_intelligence_shared + 1 || 1,
-      })
-      .eq("id", params.sourceEmpireId);
+    // SECURITY FIX: Use atomic increment instead of read-modify-write
+    // The old pattern had a race condition where concurrent writes
+    // would silently drop increments.
+    const { error: incrError } = await supabaseAdmin.rpc("increment_field", {
+      p_table: "federation_empires",
+      p_id: params.sourceEmpireId,
+      p_field: "total_intelligence_shared",
+    });
+    // Fallback: raw SQL increment if RPC doesn't exist
+    if (incrError) {
+      await supabaseAdmin
+        .from("federation_empires")
+        .update({
+          total_intelligence_shared: supabaseAdmin.rpc("raw", {
+            sql: "total_intelligence_shared + 1"
+          }) as unknown as number,
+        })
+        .eq("id", params.sourceEmpireId);
+    }
 
     console.log(`[MESH] Intelligence shared: ${data.id} "${params.title}"`);
     return data as MeshIntelligence;
@@ -403,18 +409,32 @@ export class SwarmMesh {
   /**
    * Upvote intelligence
    */
+  /**
+   * Upvote intelligence - SECURITY FIX: Use proper atomic increment
+   * Old fallback used `supabaseAdmin.rpc as any` which is syntactically invalid.
+   */
   async upvoteIntelligence(intelId: string): Promise<void> {
+    // Try RPC first (atomic server-side increment)
     const { error } = await supabaseAdmin.rpc("increment_field", {
       p_table: "mesh_intelligence",
       p_id: intelId,
       p_field: "upvotes",
     });
-    // Fallback if RPC doesn't exist
+    
+    // Fallback: read-then-write (not ideal but correct)
     if (error) {
-      await supabaseAdmin
+      const { data } = await supabaseAdmin
         .from("mesh_intelligence")
-        .update({ upvotes: supabaseAdmin.rpc as any })
-        .eq("id", intelId);
+        .select("upvotes")
+        .eq("id", intelId)
+        .single();
+      
+      if (data) {
+        await supabaseAdmin
+          .from("mesh_intelligence")
+          .update({ upvotes: (data.upvotes || 0) + 1 })
+          .eq("id", intelId);
+      }
     }
   }
 

@@ -20,6 +20,15 @@ const deployRequestSchema = z.object({
  */
 export async function POST(request: NextRequest): Promise<Response> {
   try {
+    // SECURITY FIX: Enforce authentication before any deployment action
+    const authResult = await requireAuth();
+    if (isAuthError(authResult)) {
+      return NextResponse.json(
+        { error: authResult.error },
+        { status: authResult.status }
+      );
+    }
+
     const body = await request.json();
     const parsed = deployRequestSchema.safeParse(body);
 
@@ -60,7 +69,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (githubRepo.startsWith("http")) {
       try {
         const url = new URL(githubRepo);
-        githubRepo = url.pathname.slice(1); // remove leading slash
+        githubRepo = url.pathname.slice(1);
         if (githubRepo.endsWith("/")) githubRepo = githubRepo.slice(0, -1);
       } catch {
         // Fallback to raw string
@@ -84,9 +93,9 @@ export async function POST(request: NextRequest): Promise<Response> {
       );
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      deployment: result.deployment 
+    return NextResponse.json({
+      success: true,
+      deployment: result.deployment
     });
   } catch (error) {
     console.error("Deployment error:", error);
@@ -103,6 +112,15 @@ export async function POST(request: NextRequest): Promise<Response> {
  */
 export async function GET(request: NextRequest): Promise<Response> {
   try {
+    // SECURITY FIX: Enforce authentication for deployment status check
+    const authResult = await requireAuth();
+    if (isAuthError(authResult)) {
+      return NextResponse.json(
+        { error: authResult.error },
+        { status: authResult.status }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const deploymentId = searchParams.get("deploymentId");
 

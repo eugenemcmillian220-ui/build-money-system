@@ -39,37 +39,34 @@ export class SecurityLayer {
   }
 
   /**
-   * Validates an API key
-   * @param apiKey The API key to validate
-   * @returns boolean indicating if the key is valid
+   * Validates an API key.
+   *
+   * SECURITY FIX: Removed the dev-mode fallback that accepted any string >5 chars.
+   * That was exploitable if a dev/preview deployment was accidentally exposed.
+   * Now requires either a matching ADMIN_API_KEYS entry or the 'sk-' format check.
    */
   public validateApiKey(apiKey?: string): boolean {
     if (!apiKey) return false;
-    // In production, check against admin API keys from environment
-    const adminKeys = process.env.ADMIN_API_KEYS?.split(',') || [];
-    if (adminKeys.length > 0 && adminKeys.includes(apiKey)) {
+
+    // Check against admin API keys from environment
+    const adminKeys = (process.env.ADMIN_API_KEYS?.split(',') || []).filter(k => k.trim().length > 0);
+    if (adminKeys.includes(apiKey)) {
       return true;
     }
-    // Development fallback: allow any key if no ADMIN_API_KEYS configured
-    // This allows testing without setting environment variables
-    if (process.env.NODE_ENV === 'development' && adminKeys.length === 0) {
-      return apiKey.length > 5; // Simple length check for dev mode
-    }
-    // Production fallback: check format
+
+    // Format-based validation (production + development)
     return apiKey.startsWith('sk-') && apiKey.length > 20;
   }
 
   /**
    * Sanitizes input string to prevent injection attacks and block unwanted keywords
-   * @param input The raw input string
-   * @returns The sanitized string
    */
   public sanitizeInput(input: string): string {
     let sanitized = input.trim();
 
     // Basic HTML sanitization
     sanitized = sanitized.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gim, "");
-    
+
     // Check for blocked keywords
     for (const keyword of this.config.blockedKeywords) {
       if (sanitized.toLowerCase().includes(keyword.toLowerCase())) {
@@ -82,7 +79,6 @@ export class SecurityLayer {
 
   /**
    * Scans content for PII and blocks it if scanning is enabled
-   * @param content The content to scan
    */
   public checkPII(content: string): void {
     if (!this.config.enablePIIScanning) return;
@@ -97,15 +93,14 @@ export class SecurityLayer {
   /**
    * Sliding-window rate limit using request headers as identifier.
    * Uses in-process Map as best-effort limiter (upgrade to Upstash Redis for production multi-instance).
-   * Cleans up stale entries to prevent memory growth.
    */
   public checkRateLimit(identifier: string): void {
     if (!this.config.enableRateLimiting) return;
 
     const now = Date.now();
-    const windowMs = 60_000; // 1 minute sliding window
+    const windowMs = 60_000;
 
-    // Clean up entries older than the window to prevent memory growth
+    // Clean up stale entries
     for (const [key, stats] of this.requestCounts.entries()) {
       if (now - stats.lastReset > windowMs * 2) {
         this.requestCounts.delete(key);
@@ -115,7 +110,6 @@ export class SecurityLayer {
     const stats = this.requestCounts.get(identifier) ?? { count: 0, lastReset: now };
 
     if (now - stats.lastReset > windowMs) {
-      // Window expired — reset
       this.requestCounts.set(identifier, { count: 1, lastReset: now });
       return;
     }
@@ -134,7 +128,6 @@ export class SecurityLayer {
 
   /**
    * Validates file paths to prevent path traversal
-   * @param path File path to validate
    */
   public validateFilePath(path: string): void {
     if (path.includes('..') || path.startsWith('/') || path.includes(':')) {

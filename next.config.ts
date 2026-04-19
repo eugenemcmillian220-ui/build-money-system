@@ -2,10 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false // SECURITY FIX: Do not skip ESLint during builds,
   },
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false // SECURITY FIX: Do not ship broken TypeScript to production,
   },
   // Reduce webpack memory usage during build
   webpack: (config, { isServer }) => {
