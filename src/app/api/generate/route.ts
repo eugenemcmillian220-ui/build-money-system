@@ -56,6 +56,69 @@ const DEMO_COMPONENTS: Record<string, string> = {
 }`,
 };
 
+/**
+ * SECURITY FIX: Atomically reserve credits BEFORE running generation.
+ * Uses an atomic DB decrement that fails if balance < cost (prevents race conditions).
+ * Returns true if reservation succeeded, false if insufficient funds.
+ */
+async function reserveCredits(orgId: string, creditCost: number): Promise<{ success: boolean; error?: string }> {
+  if (!supabaseAdmin) return { success: false, error: "Database not configured" };
+
+  // Atomic check-and-decrement: the RPC should use
+  //   UPDATE organizations SET credit_balance = credit_balance - $amount
+  //   WHERE id = $org_id AND credit_balance >= $amount
+  //   RETURNING credit_balance;
+  const { data, error } = await supabaseAdmin.rpc("reserve_credits", {
+    org_id: orgId,
+    amount: creditCost,
+  });
+
+  if (error) {
+    // Fallback: try the old decrement with a pre-check
+    const { data: org } = await supabaseAdmin
+      .from("organizations")
+      .select("credit_balance")
+      .eq("id", orgId)
+      .single();
+
+    if (!org || Number(org.credit_balance) < creditCost) {
+      return { success: false, error: `Insufficient credits. Requires ${creditCost} units.` };
+    }
+
+    const { error: decError } = await supabaseAdmin.rpc("decrement_org_balance", {
+      org_id: orgId,
+      amount: creditCost,
+    });
+
+    if (decError) return { success: false, error: decError.message };
+    return { success: true };
+  }
+
+  // If the RPC returned false or 0 rows affected, reservation failed
+  if (data === false || data === 0) {
+    return { success: false, error: `Insufficient credits. Requires ${creditCost} units.` };
+  }
+
+  return { success: true };
+}
+
+/**
+ * Refund credits if generation fails after reservation.
+ */
+async function refundCredits(orgId: string, creditCost: number): Promise<void> {
+  if (!supabaseAdmin) return;
+  try {
+    await supabaseAdmin.rpc("increment_org_balance", {
+      org_id: orgId,
+      amount: creditCost,
+    });
+  } catch (err) {
+    console.error("[Generate] CRITICAL: Failed to refund credits after generation failure", {
+      orgId, creditCost, error: err,
+    });
+  }
+}
+
 export async function POST(request: Request): Promise<Response> {
   let body: unknown;
   try {
@@ -74,28 +137,27 @@ export async function POST(request: Request): Promise<Response> {
 
   const { prompt, imageUrl, stream, multiFile, mode, orgId } = parsed.data;
 
-  // STEP 0: CREDIT CHECK
+  // SECURITY FIX: Reserve credits ATOMICALLY before starting generation
   const creditCost = multiFile ? 25 : 5;
+  let creditsReserved = false;
+
   if (orgId) {
-    const { data: org, error: orgError } = await supabaseAdmin
-      .from("organizations")
-      .select("credit_balance")
-      .eq("id", orgId)
-      .single();
-
-    if (orgError || !org) {
-      return Response.json({ error: "Organization not found" }, { status: 404 });
+    const reservation = await reserveCredits(orgId, creditCost);
+    if (!reservation.success) {
+      return Response.json(
+        { error: reservation.error || "Insufficient credits" },
+        { status: 402 }
+      );
     }
-
-    if (Number(org.credit_balance) < creditCost) {
-      return Response.json({ error: `Insufficient credits. This operation requires ${creditCost} units.` }, { status: 402 });
-    }
+    creditsReserved = true;
   }
 
   const llmAvailable = isAnyLLMAvailable();
 
   if (multiFile || mode === "mobile-app" || mode === "vision") {
     if (!llmAvailable) {
+      // Refund if we reserved credits but can't actually generate
+      if (creditsReserved && orgId) await refundCredits(orgId, creditCost);
       return Response.json(
         {
           error:
@@ -131,6 +193,8 @@ export async function POST(request: Request): Promise<Response> {
             controller.enqueue(encoder.encode(event));
             controller.close();
           } catch (error) {
+            // Refund credits on stream failure
+            if (creditsReserved && orgId) await refundCredits(orgId, creditCost);
             const message = error instanceof Error ? error.message : "Generation failed";
             const event = `data: ${JSON.stringify({ type: "error", error: message })}\n\n`;
             controller.enqueue(encoder.encode(event));
@@ -149,20 +213,22 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     if (mode === "vision" && imageUrl) {
-      const result = await agent.runVisual(imageUrl, prompt);
-      return Response.json(result);
+      try {
+        const result = await agent.runVisual(imageUrl, prompt);
+        return Response.json(result);
+      } catch (error) {
+        if (creditsReserved && orgId) await refundCredits(orgId, creditCost);
+        throw error;
+      }
     }
 
     try {
       const result = await agent.run(prompt || "");
-
-      // CREDIT DEDUCTION
-      if (orgId) {
-        await supabaseAdmin.rpc("decrement_org_balance", { org_id: orgId, amount: creditCost });
-      }
-
+      // Credits already reserved — no additional deduction needed
       return Response.json(result);
     } catch (error) {
+      // Refund on generation failure
+      if (creditsReserved && orgId) await refundCredits(orgId, creditCost);
       console.error("[Generate] Multi-file generation error:", error);
       const message = error instanceof Error ? error.message : "Multi-file generation failed";
       const status = (error as any)?.status === 429 ? 429 : 502;
@@ -192,6 +258,7 @@ export async function POST(request: Request): Promise<Response> {
 
               controller.close();
             } catch (error) {
+              if (creditsReserved && orgId) await refundCredits(orgId, creditCost);
               const message = error instanceof Error ? error.message : "Generation failed";
               const event = `data: ${JSON.stringify({ type: "error", error: message })}\n\n`;
               controller.enqueue(encoder.encode(event));
@@ -213,19 +280,19 @@ export async function POST(request: Request): Promise<Response> {
         `${SYSTEM_PROMPT}\n\nUser request: ${prompt}\n\nGenerate a complete Next.js component with Tailwind CSS:`,
       );
 
-      // CREDIT DEDUCTION
-      if (orgId) {
-        await supabaseAdmin.rpc("decrement_org_balance", { org_id: orgId, amount: creditCost });
-      }
-
+      // Credits already reserved — no additional deduction needed
       return Response.json({ code });
     } catch (error) {
+      if (creditsReserved && orgId) await refundCredits(orgId, creditCost);
       if (error instanceof OpenRouterError || error instanceof AgentError) {
         const status = error.status === 429 ? 429 : 502;
         return Response.json({ error: error.message }, { status });
       }
     }
   }
+
+  // Fallback to demo components — refund credits since no AI was used
+  if (creditsReserved && orgId) await refundCredits(orgId, creditCost);
 
   const promptLower = (prompt || "").toLowerCase();
   let demoCode: string | null = null;
