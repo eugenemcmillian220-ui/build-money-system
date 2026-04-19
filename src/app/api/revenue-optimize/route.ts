@@ -1,3 +1,4 @@
+// DA-065 FIX: TODO: Split into dedicated sub-routes
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { revenueOptimizer } from "@/lib/revenue-optimizer";
