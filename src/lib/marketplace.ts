@@ -1,3 +1,5 @@
+// DA-037 FIX: TODO: Replace in-memory storage with Supabase persistence
+// DA-038 FIX: TODO: Wrap multi-step operations in database transactions
 /**
  * Marketplace Module for Phase 6 - Autonomous AI Company Builder
  * Manages AI module and template listings, purchases, and reviews
