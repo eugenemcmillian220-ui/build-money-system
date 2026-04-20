@@ -18,7 +18,10 @@ import {
   LogOut,
   Book,
   LayoutGrid,
-  Gavel
+  Gavel,
+  Activity,
+  Network,
+  Sparkles
 } from "lucide-react";
 
 
@@ -36,6 +39,7 @@ export function Sidebar() {
     { name: "Projects", href: "/dashboard/projects", icon: Package },
     { name: "QA Audit", href: "/dashboard/qa", icon: ShieldCheck },
     { name: "Governance", href: "/dashboard/governance", icon: Gavel },
+    { name: "Sovereign Pulse", href: "/dashboard/pulse", icon: Activity },
     { name: "Billing", href: "/dashboard/billing", icon: CreditCard },
   ];
 
@@ -61,6 +65,9 @@ export function Sidebar() {
     { id: 19, name: "Ph 19: Sovereign DAO", href: "/dashboard/phases/19" },
     { id: 20, name: "Ph 20: Lifecycle", href: "/dashboard/phases/20" },
     { id: 21, name: "Ph 21: Overseer", href: "/dashboard/phases/21" },
+    { id: 22, name: "Ph 22: Swarm Mesh", href: "/dashboard/phases/22" },
+    { id: 23, name: "Ph 23: Pulse", href: "/dashboard/phases/23" },
+    { id: 24, name: "Ph 24: Self-Evolution", href: "/dashboard/phases/24" },
   ];
 
   return (

@@ -2,7 +2,7 @@ import {
   Zap, Database, Rocket, ShieldCheck, TrendingUp, BarChart3, 
   Activity, Box, Eye, CreditCard, Globe, Lock, Users, 
   Handshake, Brain, Merge, FileText, Search, Code2, 
-  Cpu, Terminal, Gavel
+  Cpu, Terminal, Gavel, Network, Sparkles
 } from "lucide-react";
 
 export interface PhaseTool {
@@ -255,5 +255,38 @@ export const SOVEREIGN_PHASES: Phase[] = [
       { name: "Run QA Audit", description: "Perform a full browser flow test.", action: "test", endpoint: "/api/overseer", method: "POST" }
     ],
     expectation: "A detailed QA pass/fail report with visual drift logs."
+  },
+  {
+    id: 22,
+    name: "Swarm Mesh",
+    mission: "Federation & Mesh Governance",
+    icon: Network,
+    features: ["Cross-empire agent lending", "Intelligence sharing protocol", "Mesh trust scoring"],
+    tools: [
+      { name: "Scan Mesh", description: "Discover available federation resources.", action: "mesh", endpoint: "/api/mesh/scan", method: "GET" }
+    ],
+    expectation: "A robust connection to the global Sovereign Federation."
+  },
+  {
+    id: 23,
+    name: "Sovereign Pulse",
+    mission: "Telemetry & Neural Observability",
+    icon: Activity,
+    features: ["Error clustering", "Conversion funnels", "Neural impact scoring"],
+    tools: [
+      { name: "Run Pulse Audit", description: "Audit project telemetry for anomalies.", action: "pulse", endpoint: "/api/pulse/ingest", method: "POST" }
+    ],
+    expectation: "100% system awareness and predictive error detection."
+  },
+  {
+    id: 24,
+    name: "Self-Evolution",
+    mission: "Autonomous Recursive Growth",
+    icon: Sparkles,
+    features: ["Autonomous self-healing", "Performance self-tuning", "Prompt evolution engine"],
+    tools: [
+      { name: "Trigger Evolution", description: "Initiate autonomous system improvement cycle.", action: "evolution", endpoint: "/api/evolution", method: "POST" }
+    ],
+    expectation: "A system that grows more efficient and powerful with every hour."
   }
 ];
