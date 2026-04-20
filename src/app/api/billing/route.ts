@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
     }
 
     // SECURITY FIX: Verify user can only access their own billing data
-    if (userId !== authResult.userId) {
+    if (userId !== authResult.user.id) {
       return NextResponse.json({ error: 'Cannot access other user billing data' }, { status: 403 });
     }
 
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
     }
 
     // SECURITY FIX: Verify user can only modify their own billing
-    if (userId !== authResult.userId) {
+    if (userId !== authResult.user.id) {
       return NextResponse.json({ error: 'Cannot modify other user billing' }, { status: 403 });
     }
 

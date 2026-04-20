@@ -168,7 +168,7 @@ async function phase5(idea: string): Promise<PhaseResult> {
     const { result: strategy, elapsed } = await timed(() => growthEngine.launchGrowth(idea));
     return {
       phase: 5, name, status: "pass", elapsed,
-      detail: `Growth strategy: ${strategy.channels?.length || 0} channels, viral coefficient: ${strategy.viralCoefficient || "N/A"}`,
+      detail: `Growth strategy: ${strategy.channels?.length || 0} channels, viral mechanics: ${strategy.viralMechanics?.length || 0}`,
       data: strategy
     };
   } catch (e) {
@@ -227,7 +227,8 @@ async function phase10(idea: string): Promise<PhaseResult> {
   const name = "Sovereign Economy";
   try {
     const { agentEconomy } = await import("@/lib/economy");
-    const model = agentEconomy.createEconomyModel?.("business-" + Date.now(), idea) || { status: "initialized" };
+    const economyApi = agentEconomy as unknown as { createEconomyModel?: (id: string, idea: string) => unknown };
+    const model = economyApi.createEconomyModel?.("business-" + Date.now(), idea) || { status: "initialized" };
     return { phase: 10, name, status: "pass", elapsed: 0, detail: "Economy model created", data: model };
   } catch (e) {
     return { phase: 10, name, status: "fail", elapsed: 0, detail: "Economy failed", error: String(e) };
@@ -238,9 +239,10 @@ async function phase11(idea: string): Promise<PhaseResult> {
   const name = "Hype Engine";
   try {
     const { hypeAgent } = await import("@/lib/hype-agent");
+    const hypeApi = hypeAgent as unknown as { generateHype?: (i: string) => unknown; run?: (i: string) => unknown };
     const { result: hype, elapsed } = await timed(async () => {
-      if (typeof hypeAgent.generateHype === "function") return hypeAgent.generateHype(idea);
-      if (typeof hypeAgent.run === "function") return hypeAgent.run(idea);
+      if (typeof hypeApi.generateHype === "function") return hypeApi.generateHype(idea);
+      if (typeof hypeApi.run === "function") return hypeApi.run(idea);
       return { status: "loaded", campaigns: [] };
     });
     return { phase: 11, name, status: "pass", elapsed, detail: "Marketing strategy generated", data: hype };
@@ -263,7 +265,8 @@ async function phase13(idea: string): Promise<PhaseResult> {
   const name = "Autonomous VC";
   try {
     const { vcAgent } = await import("@/lib/vc-agent");
-    const analysis = vcAgent.analyze?.(idea) || vcAgent.evaluateInvestment?.(idea) || { status: "loaded" };
+    const vcApi = vcAgent as unknown as { analyze?: (i: string) => unknown; evaluateInvestment?: (i: string) => unknown };
+    const analysis = vcApi.analyze?.(idea) || vcApi.evaluateInvestment?.(idea) || { status: "loaded" };
     return { phase: 13, name, status: "pass", elapsed: 0, detail: "VC analysis complete", data: analysis };
   } catch (e) {
     return { phase: 13, name, status: "fail", elapsed: 0, detail: "VC analysis failed", error: String(e) };
@@ -274,7 +277,8 @@ async function phase14(idea: string): Promise<PhaseResult> {
   const name = "Chief Diplomat";
   try {
     const { diplomatAgent } = await import("@/lib/diplomat-agent");
-    const strategy = diplomatAgent.strategize?.(idea) || diplomatAgent.findPartners?.(idea) || { status: "loaded" };
+    const diplomatApi = diplomatAgent as unknown as { strategize?: (i: string) => unknown; findPartners?: (i: string) => unknown };
+    const strategy = diplomatApi.strategize?.(idea) || diplomatApi.findPartners?.(idea) || { status: "loaded" };
     return { phase: 14, name, status: "pass", elapsed: 0, detail: "Partnership strategy ready", data: strategy };
   } catch (e) {
     return { phase: 14, name, status: "fail", elapsed: 0, detail: "Diplomat failed", error: String(e) };
@@ -295,7 +299,8 @@ async function phase16(idea: string): Promise<PhaseResult> {
   const name = "Autonomous M&A";
   try {
     const { maAgent } = await import("@/lib/ma-agent");
-    const analysis = maAgent.analyze?.(idea) || { status: "loaded" };
+    const maApi = maAgent as unknown as { analyze?: (i: string) => unknown };
+    const analysis = maApi.analyze?.(idea) || { status: "loaded" };
     return { phase: 16, name, status: "pass", elapsed: 0, detail: "M&A analysis complete", data: analysis };
   } catch (e) {
     return { phase: 16, name, status: "fail", elapsed: 0, detail: "M&A failed", error: String(e) };
@@ -306,7 +311,8 @@ async function phase17(idea: string): Promise<PhaseResult> {
   const name = "Legal Vault";
   try {
     const { legalAgent } = await import("@/lib/legal-agent");
-    const framework = legalAgent.analyze?.(idea) || legalAgent.generateFramework?.(idea) || { status: "loaded" };
+    const legalApi = legalAgent as unknown as { analyze?: (i: string) => unknown; generateFramework?: (i: string) => unknown };
+    const framework = legalApi.analyze?.(idea) || legalApi.generateFramework?.(idea) || { status: "loaded" };
     return { phase: 17, name, status: "pass", elapsed: 0, detail: "Legal framework generated", data: framework };
   } catch (e) {
     return { phase: 17, name, status: "fail", elapsed: 0, detail: "Legal failed", error: String(e) };
@@ -317,7 +323,8 @@ async function phase18(idea: string): Promise<PhaseResult> {
   const name = "R&D Scout";
   try {
     const { rdAgent } = await import("@/lib/rd-agent");
-    const roadmap = rdAgent.scout?.(idea) || rdAgent.analyze?.(idea) || { status: "loaded" };
+    const rdApi = rdAgent as unknown as { scout?: (i: string) => unknown; analyze?: (i: string) => unknown };
+    const roadmap = rdApi.scout?.(idea) || rdApi.analyze?.(idea) || { status: "loaded" };
     return { phase: 18, name, status: "pass", elapsed: 0, detail: "R&D roadmap generated", data: roadmap };
   } catch (e) {
     return { phase: 18, name, status: "fail", elapsed: 0, detail: "R&D failed", error: String(e) };
@@ -355,10 +362,10 @@ async function phase21(idea: string): Promise<PhaseResult> {
       description: idea,
       manifest: { economy: { agentRoi: "projected 3x" } },
     }];
-    const { result: report, elapsed } = await timed(() => runCeoAgent(projects as any));
+    const { result: report, elapsed } = await timed(() => runCeoAgent(projects as unknown as Parameters<typeof runCeoAgent>[0]));
     return {
       phase: 21, name, status: "pass", elapsed,
-      detail: `CEO report generated: empire health ${typeof report === "object" && report !== null ? (report as any).empireHealth || "N/A" : "N/A"}/100`,
+      detail: `CEO report generated: empire health ${typeof report === "object" && report !== null ? (report as { empireHealth?: string | number }).empireHealth || "N/A" : "N/A"}/100`,
       data: report
     };
   } catch (e) {

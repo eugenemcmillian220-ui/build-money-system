@@ -208,7 +208,7 @@ USER REQUEST: "${prompt}"
         } as unknown as Project)),
       ]);
 
-      let broker: any = { mergerPotential: [], negotiationStrategy: "Audit pending." };
+      let broker: { mergerPotential: { targetProjectId: string; compatibility: number; strategy: string }[]; negotiationStrategy: string } = { mergerPotential: [], negotiationStrategy: "Audit pending." };
       if (orgId) {
         await agentThrottle();
         const { data: existingProjects } = await supabaseAdmin
@@ -248,7 +248,7 @@ USER REQUEST: "${prompt}"
           visuals: visualTokens,
           security: {
             ...(security || {}),
-            auditLog: (security?.vulnerabilities || []).map((v: any) => `${v.severity?.toUpperCase?.() || 'UNKNOWN'}: ${v.type || 'unknown'} - ${v.description || 'No description'}`),
+            auditLog: (security?.vulnerabilities || []).map((v: { severity?: string; type?: string; description?: string }) => `${v.severity?.toUpperCase?.() || 'UNKNOWN'}: ${v.type || 'unknown'} - ${v.description || 'No description'}`),
             lastScanAt: new Date().toISOString()
           },
           sentinel,
@@ -258,7 +258,7 @@ USER REQUEST: "${prompt}"
           qa: {
             status: qaResult?.status === "pass" ? "pass" : "fail",
             lastRunAt: new Date().toISOString(),
-            errors: (qaResult?.testSteps || []).filter((s: any) => s.result === "failure").map((s: any) => s.error || s.step),
+            errors: (qaResult?.testSteps || []).filter((s: { result?: string }) => s.result === "failure").map((s: { error?: string; step?: string }) => s.error || s.step || "unknown"),
             reportUrl: "/dashboard/qa/" + crypto.randomUUID(),
           },
           monetization: {

@@ -44,7 +44,7 @@ export class MemoryStore {
         return (fallback || []) as unknown as MemoryContext[];
       }
 
-      return (data || []).map(row => ({
+      return (data || []).map((row: { prompt: string; tech_stack: string[]; metadata: Record<string, unknown>; similarity: number }) => ({
         prompt: row.prompt,
         tech_stack: row.tech_stack,
         metadata: row.metadata,

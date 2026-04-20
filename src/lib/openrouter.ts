@@ -18,6 +18,17 @@ function getModel(): string {
   return process.env.OPENROUTER_MODEL ?? FREE_MODEL_FALLBACK;
 }
 
+// Deterministic placeholder embedding. OpenRouter does not expose embeddings
+// directly; swap this for a real embedding call when an embeddings provider is wired up.
+export async function generateEmbedding(text: string, dim = 1536): Promise<number[]> {
+  const vec = new Array<number>(dim).fill(0);
+  for (let i = 0; i < text.length; i++) {
+    vec[i % dim] = (vec[i % dim] + text.charCodeAt(i)) % 997;
+  }
+  const norm = Math.sqrt(vec.reduce((s, v) => s + v * v, 0)) || 1;
+  return vec.map(v => v / norm);
+}
+
 export class OpenRouterError extends Error {
   constructor(
     message: string,

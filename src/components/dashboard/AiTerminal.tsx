@@ -101,7 +101,7 @@ export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
         const data = await res.json();
         if (data.proposals?.length) {
           addLine("output", `Found ${data.proposals.length} high-potential investment opportunities!`);
-          data.proposals.forEach((p: any) => {
+          data.proposals.forEach((p: { projectId: string; score: number; suggestedCredits: number; equityShare: number }) => {
             addLine("output", `  - Project: ${p.projectId.slice(0, 8)}... | Score: ${p.score}/100 | Ask: ${p.suggestedCredits} CR | RevShare: ${(p.equityShare * 100).toFixed(1)}%`);
           });
         } else {
@@ -141,7 +141,7 @@ export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
         const data = await res.json();
         if (data.trends?.length) {
           addLine("output", "Top Emerging Technologies Identified:");
-          data.trends.forEach((t: any) => {
+          data.trends.forEach((t: { name: string; category: string; velocity: number; source: string }) => {
             addLine("output", `  - ${t.name} (${t.category}) | Velocity: ${t.velocity} stars/wk | Source: ${t.source}`);
           });
         }
@@ -172,7 +172,7 @@ export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
       const modeMatch = manifestPrompt.match(/--mode\s+(elite|universal|nano)/i);
       const protoMatch = manifestPrompt.match(/--proto\s+(\S+)/i);
       
-      const finalMode = modeMatch ? modeMatch[1].toLowerCase() as any : mode;
+      const finalMode = modeMatch ? (modeMatch[1].toLowerCase() as "elite" | "universal" | "nano") : mode;
       const finalProto = protoMatch ? protoMatch[1] : protocol;
       const cleanPrompt = manifestPrompt.replace(/--mode\s+\S+/gi, "").replace(/--proto\s+\S+/gi, "").trim();
 

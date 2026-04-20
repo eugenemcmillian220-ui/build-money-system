@@ -3,7 +3,7 @@ import { serverEnv } from "./env";
 export interface SlackMessage {
   text: string;
   channel?: string;
-  blocks?: any[];
+  blocks?: Record<string, unknown>[];
 }
 
 export class SlackNotifier {

@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
-import { daoEngine } from "@/lib/dao-engine";
+import { daoEngine, type ProposalStatus } from "@/lib/dao-engine";
 import { requireAuth, isAuthError } from "@/lib/api-auth";
 import { z } from "zod";
 
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
   try {
     switch (action) {
       case "proposals": {
-        const status = searchParams.get("status") as any;
+        const status = (searchParams.get("status") || undefined) as ProposalStatus | undefined;
         const limit = parseInt(searchParams.get("limit") || "20");
         const offset = parseInt(searchParams.get("offset") || "0");
         const proposals = await daoEngine.getProposals({ status, limit, offset });

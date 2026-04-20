@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
         manifest: {
           mode: "elite",
           protocol: "standalone-qa",
-        } as any
+        } as Project["manifest"]
       };
 
       const result = await runOverseerAgent(project);

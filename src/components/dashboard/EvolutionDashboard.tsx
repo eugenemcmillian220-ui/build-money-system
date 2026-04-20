@@ -7,7 +7,7 @@ import { type EvolutionPatch } from "@/lib/self-evolution";
 
 export function EvolutionDashboard() {
   const [patches, setPatches] = useState<EvolutionPatch[]>([]);
-  const [history, setHistory] = useState<any[]>([]);
+  const [history, setHistory] = useState<{ status: string; event: string; timestamp: string }[]>([]);
   const [isEvolving, setIsEvolving] = useState(false);
   const [loading, setLoading] = useState(true);
 

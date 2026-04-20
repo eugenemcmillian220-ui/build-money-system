@@ -1,5 +1,5 @@
 export const dynamic = "force-dynamic";
-import { evolveApplication } from "@/lib/self-evolution";
+import { evolutionEngine } from "@/lib/self-evolution";
 import { z } from "zod";
 import { requireAuth, isAuthError } from "@/lib/api-auth";
 
@@ -14,16 +14,19 @@ const requestSchema = z.object({
 });
 
 export async function POST(request: Request): Promise<Response> {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const body = await request.json();
     const parsed = requestSchema.parse(body);
 
-    const result = await evolveApplication(parsed);
+    const result = await evolutionEngine.triggerCycle();
 
     return Response.json({
-      success: true,
-      evolvedProjectId: result.id,
-      description: result.description,
+      success: result.success,
+      projectId: parsed.projectId,
+      patchesApplied: result.patchesApplied,
     });
   } catch (error) {
     console.error("Evolution error:", error);

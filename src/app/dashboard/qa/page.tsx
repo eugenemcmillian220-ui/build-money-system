@@ -14,7 +14,7 @@ export default function QADashboard() {
     async function loadData() {
       try {
         const data = await getQAProjects();
-        setProjects(data as any);
+        setProjects(data as unknown as Project[]);
       } catch (err) {
         console.error("Failed to load QA data:", err);
       } finally {

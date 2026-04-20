@@ -152,15 +152,15 @@ export class HiveMind {
       return (fallbackData || []).map(d => this.mapToPattern(d));
     }
 
-    return (data || []).map((d: any) => this.mapToPattern(d));
+    return (data || []).map((d: Record<string, unknown>) => this.mapToPattern(d));
   }
 
-  private mapToPattern(d: any): KnowledgePattern {
+  private mapToPattern(d: Record<string, unknown>): KnowledgePattern {
     return {
-      type: d.pattern_type,
-      problem: d.problem_description,
-      solution: d.solution_delta,
-      tags: d.tags
+      type: d.pattern_type as KnowledgePattern["type"],
+      problem: d.problem_description as string,
+      solution: d.solution_delta as KnowledgePattern["solution"],
+      tags: d.tags as string[]
     };
   }
 }

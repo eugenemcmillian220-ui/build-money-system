@@ -4,19 +4,20 @@ import { billingEngine } from "@/lib/billing-engine";
 import { headers } from "next/headers";
 import { logger } from "@/lib/logger";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2026-03-25.dahlia",
-});
-
-// SECURITY FIX: Fail hard if webhook secret is missing — never fall back to empty string
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-if (!webhookSecret) {
-  throw new Error("STRIPE_WEBHOOK_SECRET is required. Webhook signature verification cannot be disabled.");
-}
-
 export const runtime = "nodejs";
 
 export async function POST(request: Request): Promise<Response> {
+  if (!process.env.STRIPE_SECRET_KEY) {
+    return Response.json({ error: "STRIPE_SECRET_KEY not configured" }, { status: 503 });
+  }
+  if (!process.env.STRIPE_WEBHOOK_SECRET) {
+    return Response.json({ error: "STRIPE_WEBHOOK_SECRET not configured" }, { status: 503 });
+  }
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: "2026-03-25.dahlia",
+  });
+  const webhookSecret: string = process.env.STRIPE_WEBHOOK_SECRET;
+
   const body = await request.text();
   const signature = (await headers()).get("stripe-signature");
 
@@ -80,7 +81,7 @@ export async function POST(request: Request): Promise<Response> {
       }
 
       case "invoice.payment_succeeded": {
-        const invoice = event.data.object as Stripe.Invoice;
+        const invoice = event.data.object as Stripe.Invoice & { subscription?: string | { id: string } | null };
 
         // Handle subscription renewal payments
         const subscriptionId = typeof invoice.subscription === "string"
@@ -97,7 +98,7 @@ export async function POST(request: Request): Promise<Response> {
         }
 
         // Handle one-time payments (fallback for top-ups not caught by checkout.session.completed)
-        if (invoice.metadata?.orgId && invoice.metadata?.credits) {
+        if (invoice.metadata?.orgId && invoice.metadata?.credits && invoice.id) {
           await billingEngine.processTopUp(
             invoice.metadata.orgId,
             parseInt(invoice.metadata.credits, 10),
@@ -108,7 +109,7 @@ export async function POST(request: Request): Promise<Response> {
       }
 
       case "invoice.payment_failed": {
-        const invoice = event.data.object as Stripe.Invoice;
+        const invoice = event.data.object as Stripe.Invoice & { subscription?: string | { id: string } | null };
 
         const subscriptionId = typeof invoice.subscription === "string"
           ? invoice.subscription
@@ -118,7 +119,7 @@ export async function POST(request: Request): Promise<Response> {
           const subscription = await stripe.subscriptions.retrieve(subscriptionId);
           const { orgId } = subscription.metadata || {};
 
-          if (orgId) {
+          if (orgId && invoice.id) {
             await billingEngine.processPaymentFailure(orgId, subscription.id, invoice.id);
           }
         }

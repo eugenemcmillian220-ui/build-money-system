@@ -44,7 +44,8 @@ export async function GET(request: Request): Promise<Response> {
     return Response.json(data || []);
   } catch (error) {
     // DA-029 FIX: No in-memory fallback — fail properly
-    return NextResponse.json({ error: "Service unavailable" }, { status: 503 });
+    console.error("Marketplace fetch error:", error);
+    return Response.json({ error: "Service unavailable" }, { status: 503 });
   }
 }
 

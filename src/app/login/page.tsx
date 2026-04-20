@@ -9,7 +9,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const searchParams = useSearchParams();
-  const redirectTo = /* DA-041 FIX */ encodeURIComponent(searchParams?.error || '')("redirectTo") ?? "/dashboard";
+  const redirectTo = searchParams?.get("redirectTo") ?? "/dashboard";
   const urlError = searchParams.get("error");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
