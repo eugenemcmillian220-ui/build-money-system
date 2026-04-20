@@ -1,15 +1,7 @@
-import { PulseEvent } from "../pulse";
-import { supabaseAdmin } from "../supabase/admin";
+"use server";
 
-export interface ErrorCluster {
-  id: string;
-  errorMessage: string;
-  errorType: string;
-  severity: string;
-  occurrenceCount: number;
-  lastOccurrenceAt: string;
-  impactScore: number;
-}
+import { supabaseAdmin } from "../supabase/admin";
+import type { ErrorCluster } from "./pulse-actions.types";
 
 export async function getErrorClusters(projectId: string): Promise<ErrorCluster[]> {
   const { data, error } = await supabaseAdmin

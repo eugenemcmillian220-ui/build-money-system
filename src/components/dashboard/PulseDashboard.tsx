@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { Activity, AlertCircle, BarChart3, Clock, LayoutGrid, Zap } from "lucide-react";
-import { getErrorClusters, resolveCluster, type ErrorCluster } from "@/lib/actions/pulse-actions";
+import { getErrorClusters, resolveCluster } from "@/lib/actions/pulse-actions";
+import type { ErrorCluster } from "@/lib/actions/pulse-actions.types";
 import { platformPulse } from "@/lib/pulse";
 
 export function PulseDashboard() {
