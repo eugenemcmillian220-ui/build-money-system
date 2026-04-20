@@ -2,7 +2,7 @@ import {
   Zap, Database, Rocket, ShieldCheck, TrendingUp, BarChart3, 
   Activity, Box, Eye, CreditCard, Globe, Lock, Users, 
   Handshake, Brain, Merge, FileText, Search, Code2, 
-  Cpu, Terminal, Gavel, Network, Sparkles
+  Cpu, Terminal, Gavel, Network, Sparkles, Link2
 } from "lucide-react";
 
 export interface PhaseTool {
@@ -288,5 +288,16 @@ export const SOVEREIGN_PHASES: Phase[] = [
       { name: "Trigger Evolution", description: "Initiate autonomous system improvement cycle.", action: "evolution", endpoint: "/api/evolution", method: "POST" }
     ],
     expectation: "A system that grows more efficient and powerful with every hour."
+  },
+  {
+    id: 25,
+    name: "Neural Link",
+    mission: "Infrastructure Consolidation",
+    icon: Link2,
+    features: ["Semantic vector memory", "Metric-driven auto-scaling", "Edge-to-Edge orchestration"],
+    tools: [
+      { name: "Migrate Infrastructure", description: "Consolidate simulation to real production infra.", action: "migration", endpoint: "/api/infrastructure/migrate", method: "POST" }
+    ],
+    expectation: "A production-grade platform with real-time scaling and semantic intelligence."
   }
 ];

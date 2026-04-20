@@ -21,7 +21,8 @@ import {
   Gavel,
   Activity,
   Network,
-  Sparkles
+  Sparkles,
+  Link2
 } from "lucide-react";
 
 
@@ -68,6 +69,7 @@ export function Sidebar() {
     { id: 22, name: "Ph 22: Swarm Mesh", href: "/dashboard/phases/22" },
     { id: 23, name: "Ph 23: Pulse", href: "/dashboard/phases/23" },
     { id: 24, name: "Ph 24: Self-Evolution", href: "/dashboard/phases/24" },
+    { id: 25, name: "Ph 25: Neural Link", href: "/dashboard/phases/25" },
   ];
 
   return (
