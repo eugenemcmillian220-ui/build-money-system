@@ -3,9 +3,10 @@
 import React, { useState, useEffect } from "react";
 import { Link2, Zap, Database, Globe, Activity, CheckCircle2, ShieldCheck } from "lucide-react";
 import { syncScalingWithPulse } from "@/lib/actions/scaling-actions";
+import type { ScalingMetrics } from "@/lib/scaling";
 
 export function NeuralLinkDashboard() {
-  const [scalingMetrics, setScalingMetrics] = useState<any>(null);
+  const [scalingMetrics, setScalingMetrics] = useState<ScalingMetrics | null>(null);
   const [isMigrating, setIsMigrating] = useState(false);
   const [migrationStep, setMigrationStep] = useState(0);
 

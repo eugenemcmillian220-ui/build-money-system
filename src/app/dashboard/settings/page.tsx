@@ -38,7 +38,7 @@ export default function SettingsPage() {
             <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter italic">Sovereign Settings</h1>
             <SettingsIcon className="text-brand-500" size={32} />
           </div>
-          <p className="text-muted-foreground font-bold italic tracking-tight">Configure your empire's administrative controls.</p>
+          <p className="text-muted-foreground font-bold italic tracking-tight">Configure your empire&apos;s administrative controls.</p>
         </header>
 
         <div className="grid gap-8">

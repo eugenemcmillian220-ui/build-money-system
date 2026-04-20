@@ -184,11 +184,11 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                   <p className="text-[10px] font-black uppercase tracking-widest text-brand-400">X (Twitter) Thread</p>
                   <div className="space-y-4">
                     <div className="p-4 bg-black/40 rounded-xl border border-white/5 text-sm italic font-bold">
-                      {manifest?.launch?.twitterThread?.hook || "No hook available."}
+                      {manifest?.launch?.socialThread?.hook || "No hook available."}
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground text-[10px] font-black uppercase">
                       <TrendingUp size={12} />
-                      <span>{ manifest?.launch?.twitterThread?.posts?.length || 0 } Posts Manifested</span>
+                      <span>{ manifest?.launch?.socialThread?.posts?.length || 0 } Posts Manifested</span>
                     </div>
                   </div>
                 </div>

@@ -1,3 +1,4 @@
+import type { LucideIcon } from "lucide-react";
 import { 
   Zap, Database, Rocket, ShieldCheck, TrendingUp, BarChart3, 
   Activity, Box, Eye, CreditCard, Globe, Lock, Users, 
@@ -17,7 +18,7 @@ export interface Phase {
   id: number;
   name: string;
   mission: string;
-  icon: any;
+  icon: LucideIcon;
   features: string[];
   tools: PhaseTool[];
   expectation: string;

@@ -1,6 +1,6 @@
 "use client";
 
-import { SwarmMesh } from "@/components/dashboard/SwarmMesh";
+import SwarmMesh from "@/components/dashboard/SwarmMesh";
 
 export default function MeshPage() {
   return (

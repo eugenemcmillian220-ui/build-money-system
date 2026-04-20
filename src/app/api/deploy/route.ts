@@ -22,12 +22,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   try {
     // SECURITY FIX: Enforce authentication before any deployment action
     const authResult = await requireAuth();
-    if (isAuthError(authResult)) {
-      return NextResponse.json(
-        { error: authResult.error },
-        { status: authResult.status }
-      );
-    }
+    if (isAuthError(authResult)) return authResult;
 
     const body = await request.json();
     const parsed = deployRequestSchema.safeParse(body);
@@ -114,12 +109,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   try {
     // SECURITY FIX: Enforce authentication for deployment status check
     const authResult = await requireAuth();
-    if (isAuthError(authResult)) {
-      return NextResponse.json(
-        { error: authResult.error },
-        { status: authResult.status }
-      );
-    }
+    if (isAuthError(authResult)) return authResult;
 
     const { searchParams } = new URL(request.url);
     const deploymentId = searchParams.get("deploymentId");

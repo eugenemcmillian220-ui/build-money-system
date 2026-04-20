@@ -1,7 +1,7 @@
 
 // DA-025 FIX: Sanitize file paths to prevent traversal
-function sanitizeFilePaths(files: Record<string, any>): Record<string, any> {
-  const sanitized: Record<string, any> = {};
+function sanitizeFilePaths(files: Record<string, unknown>): Record<string, unknown> {
+  const sanitized: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(files)) {
     const safePath = key.replace(/\.\.\//g, '').replace(/^\//, '');
     if (safePath && !safePath.includes('..')) {

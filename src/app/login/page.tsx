@@ -9,7 +9,9 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const searchParams = useSearchParams();
-  const redirectTo = /* DA-041 FIX */ encodeURIComponent(searchParams?.error || '')("redirectTo") ?? "/dashboard";
+  const rawRedirect = searchParams?.get("redirectTo");
+  // Prevent open-redirect: only allow same-origin relative paths.
+  const redirectTo = rawRedirect && rawRedirect.startsWith("/") && !rawRedirect.startsWith("//") ? rawRedirect : "/dashboard";
   const urlError = searchParams.get("error");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {

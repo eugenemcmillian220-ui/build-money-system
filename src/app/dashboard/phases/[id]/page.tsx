@@ -20,7 +20,7 @@ export default function PhasePage() {
   const phase = SOVEREIGN_PHASES.find(p => p.id === phaseId);
 
   const [loading, setLoading] = useState<string | null>(null);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
   const [customPrompt, setCustomPrompt] = useState("");
 

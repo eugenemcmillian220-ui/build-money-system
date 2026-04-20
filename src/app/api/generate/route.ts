@@ -178,7 +178,7 @@ export async function POST(request: Request): Promise<Response> {
     } catch (error) {
       console.error("[Generate] Multi-file generation error:", error);
       const message = error instanceof Error ? error.message : "Multi-file generation failed";
-      const status = (error as any)?.status === 429 ? 429 : 502;
+      const status = (error as { status?: number })?.status === 429 ? 429 : 502;
       return Response.json({ error: message }, { status });
     }
   }

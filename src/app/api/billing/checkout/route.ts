@@ -30,7 +30,7 @@ export async function POST(request: Request): Promise<Response> {
       .from("org_members")
       .select("id")
       .eq("org_id", parsed.orgId)
-      .eq("user_id", authResult.userId)
+      .eq("user_id", authResult.user.id)
       .maybeSingle();
 
     if (memberErr || !membership) {

@@ -4,8 +4,21 @@ import Stripe from "stripe";
 import { z } from "zod";
 import { serverEnv } from "./env";
 
-const stripe = new Stripe(serverEnv.STRIPE_SECRET_KEY!, {
-  apiVersion: "2024-06-20",
+let _stripe: Stripe | null = null;
+function getStripe(): Stripe {
+  if (_stripe) return _stripe;
+  const key = serverEnv.STRIPE_SECRET_KEY;
+  if (!key) {
+    throw new Error("STRIPE_SECRET_KEY is not configured");
+  }
+  _stripe = new Stripe(key, { apiVersion: "2024-06-20" });
+  return _stripe;
+}
+const stripe: Stripe = new Proxy({} as Stripe, {
+  get(_t, prop) {
+    const s = getStripe() as unknown as Record<string | symbol, unknown>;
+    return s[prop];
+  },
 });
 
 // const STRIPE_ACCOUNT_ID = process.env.STRIPE_ACCOUNT_ID;

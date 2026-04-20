@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
-import { swarmMesh } from "@/lib/swarm-mesh";
+import { swarmMesh, type TradeStatus, type TradeType, type IntelType } from "@/lib/swarm-mesh";
 import { requireAuth, isAuthError } from "@/lib/api-auth";
 import { z } from "zod";
 
@@ -82,15 +82,15 @@ export async function GET(request: NextRequest) {
 
       case "trades": {
         const empireId = searchParams.get("empireId") || undefined;
-        const status = searchParams.get("status") as any;
-        const tradeType = searchParams.get("tradeType") as any;
+        const status = (searchParams.get("status") || undefined) as TradeStatus | undefined;
+        const tradeType = (searchParams.get("tradeType") || undefined) as TradeType | undefined;
         const limit = parseInt(searchParams.get("limit") || "50");
         const trades = await swarmMesh.getTrades({ empireId, status, tradeType, limit });
         return NextResponse.json({ trades });
       }
 
       case "intelligence": {
-        const intelType = searchParams.get("intelType") as any;
+        const intelType = (searchParams.get("intelType") || undefined) as IntelType | undefined;
         const minConfidence = searchParams.get("minConfidence")
           ? parseFloat(searchParams.get("minConfidence")!)
           : undefined;
