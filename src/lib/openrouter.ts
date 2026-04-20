@@ -83,7 +83,7 @@ function buildHeaders(): Record<string, string> {
   return {
     Authorization: `Bearer ${apiKey}`,
     "Content-Type": "application/json",
-    'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'https://localhost:3000' /* DA-032 FIX: Hardcoded, never from user */ ?? "https://localhost:3000",
+    'HTTP-Referer': (process.env.NEXT_PUBLIC_APP_URL || 'https://localhost:3000'),
     "X-Title": "AI App Builder",
   };
 }

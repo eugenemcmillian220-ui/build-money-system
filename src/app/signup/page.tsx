@@ -1,4 +1,6 @@
 
+"use client";
+
 // DA-043 FIX: Enforce minimum password requirements
 function validatePassword(password: string): string | null {
   if (password.length < 8) return 'Password must be at least 8 characters';
@@ -7,8 +9,6 @@ function validatePassword(password: string): string | null {
   if (!/[0-9]/.test(password)) return 'Password must include a number';
   return null;
 }
-
-"use client";
 
 import { useState } from "react";
 import Link from "next/link";

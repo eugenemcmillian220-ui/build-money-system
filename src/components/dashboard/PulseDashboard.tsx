@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { Activity, AlertCircle, BarChart3, Clock, LayoutGrid, Zap } from "lucide-react";
-import { platformPulse, type ErrorCluster } from "@/lib/pulse";
+import { getErrorClusters, resolveCluster, type ErrorCluster } from "@/lib/actions/pulse-actions";
+import { platformPulse } from "@/lib/pulse";
 
 export function PulseDashboard() {
   const [clusters, setClusters] = useState<ErrorCluster[]>([]);
@@ -11,7 +12,7 @@ export function PulseDashboard() {
   useEffect(() => {
     async function loadData() {
       try {
-        const data = await platformPulse.getErrorClusters();
+        const data = await getErrorClusters("00000000-0000-0000-0000-000000000000");
         setClusters(data);
       } catch (err) {
         console.error("Failed to load Pulse data:", err);
@@ -21,6 +22,15 @@ export function PulseDashboard() {
     }
     loadData();
   }, []);
+
+  const handleResolve = async (clusterId: string) => {
+    try {
+      await resolveCluster(clusterId);
+      setClusters(prev => prev.filter(c => c.id !== clusterId));
+    } catch (err) {
+      console.error("Failed to resolve cluster:", err);
+    }
+  };
 
   const stats = [
     { name: "Total Events", value: "12,401", change: "+14.2%", icon: Activity, color: "text-blue-400" },
@@ -96,7 +106,7 @@ export function PulseDashboard() {
                       </div>
                     </div>
                     <button 
-                      onClick={() => platformPulse.resolveCluster(cluster.id)}
+                      onClick={() => handleResolve(cluster.id)}
                       className="px-3 py-1 text-xs font-medium bg-zinc-800 hover:bg-zinc-700 rounded-lg border border-zinc-700 transition-colors"
                     >
                       Resolve

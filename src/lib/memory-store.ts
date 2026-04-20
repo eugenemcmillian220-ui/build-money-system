@@ -1,9 +1,12 @@
+import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { generateEmbedding } from "./openrouter";
 
 export interface MemoryContext {
   prompt: string;
   tech_stack: string[];
   metadata: Record<string, unknown>;
+  similarity?: number;
 }
 
 /**
@@ -12,41 +15,69 @@ export interface MemoryContext {
  */
 export class MemoryStore {
   /**
-   * Recalls relevant past context for a new prompt
+   * Recalls relevant past context for a new prompt using semantic similarity
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async recallContext(userId: string, _prompt: string): Promise<MemoryContext[]> {
+  async recallContext(userId: string, prompt: string): Promise<MemoryContext[]> {
     const supabase = await createClient();
-    
-    // In a real implementation, we would generate an embedding for the prompt:
-    // const embedding = await generateEmbedding(prompt);
-    
-    // And then search in Supabase:
-    // const { data } = await supabase.rpc("match_memories", { query_embedding: embedding, ... });
-    
-    // For now, we return a simulated context based on keyword matching
-    const { data } = await supabase
-      .from("generation_memory")
-      .select("prompt, tech_stack, metadata")
-      .eq("user_id", userId)
-      .limit(3);
 
-    return (data || []) as unknown as MemoryContext[];
+    try {
+      // 1. Generate semantic embedding for the new prompt
+      const embedding = await generateEmbedding(prompt);
+
+      // 2. Perform vector search in Supabase
+      const { data, error } = await supabase.rpc("match_memories", {
+        query_embedding: embedding,
+        match_threshold: 0.75, // Only return relevant context
+        match_count: 5,
+        p_user_id: userId,
+      });
+
+      if (error) {
+        console.warn("[MEMORY] Vector search failed, falling back to keyword:", error.message);
+        // Fallback to simple lookup if vector extension is not yet enabled
+        const { data: fallback } = await supabase
+          .from("generation_memory")
+          .select("prompt, tech_stack, metadata")
+          .eq("user_id", userId)
+          .limit(3);
+        
+        return (fallback || []) as unknown as MemoryContext[];
+      }
+
+      return (data || []).map(row => ({
+        prompt: row.prompt,
+        tech_stack: row.tech_stack,
+        metadata: row.metadata,
+        similarity: row.similarity,
+      }));
+    } catch (err) {
+      console.error("[MEMORY] Recall failed:", err);
+      return [];
+    }
   }
 
   /**
-   * Stores a generation in long-term memory
+   * Stores a generation in long-term memory with its vector representation
    */
   async remember(userId: string, prompt: string, techStack: string[], metadata: Record<string, unknown> = {}) {
     const supabase = await createClient();
-    
-    // Simulated embedding storage
-    await supabase.from("generation_memory").insert({
-      user_id: userId,
-      prompt,
-      tech_stack: techStack,
-      metadata,
-    });
+
+    try {
+      // Generate embedding for storage
+      const embedding = await generateEmbedding(prompt);
+
+      await supabase.from("generation_memory").insert({
+        user_id: userId,
+        prompt,
+        tech_stack: techStack,
+        metadata,
+        embedding, // Store vector for future semantic search
+      });
+      
+      console.log(`[MEMORY] Generation remembered for user ${userId}`);
+    } catch (err) {
+      console.error("[MEMORY] Failed to store memory:", err);
+    }
   }
 }
 

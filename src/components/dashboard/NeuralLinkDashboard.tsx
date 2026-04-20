@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Link2, Zap, Database, Globe, Activity, CheckCircle2, ShieldCheck } from "lucide-react";
-import { scalingEngine } from "@/lib/scaling";
-import { memoryStore } from "@/lib/memory-store";
+import { syncScalingWithPulse } from "@/lib/actions/scaling-actions";
 
 export function NeuralLinkDashboard() {
   const [scalingMetrics, setScalingMetrics] = useState<any>(null);
@@ -12,7 +11,7 @@ export function NeuralLinkDashboard() {
 
   useEffect(() => {
     async function loadData() {
-      const metrics = await scalingEngine.syncWithPulse();
+      const metrics = await syncScalingWithPulse();
       setScalingMetrics(metrics);
     }
     loadData();

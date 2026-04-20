@@ -1,4 +1,6 @@
 
+"use client";
+
 // DA-044 FIX: Command allowlist for terminal
 const ALLOWED_COMMANDS = new Set(['help', 'status', 'balance', 'generate', 'deploy', 'agents', 'ls', 'clear']);
 function sanitizeCommand(cmd: string): string {
@@ -9,8 +11,6 @@ function sanitizeCommand(cmd: string): string {
 }
 
 // DA-012 FIX: orgId resolved server-side from auth session, not client request
-"use client";
-
 import { useState, useRef, useEffect } from "react";
 import { Terminal as TerminalIcon, Send, Loader2 } from "lucide-react";
 import { ManifestOptions } from "@/lib/types";

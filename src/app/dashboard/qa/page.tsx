@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ShieldCheck, AlertCircle, CheckCircle2, ChevronRight, Activity } from "lucide-react";
-import { listProjectsDB } from "@/lib/supabase/db";
+import { getQAProjects } from "@/lib/actions/qa-actions";
 import { Project } from "@/lib/types";
 import Link from "next/link";
 
@@ -13,12 +13,12 @@ export default function QADashboard() {
   useEffect(() => {
     async function loadData() {
       try {
-        const data = await listProjectsDB();
-        setProjects(data);
+        const data = await getQAProjects();
+        setProjects(data as any);
       } catch (err) {
         console.error("Failed to load QA data:", err);
       } finally {
-        setLoading(setLoading(false) as any);
+        setLoading(false);
       }
     }
     loadData();

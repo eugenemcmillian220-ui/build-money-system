@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { Sparkles, Zap, ShieldCheck, TrendingUp, Activity, RotateCcw, Cpu } from "lucide-react";
-import { evolutionEngine, type EvolutionPatch } from "@/lib/self-evolution";
+import { analyzeAndProposeEvolution, triggerEvolutionCycle, getEvolutionHistory } from "@/lib/actions/evolution-actions";
+import { type EvolutionPatch } from "@/lib/self-evolution";
 
 export function EvolutionDashboard() {
   const [patches, setPatches] = useState<EvolutionPatch[]>([]);
@@ -13,8 +14,8 @@ export function EvolutionDashboard() {
   useEffect(() => {
     async function loadData() {
       try {
-        const p = await evolutionEngine.analyzeAndPropose();
-        const h = await evolutionEngine.getHistory();
+        const p = await analyzeAndProposeEvolution();
+        const h = await getEvolutionHistory();
         setPatches(p);
         setHistory(h);
       } catch (err) {
@@ -29,10 +30,10 @@ export function EvolutionDashboard() {
   const triggerEvolution = async () => {
     setIsEvolving(true);
     try {
-      const result = await evolutionEngine.triggerCycle();
+      const result = await triggerEvolutionCycle();
       console.log(`Evolution cycle complete: ${result.patchesApplied} patches applied.`);
       // Refresh history
-      const h = await evolutionEngine.getHistory();
+      const h = await getEvolutionHistory();
       setHistory(h);
     } catch (err) {
       console.error("Evolution failed:", err);
