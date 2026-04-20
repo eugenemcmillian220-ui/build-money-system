@@ -5,8 +5,7 @@ import { z } from "zod";
 import { serverEnv } from "./env";
 
 const stripe = new Stripe(serverEnv.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-12-18.acacia" // FIX: Use latest stable Stripe API version,
-  typescript: true,
+  apiVersion: "2024-06-20",
 });
 
 // const STRIPE_ACCOUNT_ID = process.env.STRIPE_ACCOUNT_ID;

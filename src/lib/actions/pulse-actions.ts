@@ -1,5 +1,5 @@
-import { PulseEvent } from "./pulse";
-import { supabaseAdmin } from "./supabase/admin";
+import { PulseEvent } from "../pulse";
+import { supabaseAdmin } from "../supabase/admin";
 
 export interface ErrorCluster {
   id: string;
