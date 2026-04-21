@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { requireAuth, isAuthError } from "@/lib/api-auth";
+import { isEliteTier } from "@/lib/admin-emails";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
       .eq("id", orgId)
       .single();
 
-    const isElite = org?.billing_tier === "elite" || org?.billing_tier === "pro";
+    const isElite = isEliteTier(org?.billing_tier);
 
     if (isElite) {
       return NextResponse.json({ approved: true, message: "Autonomous Governance: Action Auto-Approved." });

@@ -11,13 +11,15 @@ import { TrendResult } from "@/lib/agents/trend-hunter";
 import { repairOrganization } from "@/lib/auth-actions";
 import {
 
-  Zap, 
-  BarChart3, 
-  Users, 
+  Zap,
+  BarChart3,
+  Users,
   Crown,
   Loader2,
-  AlertTriangle
+  AlertTriangle,
+  LayoutGrid,
 } from "lucide-react";
+import { ADMIN_FREE_TIER } from "@/lib/admin-emails";
 
 interface Org {
   id: string;
@@ -146,13 +148,18 @@ export default function DashboardPage() {
           {/* Header */}
           <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="space-y-2">
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter italic">Command Center</h1>
-                <span className="px-3 py-1 bg-brand-500 text-black text-[10px] font-black uppercase tracking-widest rounded-full transform -rotate-2">Phase 21</span>
+                <span className="px-3 py-1 bg-brand-500 text-black text-[10px] font-black uppercase tracking-widest rounded-full transform -rotate-2">25 Phases Live</span>
+                {org?.billing_tier === ADMIN_FREE_TIER && (
+                  <span className="px-3 py-1 bg-gradient-to-r from-brand-500 to-accent text-black text-[10px] font-black uppercase tracking-widest rounded-full">
+                    Admin · Free
+                  </span>
+                )}
               </div>
               <p className="text-muted-foreground font-bold italic tracking-tight">Welcome back, Sovereign. Your empire is operating at peak efficiency.</p>
             </div>
-            
+
             {org && (
               <div className="flex items-center gap-4 bg-white/5 border border-white/10 p-4 rounded-2xl">
                 <div className="w-10 h-10 rounded-full bg-brand-500/20 flex items-center justify-center border border-brand-500/30">
@@ -160,7 +167,9 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Sovereign Tier</p>
-                  <p className="text-sm font-black uppercase tracking-tighter text-brand-400">{org.billing_tier || "Elite"}</p>
+                  <p className="text-sm font-black uppercase tracking-tighter text-brand-400">
+                    {org.billing_tier === ADMIN_FREE_TIER ? "Admin (Free, Unlimited)" : (org.billing_tier || "Elite")}
+                  </p>
                 </div>
               </div>
             )}
@@ -174,29 +183,39 @@ export default function DashboardPage() {
           )}
 
           {/* Stats Grid */}
-          <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white/5 border border-white/10 p-8 rounded-[2.5rem] relative overflow-hidden group">
+          <section className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            <div className="bg-white/5 border border-white/10 p-6 md:p-8 rounded-3xl md:rounded-[2.5rem] relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-32 h-32 bg-brand-500/10 blur-3xl rounded-full" />
               <div className="relative z-10">
-                <Zap size={24} className="text-brand-400 mb-4" />
+                <Zap size={22} className="text-brand-400 mb-3" />
                 <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Neural Credits</p>
-                <p className="text-4xl font-black text-white">{(org?.credit_balance || 0).toLocaleString()}</p>
+                <p className="text-3xl md:text-4xl font-black text-white">
+                  {org?.billing_tier === ADMIN_FREE_TIER ? "∞" : (org?.credit_balance || 0).toLocaleString()}
+                </p>
               </div>
             </div>
-            <div className="bg-white/5 border border-white/10 p-8 rounded-[2.5rem] relative overflow-hidden group">
+            <div className="bg-white/5 border border-white/10 p-6 md:p-8 rounded-3xl md:rounded-[2.5rem] relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 blur-3xl rounded-full" />
               <div className="relative z-10">
-                <BarChart3 size={24} className="text-green-400 mb-4" />
+                <BarChart3 size={22} className="text-green-400 mb-3" />
                 <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Active Projects</p>
-                <p className="text-4xl font-black text-white">{projects.length}</p>
+                <p className="text-3xl md:text-4xl font-black text-white">{projects.length}</p>
               </div>
             </div>
-            <div className="bg-white/5 border border-white/10 p-8 rounded-[2.5rem] relative overflow-hidden group">
+            <div className="bg-white/5 border border-white/10 p-6 md:p-8 rounded-3xl md:rounded-[2.5rem] relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-3xl rounded-full" />
               <div className="relative z-10">
-                <Users size={24} className="text-blue-400 mb-4" />
+                <Users size={22} className="text-blue-400 mb-3" />
                 <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Org Members</p>
-                <p className="text-4xl font-black text-white">1</p>
+                <p className="text-3xl md:text-4xl font-black text-white">1</p>
+              </div>
+            </div>
+            <div className="bg-white/5 border border-white/10 p-6 md:p-8 rounded-3xl md:rounded-[2.5rem] relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 blur-3xl rounded-full" />
+              <div className="relative z-10">
+                <LayoutGrid size={22} className="text-purple-400 mb-3" />
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Phases Active</p>
+                <p className="text-3xl md:text-4xl font-black text-white">25 / 25</p>
               </div>
             </div>
           </section>
