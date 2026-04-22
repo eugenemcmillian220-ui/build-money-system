@@ -14,7 +14,7 @@ export const maxDuration = 300;
 
 
 /** Throttle between agent calls to avoid rate limits on free-tier LLM providers */
-const AGENT_THROTTLE_MS = 3000;
+const AGENT_THROTTLE_MS = 500;
 function agentThrottle(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, AGENT_THROTTLE_MS));
 }
