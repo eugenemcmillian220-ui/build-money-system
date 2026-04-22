@@ -269,12 +269,20 @@ USER REQUEST: "${prompt}"
           economy,
           broker,
           legal,
-          qa: {
-            status: qaResult?.status === "pass" ? "pass" : "fail",
-            lastRunAt: new Date().toISOString(),
-            errors: (qaResult?.testSteps || []).filter((s: { result?: string }) => s.result === "failure").map((s: { error?: string; step?: string }) => s.error || s.step || "unknown"),
-            reportUrl: "/dashboard/qa/" + crypto.randomUUID(),
-          },
+          // Only include the qa block when Overseer actually ran (elite mode).
+          // Otherwise the dashboard would render a misleading red "QA: fail" badge.
+          ...(qaResult
+            ? {
+                qa: {
+                  status: qaResult.status === "pass" ? "pass" : "fail",
+                  lastRunAt: new Date().toISOString(),
+                  errors: (qaResult.testSteps || [])
+                    .filter((s: { result?: string }) => s.result === "failure")
+                    .map((s: { error?: string; step?: string }) => s.error || s.step || "unknown"),
+                  reportUrl: "/dashboard/qa/" + crypto.randomUUID(),
+                },
+              }
+            : {}),
           monetization: {
             affiliateCut: 0.20,
             revenueShareActive: true
