@@ -219,7 +219,10 @@ USER REQUEST: "${prompt}"
       } as unknown as Project));
 
       // Broker + Overseer only run in elite mode (heavy + polish-only signals).
-      let broker: { mergerPotential: { targetProjectId: string; compatibility: number; strategy: string }[]; negotiationStrategy: string } = { mergerPotential: [], negotiationStrategy: "Audit skipped (non-elite mode)." };
+      let broker: { mergerPotential: { targetProjectId: string; compatibility: number; strategy: string }[]; negotiationStrategy: string } = {
+        mergerPotential: [],
+        negotiationStrategy: isElite ? "Audit pending (no organization linked)." : "Audit skipped (non-elite mode).",
+      };
       let qaResult: { status?: string; testSteps?: { result?: string; error?: string; step?: string }[] } | null = null;
       if (isElite) {
         if (orgId) {
