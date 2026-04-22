@@ -109,13 +109,15 @@ export async function callLLM(
         cached: failoverResult.cached,
       });
     } catch (e) {
+      const detail = e instanceof Error ? e.message : String(e);
+      const configured = ["groq", "gemini", "openrouter", "openai", "cerebras", "deepseek", "cloudflare"]
+        .filter(p => keyManager.isConfigured(p as LLMProvider));
       logger.error("All LLM providers exhausted via executeWithFailover", {
-        error: e instanceof Error ? e.message : String(e),
-        configuredProviders: ["groq", "gemini", "openrouter", "openai", "cerebras", "deepseek", "cloudflare"]
-          .filter(p => keyManager.isConfigured(p as LLMProvider)),
+        error: detail,
+        configuredProviders: configured,
       });
       throw new LLMError(
-        "All AI providers are currently unavailable. Please try again in a few moments, or check that at least one API key is configured.",
+        `All AI providers are currently unavailable (tried: ${configured.join(", ") || "none configured"}). Last error: ${detail}`,
         503
       );
     }

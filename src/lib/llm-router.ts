@@ -16,15 +16,19 @@ export interface ProviderRequest {
  * Primary model tried first, fallbacks used on failure.
  */
 export const FREE_MODELS: Record<LLMProvider, string[]> = {
+  // Verified against OpenRouter's live catalog. The previous list had stale IDs
+  // that 400/404 on every request. Priority ordered by current availability.
   openrouter: [
-    "qwen/qwen3-coder-480b-a35b-instruct:free",
-    "mistralai/devstral:free",
-    "nvidia/llama-3.1-nemotron-ultra:free",
+    "openai/gpt-oss-120b:free",
+    "openai/gpt-oss-20b:free",
+    "z-ai/glm-4.5-air:free",
+    "nvidia/nemotron-nano-9b-v2:free",
+    "qwen/qwen3-coder:free",
+    "qwen/qwen3-next-80b-a3b-instruct:free",
     "meta-llama/llama-3.3-70b-instruct:free",
-    "deepseek/deepseek-r1:free",
-    "google/gemini-2.0-flash-001:free",
-    "meta-llama/llama-4-maverick:free",
-    "meta-llama/llama-4-scout:free",
+    "google/gemma-3-27b-it:free",
+    "nousresearch/hermes-3-llama-3.1-405b:free",
+    "meta-llama/llama-3.2-3b-instruct:free",
   ],
   gemini: [
     "gemini-2.0-flash",
