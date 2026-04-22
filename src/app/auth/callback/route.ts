@@ -11,8 +11,13 @@ function safeRedirectUrl(next: string | null, origin: string): string {
   if (!next.startsWith('/') || next.startsWith('//') || next.includes('://')) {
     return fallback;
   }
-  // Block encoded variants
-  const decoded = decodeURIComponent(next);
+  // Block encoded variants — guard decode against malformed percent-sequences
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(next);
+  } catch {
+    return fallback;
+  }
   if (decoded.startsWith('//') || decoded.includes('://')) {
     return fallback;
   }
@@ -23,20 +28,32 @@ function safeRedirectUrl(next: string | null, origin: string): string {
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
+  const tokenHash = searchParams.get("token_hash");
+  const rawType = searchParams.get("type");
   const next = searchParams.get("next") ?? "/dashboard";
+  const safeNext = safeRedirectUrl(next, origin);
 
+  const supabase = await createClient();
+
+  // PKCE flow (signInWithPassword + email-confirmations, OAuth, etc.)
   if (code) {
-    const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      const isLocalEnv = process.env.NODE_ENV === "development";
-      if (isLocalEnv) {
-        return NextResponse.redirect(`${origin}${next}`);
-      } else {
-        return NextResponse.redirect(`${process.env.NEXT_PUBLIC_SITE_URL ?? origin}${next}`);
-      }
+      return NextResponse.redirect(safeNext);
     }
-    console.error("Auth callback error:", error.message);
+    console.error("Auth callback exchangeCode error:", error.message);
+  }
+
+  // Magic-link / email-OTP click-through flow (?token_hash=...&type=magiclink|email|signup|recovery)
+  if (tokenHash) {
+    type EmailOtpType = "magiclink" | "signup" | "invite" | "recovery" | "email" | "email_change";
+    const allowed: EmailOtpType[] = ["magiclink", "signup", "invite", "recovery", "email", "email_change"];
+    const type = (allowed as string[]).includes(rawType ?? "") ? (rawType as EmailOtpType) : "email";
+    const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
+    if (!error) {
+      return NextResponse.redirect(safeNext);
+    }
+    console.error("Auth callback verifyOtp error:", error.message);
   }
 
   return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`);
