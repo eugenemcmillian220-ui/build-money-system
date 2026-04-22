@@ -44,8 +44,17 @@ export default function TerminalPage() {
       body: JSON.stringify({ prompt, orgId: org.id, options }),
     });
     if (!res.ok) {
-      const data = await res.json();
-      throw new Error(data.error || "Manifestation failed");
+      const raw = await res.text();
+      let message = raw;
+      try {
+        const parsed = JSON.parse(raw);
+        message = parsed?.error || raw;
+      } catch {
+        message = res.status === 504 || /timeout/i.test(raw)
+          ? `Manifestation timed out (${res.status}). The pipeline is still running on the server; refresh in a minute.`
+          : `${res.status} ${res.statusText}: ${raw.slice(0, 200)}`;
+      }
+      throw new Error(message);
     }
   };
 

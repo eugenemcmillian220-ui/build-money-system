@@ -120,8 +120,18 @@ export default function DashboardPage() {
     });
 
     if (!res.ok) {
-      const data = await res.json();
-      throw new Error(data.error || "Manifestation failed");
+      const raw = await res.text();
+      let message = raw;
+      try {
+        const parsed = JSON.parse(raw);
+        message = parsed?.error || raw;
+      } catch {
+        // Non-JSON body (e.g. Vercel gateway timeout returns plain text)
+        message = res.status === 504 || /timeout/i.test(raw)
+          ? `Manifestation timed out (${res.status}). The pipeline is still running on the server; refresh in a minute.`
+          : `${res.status} ${res.statusText}: ${raw.slice(0, 200)}`;
+      }
+      throw new Error(message);
     }
 
     await fetchDashboardData(); // Refresh list
