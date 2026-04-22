@@ -202,11 +202,13 @@ export async function requestAuthOtp(formData: FormData) {
   }
 
   const supabase = await createClient();
+  // NOTE: We intentionally omit `emailRedirectTo` so Supabase prioritises the
+  // 6-digit `{{ .Token }}` rendered by our custom Magic Link email template.
+  // The embedded "Click here" fallback link uses the project `site_url`.
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
       shouldCreateUser: isSignup || adminEmail, // admin auto-creates on first login
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "https://build-money-system.vercel.app"}/auth/callback`,
     },
   });
 
