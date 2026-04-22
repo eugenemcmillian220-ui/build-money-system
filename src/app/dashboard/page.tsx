@@ -40,60 +40,69 @@ export default function DashboardPage() {
     fetchDashboardData();
   }, []);
 
+  async function resolveOrg(userId: string): Promise<Org> {
+    const { data, error } = await supabase
+      .from("organizations")
+      .select("*")
+      .eq("owner_id", userId)
+      .single();
+
+    if (!error) return data as Org;
+
+    if (error.code !== "PGRST116") throw error;
+
+    // No org found, attempt self-healing, then re-query once.
+    const repair = await repairOrganization();
+    if (!repair.success) {
+      throw new Error("Failed to initialize workspace. Please contact support.");
+    }
+    const { data: retryOrg, error: retryError } = await supabase
+      .from("organizations")
+      .select("*")
+      .eq("owner_id", userId)
+      .single();
+    if (retryError) throw retryError;
+    return retryOrg as Org;
+  }
+
   async function fetchDashboardData() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Fetch personal org
-      const { data: orgData, error: orgError } = await supabase
-        .from("organizations")
-        .select("*")
-        .eq("owner_id", user.id)
-        .single();
-
-      if (orgError) {
-        if (orgError.code === "PGRST116") {
-          // No org found, attempt self-healing
-          console.log("No organization found for user, initiating repair...");
-          const repair = await repairOrganization();
-          if (repair.success) {
-            // Retry fetch after repair
-            const { data: retryOrg, error: retryError } = await supabase
-              .from("organizations")
-              .select("*")
-              .eq("owner_id", user.id)
-              .single();
-            
-            if (retryError) throw retryError;
-            setOrg(retryOrg);
-            return fetchDashboardData(); // Reload projects with new org ID
-          } else {
-            throw new Error("Failed to initialize workspace. Please contact support.");
-          }
-        }
-        throw orgError;
-      }
+      const orgData = await resolveOrg(user.id);
       setOrg(orgData);
+      // Unblock the shell as soon as we know the org; CEO/trends/projects hydrate in parallel.
+      setLoading(false);
 
-      // Fetch projects
-      const { data: projectsData, error: projError } = await supabase
-        .from("projects")
-        .select("*")
-        .eq("org_id", orgData.id)
-        .order("created_at", { ascending: false });
+      const [projectsResult, ceoResult, trendResult] = await Promise.allSettled([
+        supabase
+          .from("projects")
+          .select("*")
+          .eq("org_id", orgData.id)
+          .order("created_at", { ascending: false }),
+        fetch(`/api/ceo/report?orgId=${orgData.id}`),
+        fetch("/api/rd/scout"),
+      ]);
 
-      if (projError) throw projError;
-      setProjects(projectsData || []);
+      if (projectsResult.status === "fulfilled") {
+        const { data: projectsData, error: projError } = projectsResult.value;
+        if (projError) {
+          console.error("Dashboard projects error:", projError);
+        } else {
+          setProjects(projectsData ?? []);
+        }
+      } else {
+        console.error("Dashboard projects error:", projectsResult.reason);
+      }
 
-      // Fetch CEO Report
-      const ceoRes = await fetch(`/api/ceo/report?orgId=${orgData.id}`);
-      if (ceoRes.ok) setCeoReport(await ceoRes.json());
+      if (ceoResult.status === "fulfilled" && ceoResult.value.ok) {
+        setCeoReport(await ceoResult.value.json());
+      }
 
-      // Fetch Trends
-      const trendRes = await fetch("/api/rd/scout");
-      if (trendRes.ok) setTrends(await trendRes.json());
-
+      if (trendResult.status === "fulfilled" && trendResult.value.ok) {
+        setTrends(await trendResult.value.json());
+      }
     } catch (err) {
       console.error("Dashboard error:", err);
       setError((err as Error).message);
