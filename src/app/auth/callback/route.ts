@@ -11,8 +11,13 @@ function safeRedirectUrl(next: string | null, origin: string): string {
   if (!next.startsWith('/') || next.startsWith('//') || next.includes('://')) {
     return fallback;
   }
-  // Block encoded variants
-  const decoded = decodeURIComponent(next);
+  // Block encoded variants — guard decode against malformed percent-sequences
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(next);
+  } catch {
+    return fallback;
+  }
   if (decoded.startsWith('//') || decoded.includes('://')) {
     return fallback;
   }
