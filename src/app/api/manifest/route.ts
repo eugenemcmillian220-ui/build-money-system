@@ -172,30 +172,19 @@ USER REQUEST: "${prompt}"
 
       const genData = res;
       const files = genData.files;
-
-      // Run post-generation agents in parallel to reduce total time & serial rate-limit pressure
-      await agentThrottle();
-      const [docs, security, sentinel, simulation] = await Promise.all([
-        traced("agent.chronicler", { "agent.role": "Chronicler" }, () => agents.runChroniclerAgent(files)),
-        traced("agent.security", { "agent.role": "Security" }, () => agents.runSecurityAudit(files)),
-        traced("agent.sentinel", { "agent.role": "Sentinel" }, () => agents.runSentinelAgent(files)),
-        traced("agent.phantom", { "agent.role": "Phantom" }, () => agents.runPhantom({ files, id: "temp", createdAt: new Date().toISOString() } as Project)),
-      ]);
-      await agentThrottle();
-      const launch = await traced("agent.herald", { "agent.role": "Herald" }, () => agents.runHerald({
-        description: genData.description || prompt,
-        files,
-        id: "temp",
-        createdAt: new Date().toISOString(),
-        manifest: { strategy: strategy.strategyMarkdown, docs: docs as unknown as Record<string, unknown>, mode, protocol }
-      } as unknown as Project));
-
-      await agentThrottle();
       const projectName = (genData.description || "Untitled").split("\n")[0].slice(0, 100);
       const projectDesc = genData.description || prompt;
 
-      // Run economy + legal in parallel (independent of each other)
-      const [economy, legal] = await Promise.all([
+      // Fan out all agents whose inputs are ready after /api/generate.
+      // Sentinel, Phantom, Broker, Overseer are polish agents that are only
+      // required in elite mode; skipping them in non-elite mode keeps the
+      // critical path well under Vercel's 300s function cap.
+      const isElite = mode === "elite";
+
+      await agentThrottle();
+      const [docs, security, economy, legal] = await Promise.all([
+        traced("agent.chronicler", { "agent.role": "Chronicler" }, () => agents.runChroniclerAgent(files)),
+        traced("agent.security", { "agent.role": "Security" }, () => agents.runSecurityAudit(files)),
         traced("agent.economy", { "agent.role": "Economy" }, () => agents.runEconomyAgent({
           name: projectName,
           description: projectDesc,
@@ -208,29 +197,57 @@ USER REQUEST: "${prompt}"
         } as unknown as Project)),
       ]);
 
-      let broker: { mergerPotential: { targetProjectId: string; compatibility: number; strategy: string }[]; negotiationStrategy: string } = { mergerPotential: [], negotiationStrategy: "Audit pending." };
-      if (orgId) {
+      // Sentinel + Phantom: elite-only polish agents. Run in parallel when enabled.
+      let sentinel: Awaited<ReturnType<typeof agents.runSentinelAgent>> | undefined;
+      let simulation: Awaited<ReturnType<typeof agents.runPhantom>> | undefined;
+      if (isElite) {
         await agentThrottle();
-        const { data: existingProjects } = await supabaseAdmin
-          .from("projects")
-          .select("*")
-          .eq("org_id", orgId)
-          .limit(10);
-        
-        broker = await traced("agent.broker", { "agent.role": "Broker" }, () => agents.runBrokerAgent({
-          description: projectDesc,
-          id: "temp"
-        } as unknown as Project, existingProjects || []));
+        [sentinel, simulation] = await Promise.all([
+          traced("agent.sentinel", { "agent.role": "Sentinel" }, () => agents.runSentinelAgent(files)),
+          traced("agent.phantom", { "agent.role": "Phantom" }, () => agents.runPhantom({ files, id: "temp", createdAt: new Date().toISOString() } as Project)),
+        ]);
       }
 
+      // Herald depends on docs — run after the fan-out.
       await agentThrottle();
-      const qaResult = await traced("agent.overseer", { "agent.role": "Overseer" }, () => agents.runOverseerAgent({
-        ...genData,
+      const launch = await traced("agent.herald", { "agent.role": "Herald" }, () => agents.runHerald({
+        description: projectDesc,
         files,
         id: "temp",
         createdAt: new Date().toISOString(),
-        manifest: { strategy: strategy.strategyMarkdown, docs, mode, protocol }
+        manifest: { strategy: strategy.strategyMarkdown, docs: docs as unknown as Record<string, unknown>, mode, protocol }
       } as unknown as Project));
+
+      // Broker + Overseer only run in elite mode (heavy + polish-only signals).
+      let broker: { mergerPotential: { targetProjectId: string; compatibility: number; strategy: string }[]; negotiationStrategy: string } = {
+        mergerPotential: [],
+        negotiationStrategy: isElite ? "Audit pending (no organization linked)." : "Audit skipped (non-elite mode).",
+      };
+      let qaResult: { status?: string; testSteps?: { result?: string; error?: string; step?: string }[] } | null = null;
+      if (isElite) {
+        if (orgId) {
+          await agentThrottle();
+          const { data: existingProjects } = await supabaseAdmin
+            .from("projects")
+            .select("*")
+            .eq("org_id", orgId)
+            .limit(10);
+
+          broker = await traced("agent.broker", { "agent.role": "Broker" }, () => agents.runBrokerAgent({
+            description: projectDesc,
+            id: "temp"
+          } as unknown as Project, existingProjects || []));
+        }
+
+        await agentThrottle();
+        qaResult = await traced("agent.overseer", { "agent.role": "Overseer" }, () => agents.runOverseerAgent({
+          ...genData,
+          files,
+          id: "temp",
+          createdAt: new Date().toISOString(),
+          manifest: { strategy: strategy.strategyMarkdown, docs, mode, protocol }
+        } as unknown as Project));
+      }
 
       const projectData: Partial<Project> = {
         id: crypto.randomUUID(),
@@ -255,12 +272,20 @@ USER REQUEST: "${prompt}"
           economy,
           broker,
           legal,
-          qa: {
-            status: qaResult?.status === "pass" ? "pass" : "fail",
-            lastRunAt: new Date().toISOString(),
-            errors: (qaResult?.testSteps || []).filter((s: { result?: string }) => s.result === "failure").map((s: { error?: string; step?: string }) => s.error || s.step || "unknown"),
-            reportUrl: "/dashboard/qa/" + crypto.randomUUID(),
-          },
+          // Only include the qa block when Overseer actually ran (elite mode).
+          // Otherwise the dashboard would render a misleading red "QA: fail" badge.
+          ...(qaResult
+            ? {
+                qa: {
+                  status: qaResult.status === "pass" ? "pass" : "fail",
+                  lastRunAt: new Date().toISOString(),
+                  errors: (qaResult.testSteps || [])
+                    .filter((s: { result?: string }) => s.result === "failure")
+                    .map((s: { error?: string; step?: string }) => s.error || s.step || "unknown"),
+                  reportUrl: "/dashboard/qa/" + crypto.randomUUID(),
+                },
+              }
+            : {}),
           monetization: {
             affiliateCut: 0.20,
             revenueShareActive: true
