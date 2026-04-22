@@ -117,7 +117,7 @@ export async function callLLM(
         configuredProviders: configured,
       });
       throw new LLMError(
-        `All AI providers are currently unavailable (tried: ${configured.join(", ") || "none configured"}). Last error: ${detail}`,
+        `All AI providers are currently unavailable (configured: ${configured.join(", ") || "none"}). Last error: ${detail}`,
         503
       );
     }
