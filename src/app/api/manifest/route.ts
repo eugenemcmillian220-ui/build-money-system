@@ -10,7 +10,7 @@ import { requireAuth, isAuthError } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 300;
+export const maxDuration = 800;
 
 
 /** Throttle between agent calls to avoid rate limits on free-tier LLM providers */

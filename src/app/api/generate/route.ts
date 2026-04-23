@@ -8,7 +8,7 @@ import { requireAuth, isAuthError } from "@/lib/api-auth";
 import { agentEconomy } from "@/lib/economy";
 
 export const runtime = "nodejs";
-export const maxDuration = 300;
+export const maxDuration = 800;
 
 const requestSchema = z.object({
   prompt: z.string().min(1, "Prompt is required").max(100000, "Prompt is too long").optional(),
