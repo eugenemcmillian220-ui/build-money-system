@@ -50,8 +50,10 @@ export async function POST(request: NextRequest) {
 
   const next = nextStage[stage];
   if (next) {
-    // Chain to next stage in a fresh serverless invocation.
-    await triggerStage(baseUrl, next, jobId);
+    // Chain to next stage in a fresh serverless invocation via after(), so the
+    // outbound fetch is flushed after the response is sent to the caller
+    // without being cut off by Vercel's sandbox lifecycle.
+    triggerStage(baseUrl, next, jobId);
   }
 
   return NextResponse.json({ ok: true, stage, next });
