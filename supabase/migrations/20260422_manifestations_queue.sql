@@ -37,4 +37,8 @@ CREATE POLICY IF NOT EXISTS "Users can view their own manifestations"
             SELECT 1 FROM public.org_members om
             WHERE om.org_id = manifestations.org_id AND om.user_id = auth.uid()
         )
+        OR EXISTS (
+            SELECT 1 FROM public.organizations o
+            WHERE o.id = manifestations.org_id AND o.owner_id = auth.uid()
+        )
     );

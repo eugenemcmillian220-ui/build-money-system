@@ -92,6 +92,16 @@ export async function runIntentStage(jobId: string, baseUrl: string): Promise<vo
         );
       }
       creditsReserved = true;
+      // Persist reservation BEFORE running subsequent agents. If Scout/Architect
+      // (or anything else below) throws, failManifestation can then read
+      // creditsReserved + dynamicCost from DB state and refund properly.
+      await supabaseAdmin
+        .from("manifestations")
+        .update({
+          state: { ...(row.state ?? {}), creditsReserved: true, dynamicCost },
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", jobId);
       await appendLog(jobId, "info", `Reserved ${dynamicCost} credits for manifestation.`);
     }
 
