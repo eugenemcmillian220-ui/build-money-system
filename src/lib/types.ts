@@ -35,15 +35,27 @@ export const fileMapSchema: z.ZodType<FileMap> = z.record(
   z.string().min(1, "File content cannot be empty"),
 );
 
-export const generationResultSchema: z.ZodType<GenerationResult> = z.object({
+/**
+ * Coerces `schema` to a string. LLMs occasionally return a structured
+ * object for `schema` (e.g. `{ tables: [...] }`) instead of the SQL
+ * string the pipeline expects. Stringify it so downstream code that
+ * treats `schema` as text (migrations, Supabase sync) keeps working.
+ */
+const schemaStringField = z.preprocess((v) => {
+  if (v === null || v === undefined) return undefined;
+  if (typeof v === "string") return v;
+  try { return JSON.stringify(v, null, 2); } catch { return String(v); }
+}, z.string().optional());
+
+export const generationResultSchema = z.object({
   files: fileMapSchema,
   description: z.string().optional(),
   prompt: z.string().optional(),
   timestamp: z.number().optional(),
-  schema: z.string().optional(),
+  schema: schemaStringField,
   integrations: z.array(z.string()).optional(),
   id: z.string().optional(),
-});
+}) as unknown as z.ZodType<GenerationResult>;
 
 /**
  * Schema for validating LLM responses - timestamp is omitted as it's added after validation
@@ -51,7 +63,7 @@ export const generationResultSchema: z.ZodType<GenerationResult> = z.object({
 export const llmResponseSchema = z.object({
   files: fileMapSchema,
   description: z.string().optional(),
-  schema: z.string().optional(),
+  schema: schemaStringField,
   integrations: z.array(z.string()).optional(),
 });
 
