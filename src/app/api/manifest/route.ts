@@ -253,6 +253,7 @@ USER REQUEST: "${prompt}"
         id: crypto.randomUUID(),
         files,
         description: genData.description || prompt,
+        prompt,
         orgId,
         createdAt: new Date().toISOString(),
         manifest: {
