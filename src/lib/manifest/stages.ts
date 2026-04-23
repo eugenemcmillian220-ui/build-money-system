@@ -168,7 +168,11 @@ export async function runGenerateStage(jobId: string, baseUrl: string): Promise<
         "Content-Type": "application/json",
         "X-Worker-Secret": process.env.WORKER_SHARED_SECRET ?? "",
       },
-      body: JSON.stringify({ prompt: finalPrompt, multiFile: true, orgId: row.org_id }),
+      body: JSON.stringify({
+        prompt: finalPrompt,
+        multiFile: true,
+        ...(row.org_id ? { orgId: row.org_id } : {}),
+      }),
     });
 
     if (!fetchRes.ok) {
