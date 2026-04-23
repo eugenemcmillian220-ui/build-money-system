@@ -16,7 +16,11 @@ import { Terminal as TerminalIcon, Send, Loader2 } from "lucide-react";
 import { ManifestOptions } from "@/lib/types";
 
 interface AiTerminalProps {
-  onManifest: (prompt: string, options: ManifestOptions) => Promise<void>;
+  onManifest: (
+    prompt: string,
+    options: ManifestOptions,
+    onLog: (level: "info" | "error", text: string) => void,
+  ) => Promise<void>;
   orgId?: string;
 }
 
@@ -180,8 +184,11 @@ export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
       addLine("output", "Decoding plain English intent...");
       
       try {
-        await onManifest(cleanPrompt, { mode: finalMode, protocol: finalProto });
-        addLine("output", "Manifestation complete. Empire initialized in database.");
+        await onManifest(
+          cleanPrompt,
+          { mode: finalMode, protocol: finalProto },
+          (level, text) => addLine(level === "error" ? "error" : "output", text),
+        );
       } catch (err) {
         addLine("error", `Manifestation failed: ${(err as Error).message}`);
       } finally {
