@@ -42,3 +42,39 @@ CREATE POLICY IF NOT EXISTS "Users can view their own manifestations"
             WHERE o.id = manifestations.org_id AND o.owner_id = auth.uid()
         )
     );
+
+-- Atomic refund RPC: flips creditsRefunded in a single UPDATE (guarded by
+-- creditsReserved=true AND creditsRefunded IS NOT true), then increments
+-- the org balance. Multiple concurrent callers can't double-refund because
+-- only the first UPDATE matches the guard.
+CREATE OR REPLACE FUNCTION refund_manifestation_credits(p_manifestation_id UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_org_id UUID;
+  v_amount NUMERIC;
+  v_rows INTEGER;
+BEGIN
+  UPDATE public.manifestations
+  SET state = jsonb_set(state, '{creditsRefunded}', 'true'::jsonb, true)
+  WHERE id = p_manifestation_id
+    AND org_id IS NOT NULL
+    AND (state->>'creditsReserved')::boolean IS TRUE
+    AND (state->>'creditsRefunded')::boolean IS DISTINCT FROM TRUE
+    AND (state->>'dynamicCost') IS NOT NULL
+  RETURNING org_id, (state->>'dynamicCost')::numeric
+  INTO v_org_id, v_amount;
+
+  GET DIAGNOSTICS v_rows = ROW_COUNT;
+  IF v_rows = 0 THEN RETURN FALSE; END IF;
+
+  UPDATE public.organizations
+  SET credit_balance = COALESCE(credit_balance, 0) + v_amount,
+      updated_at = NOW()
+  WHERE id = v_org_id;
+
+  RETURN TRUE;
+END;
+$$;

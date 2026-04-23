@@ -3,15 +3,7 @@ import { requireAuth, isAuthError } from "@/lib/api-auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { createManifestation } from "@/lib/manifest/store";
 import { triggerStage } from "@/lib/manifest/chain";
-import { supabaseAdmin } from "@/lib/supabase/admin";
-
-async function userCanUseOrg(userId: string, orgId: string): Promise<boolean> {
-  const [ownerCheck, memberCheck] = await Promise.all([
-    supabaseAdmin.from("organizations").select("id").eq("id", orgId).eq("owner_id", userId).maybeSingle(),
-    supabaseAdmin.from("org_members").select("user_id").eq("org_id", orgId).eq("user_id", userId).maybeSingle(),
-  ]);
-  return Boolean(ownerCheck.data || memberCheck.data);
-}
+import { userCanAccessOrg } from "@/lib/manifest/org-access";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -49,7 +41,7 @@ export async function POST(request: NextRequest) {
 
   if (orgId) {
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const allowed = await userCanUseOrg(userId, orgId);
+    const allowed = await userCanAccessOrg(userId, orgId);
     if (!allowed) {
       return NextResponse.json(
         { error: "You do not have access to this organization." },

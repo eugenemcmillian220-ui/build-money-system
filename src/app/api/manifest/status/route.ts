@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, isAuthError } from "@/lib/api-auth";
 import { loadManifestation } from "@/lib/manifest/store";
+import { userCanAccessOrg } from "@/lib/manifest/org-access";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,7 +18,15 @@ export async function GET(request: NextRequest) {
   if (!row) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const userId = (authResult as { user?: { id?: string } }).user?.id;
-  if (row.user_id && userId && row.user_id !== userId) {
+  // Mirror the SELECT RLS policy on manifestations: the authenticated user must
+  // be the creator, an org member, or the org owner. loadManifestation uses the
+  // service role (bypasses RLS) so this check is the sole gate.
+  const isCreator = Boolean(row.user_id && userId && row.user_id === userId);
+  let isOrgPeer = false;
+  if (!isCreator && row.org_id && userId) {
+    isOrgPeer = await userCanAccessOrg(userId, row.org_id);
+  }
+  if (!isCreator && !isOrgPeer) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
