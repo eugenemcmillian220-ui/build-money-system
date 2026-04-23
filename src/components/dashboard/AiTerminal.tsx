@@ -189,6 +189,11 @@ export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
           { mode: finalMode, protocol: finalProto },
           (level, text) => addLine(level === "error" ? "error" : "output", text),
         );
+        // Fallback completion notice. Callers that stream server logs via onLog
+        // will also have surfaced per-stage progress (including a server-side
+        // completion message). Callers that don't stream logs (e.g. the
+        // /dashboard synchronous path) still get clear success feedback.
+        addLine("output", "Manifestation complete.");
       } catch (err) {
         addLine("error", `Manifestation failed: ${(err as Error).message}`);
       } finally {
