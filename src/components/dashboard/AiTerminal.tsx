@@ -16,7 +16,11 @@ import { Terminal as TerminalIcon, Send, Loader2 } from "lucide-react";
 import { ManifestOptions } from "@/lib/types";
 
 interface AiTerminalProps {
-  onManifest: (prompt: string, options: ManifestOptions) => Promise<void>;
+  onManifest: (
+    prompt: string,
+    options: ManifestOptions,
+    onLog: (level: "info" | "error", text: string) => void,
+  ) => Promise<void>;
   orgId?: string;
 }
 
@@ -180,8 +184,16 @@ export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
       addLine("output", "Decoding plain English intent...");
       
       try {
-        await onManifest(cleanPrompt, { mode: finalMode, protocol: finalProto });
-        addLine("output", "Manifestation complete. Empire initialized in database.");
+        await onManifest(
+          cleanPrompt,
+          { mode: finalMode, protocol: finalProto },
+          (level, text) => addLine(level === "error" ? "error" : "output", text),
+        );
+        // Fallback completion notice. Callers that stream server logs via onLog
+        // will also have surfaced per-stage progress (including a server-side
+        // completion message). Callers that don't stream logs (e.g. the
+        // /dashboard synchronous path) still get clear success feedback.
+        addLine("output", "Manifestation complete.");
       } catch (err) {
         addLine("error", `Manifestation failed: ${(err as Error).message}`);
       } finally {
