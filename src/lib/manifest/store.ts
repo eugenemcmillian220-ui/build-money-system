@@ -118,6 +118,39 @@ export async function failManifestation(id: string, message: string): Promise<vo
     ...(row?.logs ?? []),
     { ts: new Date().toISOString(), level: "error" as const, text: message },
   ];
+
+  // Refund credits if the intent stage reserved them and we have not already refunded.
+  if (row?.org_id) {
+    const state = (row.state ?? {}) as {
+      creditsReserved?: boolean;
+      creditsRefunded?: boolean;
+      dynamicCost?: number;
+    };
+    if (state.creditsReserved && !state.creditsRefunded && typeof state.dynamicCost === "number") {
+      try {
+        await supabaseAdmin.rpc("increment_org_balance", {
+          p_org_id: row.org_id,
+          p_amount: state.dynamicCost,
+        });
+        logs.push({
+          ts: new Date().toISOString(),
+          level: "info" as const,
+          text: `Refunded ${state.dynamicCost} reserved credits after failure.`,
+        });
+        await supabaseAdmin
+          .from("manifestations")
+          .update({ state: { ...state, creditsRefunded: true } })
+          .eq("id", id);
+      } catch (err) {
+        logs.push({
+          ts: new Date().toISOString(),
+          level: "warn" as const,
+          text: `Credit refund failed: ${(err as Error).message}`,
+        });
+      }
+    }
+  }
+
   await supabaseAdmin
     .from("manifestations")
     .update({

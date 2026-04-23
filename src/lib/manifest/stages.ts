@@ -79,18 +79,20 @@ export async function runIntentStage(jobId: string, baseUrl: string): Promise<vo
     const baseCost = mode === "elite" ? 100 : 50;
     const dynamicCost = monetizationEngine.calculateManifestationCost(baseCost);
 
+    let creditsReserved = false;
     if (row.org_id) {
-      const { data: org, error: orgError } = await supabaseAdmin
-        .from("organizations")
-        .select("credit_balance")
-        .eq("id", row.org_id)
-        .single();
-      if (orgError || !org) throw new Error("Organization not found");
-      if (Number(org.credit_balance) < dynamicCost) {
+      const { data: reserved, error: reserveError } = await supabaseAdmin.rpc("reserve_credits", {
+        p_org_id: row.org_id,
+        p_amount: dynamicCost,
+      });
+      if (reserveError) throw new Error(`Credit reservation failed: ${reserveError.message}`);
+      if (!reserved) {
         throw new Error(
           `Insufficient credits. Current cost (with ${monetizationEngine.getSurgeMultiplier()}x surge) is ${dynamicCost} neural units.`,
         );
       }
+      creditsReserved = true;
+      await appendLog(jobId, "info", `Reserved ${dynamicCost} credits for manifestation.`);
     }
 
     await throttle();
@@ -138,6 +140,7 @@ USER REQUEST: "${row.prompt}"
       mode,
       protocol,
       dynamicCost,
+      creditsReserved,
       strategyMarkdown: strategy.strategyMarkdown,
       architecture,
       visualTokens,
@@ -168,10 +171,13 @@ export async function runGenerateStage(jobId: string, baseUrl: string): Promise<
         "Content-Type": "application/json",
         "X-Worker-Secret": process.env.WORKER_SHARED_SECRET ?? "",
       },
+      // orgId is intentionally omitted: credits for this pipeline are already
+      // atomically reserved in the intent stage via reserve_credits. Forwarding
+      // orgId here would trigger /api/generate's own credit check/deduction and
+      // can reject an already-approved manifestation under concurrent load.
       body: JSON.stringify({
         prompt: finalPrompt,
         multiFile: true,
-        ...(row.org_id ? { orgId: row.org_id } : {}),
       }),
     });
 
@@ -375,13 +381,9 @@ export async function runPersistStage(jobId: string, _baseUrl: string): Promise<
     };
 
     const savedProject = await saveProjectDB(projectData as Project);
-
-    if (row.org_id) {
-      await supabaseAdmin.rpc("decrement_org_balance", {
-        org_id: row.org_id,
-        amount: dynamicCost,
-      });
-    }
+    // Credits were already atomically reserved in the intent stage via reserve_credits.
+    // No additional deduction needed here. dynamicCost is retained in state for observability.
+    void dynamicCost;
 
     await setStage(
       jobId,
