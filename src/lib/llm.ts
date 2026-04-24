@@ -5,16 +5,6 @@ import { keyManager } from "./key-manager";
 import { llmCache } from "./llm-cache";
 import { logger } from "./logger";
 
-const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
-
-interface OpenRouterRequestBody {
-  model: string;
-  messages: ChatMessage[];
-  stream?: boolean;
-  temperature?: number;
-  max_tokens?: number;
-}
-
 export class LLMError extends Error {
   constructor(
     message: string,
@@ -88,17 +78,6 @@ export async function callLLM(
 
   let result: string | null = null;
 
-  if (config.model && !config.model.includes(":free")) {
-    try {
-      result = await callProvider("openrouter", config.model, messages, fullConfig);
-    } catch (e) {
-      logger.warn("Primary provider failed, falling back to rotation", {
-        model: config.model,
-        error: e instanceof Error ? e.message : String(e),
-      });
-    }
-  }
-
   if (!result) {
     try {
       const failoverResult = await llmRouter.executeWithFailover(messages, fullConfig, { skipCache: !useCache });
@@ -110,7 +89,7 @@ export async function callLLM(
       });
     } catch (e) {
       const detail = e instanceof Error ? e.message : String(e);
-      const configured = ["groq", "gemini", "openrouter", "openai", "cerebras", "deepseek", "cloudflare"]
+      const configured = ["opencodezen", "openai", "cerebras", "deepseek", "cloudflare"]
         .filter(p => keyManager.isConfigured(p as LLMProvider));
       logger.error("All LLM providers exhausted via executeWithFailover", {
         error: detail,
@@ -166,12 +145,7 @@ async function callProvider(
 
   const json = await response.json();
 
-  let content = "";
-  if (provider === "gemini") {
-    content = json.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-  } else {
-    content = json.choices?.[0]?.message?.content ?? "";
-  }
+  const content = json.choices?.[0]?.message?.content ?? "";
 
   if (!content) {
     throw new LLMError(`LLM API (${provider}) returned an empty response`);
@@ -225,91 +199,8 @@ export async function* streamLLM(
 ): AsyncIterable<string> {
   const fullConfig = { ...defaultAgentConfig, ...config };
 
-  // Try OpenRouter streaming first (best UX for real-time output)
-  const openrouterKey = keyManager.getKey("openrouter");
-  if (openrouterKey) {
-    try {
-      const body: OpenRouterRequestBody = {
-        model: fullConfig.model,
-        messages,
-        stream: true,
-        temperature: fullConfig.temperature,
-        max_tokens: fullConfig.maxTokens,
-      };
-
-      const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${openrouterKey}`,
-          "Content-Type": "application/json",
-          "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL ?? "https://localhost:3000",
-          "X-Title": "AI App Builder",
-        },
-        body: JSON.stringify(body),
-      });
-
-      if (response.ok && response.body) {
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
-
-        // SECURITY FIX: Properly handle SSE data: lines that may be split
-        // across TCP chunks. The old code split on \n which can break
-        // JSON payloads that span chunk boundaries.
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-
-          // Process only complete lines (ending with \n)
-          let newlineIdx: number;
-          while ((newlineIdx = buffer.indexOf("\n")) !== -1) {
-            const line = buffer.slice(0, newlineIdx).trim();
-            buffer = buffer.slice(newlineIdx + 1);
-            
-            if (!line || !line.startsWith("data: ")) continue;
-            const data = line.slice(6);
-            if (data === "[DONE]") return;
-            try {
-              const parsed = JSON.parse(data);
-              const delta = parsed.choices?.[0]?.delta?.content;
-              if (delta) yield delta;
-            } catch {
-              // Incomplete JSON — may be split across chunks, skip
-            }
-          }
-        }
-        
-        // Process any remaining buffer content
-        if (buffer.trim()) {
-          const remaining = buffer.trim();
-          if (remaining.startsWith("data: ")) {
-            const data = remaining.slice(6);
-            if (data !== "[DONE]") {
-              try {
-                const parsed = JSON.parse(data);
-                const delta = parsed.choices?.[0]?.delta?.content;
-                if (delta) yield delta;
-              } catch { /* skip */ }
-            }
-          }
-        }
-        return; // streaming succeeded
-      }
-
-      // Non-OK response from OpenRouter — fall through to failover
-      logger.warn("streamLLM: OpenRouter streaming failed, falling back to executeWithFailover", {
-        status: response.status,
-      });
-    } catch (e) {
-      logger.warn("streamLLM: OpenRouter streaming error, falling back to executeWithFailover", {
-        error: (e as Error).message,
-      });
-    }
-  }
-
-  // Fallback: use the multi-provider failover chain (non-streaming, but works across all providers)
-  logger.info("streamLLM: Using executeWithFailover as fallback");
+  // Fallback: use the multi-provider failover chain (non-streaming for now, but works across all providers)
+  logger.info("streamLLM: Using executeWithFailover as non-streaming fallback");
   const result = await llmRouter.executeWithFailover(messages, fullConfig);
   yield result.content;
 }

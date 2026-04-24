@@ -1,6 +1,7 @@
 import { ChatMessage, AgentConfig } from "./types";
 import { keyManager, ProviderName } from "./key-manager";
 import { llmCache } from "./llm-cache";
+import { aiComplete, FREE_MODELS as ZEN_FREE_MODELS, PAID_MODELS as ZEN_PAID_MODELS } from "./ai";
 
 export type LLMProvider = ProviderName;
 
@@ -16,31 +17,7 @@ export interface ProviderRequest {
  * Primary model tried first, fallbacks used on failure.
  */
 export const FREE_MODELS: Record<LLMProvider, string[]> = {
-  // Verified against OpenRouter's live catalog. The previous list had stale IDs
-  // that 400/404 on every request. Priority ordered by current availability.
-  openrouter: [
-    "openai/gpt-oss-120b:free",
-    "openai/gpt-oss-20b:free",
-    "z-ai/glm-4.5-air:free",
-    "nvidia/nemotron-nano-9b-v2:free",
-    "qwen/qwen3-coder:free",
-    "qwen/qwen3-next-80b-a3b-instruct:free",
-    "meta-llama/llama-3.3-70b-instruct:free",
-    "google/gemma-3-27b-it:free",
-    "nousresearch/hermes-3-llama-3.1-405b:free",
-    "meta-llama/llama-3.2-3b-instruct:free",
-  ],
-  gemini: [
-    "gemini-2.0-flash",
-    "gemini-2.0-flash-lite",
-    "gemini-1.5-flash",
-  ],
-  groq: [
-    "meta-llama/llama-4-scout-17b-16e-instruct",
-    "llama-3.3-70b-versatile",
-    "qwen-2.5-coder-32b",
-    "llama-3.1-8b-instant",
-  ],
+  opencodezen: [...ZEN_FREE_MODELS, ...ZEN_PAID_MODELS],
   openai: [
     "gpt-4o-mini",
     "gpt-3.5-turbo",
@@ -98,9 +75,7 @@ export class LLMRouter {
   private circuits: Map<LLMProvider, CircuitState> = new Map();
 
   private priorityChain: LLMProvider[] = [
-    "groq",
-    "gemini",
-    "openrouter",
+    "opencodezen",
     "openai",
     "cerebras",
     "deepseek",
@@ -235,6 +210,35 @@ export class LLMRouter {
     let lastError: Error | null = null;
 
     for (const req of chain) {
+      if (req.provider === "opencodezen") {
+        try {
+          const result = await aiComplete({
+            messages: req.messages,
+            model: req.model,
+            temperature: req.config?.temperature,
+            maxTokens: req.config?.maxTokens,
+          });
+
+          this.recordSuccess(req.provider);
+          
+          if (!options?.skipCache) {
+            const formattedMsgs = this.formatMessages(messages) as Array<{ role: string; content: string }>;
+            llmCache.set(req.model, formattedMsgs, result.content);
+          }
+
+          return {
+            provider: req.provider,
+            model: result.model,
+            content: result.content,
+            cached: false,
+          };
+        } catch (err) {
+          lastError = err instanceof Error ? err : new Error(String(err));
+          this.recordFailure(req.provider);
+          continue; // next in chain
+        }
+      }
+
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
         try {
           const { url, headers, body, apiKey } = this.getFetchParams(req);
@@ -307,13 +311,7 @@ export class LLMRouter {
   private async parseResponse(provider: LLMProvider, response: Response): Promise<string> {
     const json = await response.json();
 
-    if (provider === "gemini") {
-      const text = json?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!text) throw new Error("Gemini returned empty response");
-      return text;
-    }
-
-    // OpenAI-compatible format (openrouter, groq, openai, deepseek, cerebras)
+    // OpenAI-compatible format (opencodezen, openai, deepseek, cerebras)
     const content = json?.choices?.[0]?.message?.content;
     if (!content) throw new Error(`${provider} returned empty response`);
     return content;
@@ -338,31 +336,6 @@ export class LLMRouter {
     const maxTokens = config?.maxTokens ?? 4096;
 
     switch (provider) {
-      case "openrouter":
-        url = "https://openrouter.ai/api/v1/chat/completions";
-        headers["Authorization"] = `Bearer ${apiKey}`;
-        headers["HTTP-Referer"] = process.env.NEXT_PUBLIC_SITE_URL ?? "https://localhost:3000";
-        headers["X-Title"] = "AI App Builder";
-        body = { model, messages: this.formatMessages(messages), temperature: temp, max_tokens: maxTokens };
-        break;
-
-      case "gemini":
-        url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-        body = {
-          contents: messages.map((m) => ({
-            role: m.role === "assistant" ? "model" : "user",
-            parts: [{ text: typeof m.content === "string" ? m.content : JSON.stringify(m.content) }],
-          })),
-          generationConfig: { temperature: temp, maxOutputTokens: maxTokens },
-        };
-        break;
-
-      case "groq":
-        url = "https://api.groq.com/openai/v1/chat/completions";
-        headers["Authorization"] = `Bearer ${apiKey}`;
-        body = { model, messages: this.formatMessages(messages), temperature: temp, max_tokens: maxTokens };
-        break;
-
       case "openai":
         url = "https://api.openai.com/v1/chat/completions";
         headers["Authorization"] = `Bearer ${apiKey}`;

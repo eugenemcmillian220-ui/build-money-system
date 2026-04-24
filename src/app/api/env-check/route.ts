@@ -26,18 +26,9 @@ export async function GET(): Promise<Response> {
       serviceRole: { configured: !!process.env.SUPABASE_SERVICE_ROLE_KEY },
     },
     aiProviders: {
-      openrouter: {
-        configured: keyManager.isConfigured("openrouter"),
-        keyCount: countKeys(process.env.OPENROUTER_API_KEY, process.env.OPENROUTER_API_KEYS),
-        model: process.env.OPENROUTER_MODEL || "meta-llama/llama-3.3-70b-instruct:free",
-      },
-      groq: {
-        configured: keyManager.isConfigured("groq"),
-        keyCount: countKeys(process.env.GROQ_API_KEY, process.env.GROQ_API_KEYS),
-      },
-      gemini: {
-        configured: keyManager.isConfigured("gemini"),
-        keyCount: countKeys(process.env.GEMINI_API_KEY, process.env.GEMINI_API_KEYS),
+      opencodezen: {
+        configured: keyManager.isConfigured("opencodezen"),
+        keyCount: countKeys(process.env.OPENCODE_ZEN_API_KEY, process.env.OPENCODE_ZEN_API_KEYS),
       },
       openai: {
         configured: keyManager.isConfigured("openai"),
@@ -83,7 +74,7 @@ export async function GET(): Promise<Response> {
     ready: anyAiConfigured,
     message: anyAiConfigured
       ? "At least one AI provider is configured."
-      : "No AI provider configured. Add at least one of: OPENROUTER_API_KEY, GROQ_API_KEY, GEMINI_API_KEY, or OPENAI_API_KEY.",
+      : "No AI provider configured. Add at least one of: OPENCODE_ZEN_API_KEY, OPENAI_API_KEY, or DEEPSEEK_API_KEY.",
     note: "Only configuration status is exposed. Actual key values are never returned.",
   });
 }
