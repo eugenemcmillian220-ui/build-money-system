@@ -4,7 +4,7 @@
  * to avoid rate limits and maximize throughput.
  */
 
-export type ProviderName = "openrouter" | "groq" | "gemini" | "openai" | "deepseek" | "cerebras" | "cloudflare";
+export type ProviderName = "opencodezen" | "openai" | "deepseek" | "cerebras" | "cloudflare";
 
 interface KeyEntry {
   key: string;
@@ -97,22 +97,10 @@ class KeyManager {
   private buildPool(provider: ProviderName): ProviderKeyPool {
     let keys: string[] = [];
     switch (provider) {
-      case "openrouter":
+      case "opencodezen":
         keys = this.parseKeysWithFallback(
-          process.env.OPENROUTER_API_KEYS,
-          process.env.OPENROUTER_API_KEY
-        );
-        break;
-      case "groq":
-        keys = this.parseKeysWithFallback(
-          process.env.GROQ_API_KEYS,
-          process.env.GROQ_API_KEY
-        );
-        break;
-      case "gemini":
-        keys = this.parseKeysWithFallback(
-          process.env.GEMINI_API_KEYS,
-          process.env.GEMINI_API_KEY
+          process.env.OPENCODE_ZEN_API_KEYS,
+          process.env.OPENCODE_ZEN_API_KEY
         );
         break;
       case "openai":

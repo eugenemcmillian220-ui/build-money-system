@@ -1,10 +1,12 @@
 import { z } from "zod";
 
 const serverEnvSchema = z.object({
+  // OpenCode Zen
+  OPENCODE_ZEN_API_KEY: z.string().optional(),
+  OPENCODE_ZEN_API_KEYS: z.string().optional(),
+  OPENCODE_ZEN_API_URL: z.string().optional(),
+
   // OpenRouter - supports comma-separated multi-key rotation
-  OPENROUTER_API_KEY: z.string().optional(),
-  OPENROUTER_API_KEYS: z.string().optional(),
-  OPENROUTER_MODEL: z.string().optional().default("meta-llama/llama-3.3-70b-instruct:free"),
 
   // Supabase
   NEXT_PUBLIC_SUPABASE_URL: z

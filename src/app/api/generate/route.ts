@@ -23,9 +23,7 @@ const SYSTEM_PROMPT =
 
 function isAnyLLMAvailable(): boolean {
   return (
-    keyManager.isConfigured("openrouter") ||
-    keyManager.isConfigured("groq") ||
-    keyManager.isConfigured("gemini") ||
+    keyManager.isConfigured("opencodezen") ||
     keyManager.isConfigured("openai") ||
     keyManager.isConfigured("deepseek") ||
     keyManager.isConfigured("cerebras")

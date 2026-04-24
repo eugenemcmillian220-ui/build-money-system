@@ -27,15 +27,11 @@ export interface Transaction {
  * Update this table when adding new models to llm-router.ts FREE_MODELS.
  */
 const MODEL_COST_TABLE: Record<string, number> = {
-  // === Free tier (OpenRouter free models) ===
-  "qwen/qwen3-coder-480b-a35b-instruct:free": 0,
-  "mistralai/devstral:free": 0,
-  "nvidia/llama-3.1-nemotron-ultra:free": 0,
-  "meta-llama/llama-3.3-70b-instruct:free": 0,
-  "deepseek/deepseek-r1:free": 0,
-  "google/gemini-2.0-flash-001:free": 0,
-  "meta-llama/llama-4-maverick:free": 0,
-  "meta-llama/llama-4-scout:free": 0,
+  // === OpenCode Zen ===
+  "opencode-zen-free": 0,
+  "opencode-zen-nano": 0,
+  "opencode-zen-pro": 0.00001,
+  "opencode-zen-ultra": 0.00005,
 
   // === Micro tier ===
   "llama-3.1-8b-instant": 0.000005,

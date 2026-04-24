@@ -311,9 +311,7 @@ export async function POST(req: NextRequest) {
   const results: PhaseResult[] = [];
 
   const llmAvailable =
-    keyManager.isConfigured("openrouter") ||
-    keyManager.isConfigured("groq") ||
-    keyManager.isConfigured("gemini") ||
+    keyManager.isConfigured("opencodezen") ||
     keyManager.isConfigured("openai");
 
   for (let i = 0; i < PHASE_RUNNERS.length; i++) {
