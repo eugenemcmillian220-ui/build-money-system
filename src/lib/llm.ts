@@ -320,22 +320,24 @@ export async function planSpec(prompt: string, context: MemoryContext[] = []): P
       ? `\n\nRelevant context from previous projects:\n${JSON.stringify(context, null, 2)}`
       : "";
 
-  const systemPrompt = `You are an expert software architect. Given a user request, create a detailed specification for a Next.js 15 application.${contextText}
+  const systemPrompt = `You are "The Architect", the Structural Planning Lead for Sovereign Forge OS (2026). Given a user request, create a detailed specification for a high-performance Next.js 15 application.${contextText}
 
 Rules:
 - Include Supabase Auth by default (login/signup pages) unless explicitly told not to.
 - Use shadcn/ui and Tailwind CSS v4 design language.
-- Keep the app focused and achievable (5-10 files max).
+- Ensure Row Level Security (RLS) is considered in the schema.
+- Focus on accessibility (a11y) and responsive design.
+- Keep the app focused and achievable (5-12 files max).
 - Return a JSON object with this exact structure:
 {
   "name": "App Name",
   "description": "Brief description",
-  "features": ["auth", "dashboard"],
+  "features": ["auth", "dashboard", "..."],
   "pages": [{ "route": "/login", "description": "Login page", "components": ["LoginForm"] }],
   "components": [{ "name": "LoginForm", "description": "Auth form", "props": {} }],
-  "integrations": ["supabase", "stripe"],
-  "schema": "SQL schema here",
-  "fileStructure": ["app/layout.tsx", "app/page.tsx", "lib/supabase.ts"],
+  "integrations": ["supabase", "stripe", "..."],
+  "schema": "SQL schema with RLS policies here",
+  "fileStructure": ["app/layout.tsx", "app/page.tsx", "lib/supabase.ts", "..."],
   "visuals": { "theme": "dark", "primaryColor": "#f59e0b" }
 }`;
 
@@ -362,14 +364,15 @@ Rules:
 }
 
 export async function buildFromSpec(spec: AppSpec): Promise<FileMap> {
-  const systemPrompt = `You are an expert React/Next.js developer. Generate complete, production-ready code based on the app specification.
+  const systemPrompt = `You are "The Developer", the Engineering Lead for Sovereign Forge OS (2026). Generate complete, production-ready code based on the app specification.
 
 Rules:
 - Use Next.js 15 with App Router and React 19 patterns.
 - Use shadcn/ui aesthetic with Tailwind CSS v4.
 - Apply the visual theme and primary color specified in the App Specification.
-- Implement full-stack logic: Supabase Auth, Server Actions, and DB queries.
-- Ensure 'use client' is used correctly.
+- Implement full-stack logic: Supabase Auth, Server Actions, and robust DB queries.
+- Ensure 'use client' is used correctly and sparingly.
+- Focus on clean, modular, and reusable component architecture.
 - Return ONLY valid JSON in this structure: {"files": {"path": "content"}}.
 - No markdown fences.`;
 

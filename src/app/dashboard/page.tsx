@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { AiTerminal } from "@/components/dashboard/AiTerminal";
 import { ProjectList } from "@/components/dashboard/ProjectList";
 import { SystemStatus } from "@/components/dashboard/SystemStatus";
@@ -36,10 +36,6 @@ export default function DashboardPage() {
 
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
   async function resolveOrg(userId: string): Promise<Org> {
     const { data, error } = await supabase
       .from("organizations")
@@ -65,7 +61,7 @@ export default function DashboardPage() {
     return retryOrg as Org;
   }
 
-  async function fetchDashboardData() {
+  const fetchDashboardData = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
@@ -109,11 +105,26 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []); // org is not needed as a dependency here since it is only set.
 
-  const handleManifest = async (prompt: string, options: ManifestOptions) => {
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
+
+  const handleManifest = async (
+    prompt: string,
+    options: ManifestOptions,
+    onLog?: (level: "info" | "error", text: string) => void,
+  ) => {
     if (!org) throw new Error("Organization not loaded");
-    const res = await fetch("/api/manifest", {
+
+    const log = (level: "info" | "error", text: string) => {
+      if (onLog) onLog(level, text);
+    };
+
+    log("info", "Initiating manifestation pipeline...");
+
+    const res = await fetch("/api/manifest/start", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ prompt, orgId: org.id, options }),
@@ -127,14 +138,59 @@ export default function DashboardPage() {
         message = parsed?.error || raw;
       } catch {
         // Non-JSON body (e.g. Vercel gateway timeout returns plain text)
-        message = res.status === 504 || /timeout/i.test(raw)
-          ? `Manifestation timed out (${res.status}). The pipeline is still running on the server; refresh in a minute.`
-          : `${res.status} ${res.statusText}: ${raw.slice(0, 200)}`;
+        message =
+          res.status === 504 || /timeout/i.test(raw)
+            ? `Manifestation timed out (${res.status}). The pipeline is still running on the server; refresh in a minute.`
+            : `${res.status} ${res.statusText}: ${raw.slice(0, 200)}`;
       }
       throw new Error(message);
     }
 
-    await fetchDashboardData(); // Refresh list
+    const { jobId } = await res.json();
+    log("info", `Job started: ${jobId.slice(0, 8)}. Awaiting synchronization...`);
+
+    // Polling loop for status and logs
+    let completed = false;
+    let lastLogCount = 0;
+    let attempts = 0;
+    const MAX_ATTEMPTS = 300; // 5-10 minutes max polling
+
+    while (!completed && attempts < MAX_ATTEMPTS) {
+      attempts++;
+      await new Promise((r) => setTimeout(r, 2000));
+
+      try {
+        const statusRes = await fetch(`/api/manifest/status?id=${jobId}`);
+        if (!statusRes.ok) continue;
+
+        const data = await statusRes.json();
+
+        // Stream new logs to terminal
+        if (data.logs && data.logs.length > lastLogCount) {
+          for (let i = lastLogCount; i < data.logs.length; i++) {
+            const l = data.logs[i];
+            log(l.level === "error" ? "error" : "info", l.text || l.message);
+          }
+          lastLogCount = data.logs.length;
+        }
+
+        if (data.status === "complete") {
+          completed = true;
+          log("info", "Manifestation complete. Empire initialized.");
+          await fetchDashboardData(); // Refresh list
+        } else if (data.status === "error") {
+          completed = true;
+          throw new Error(data.error || "Manifestation failed at neural level.");
+        }
+      } catch (err) {
+        if (err instanceof Error && err.message.includes("Manifestation failed")) throw err;
+        console.warn("Polling error:", err);
+      }
+    }
+
+    if (!completed) {
+      throw new Error("Manifestation is taking longer than expected. Please check back in a few minutes.");
+    }
   };
 
   const handleDeleteProject = async (id: string) => {
