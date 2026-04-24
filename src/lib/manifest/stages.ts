@@ -20,6 +20,7 @@ async function loadAgents() {
     { classifyIntent },
     { runScoutAgent },
     { runArchitectAgent },
+    { runDeveloperAgent },
     { runChroniclerAgent },
     { runPhantom },
     { runHerald },
@@ -34,6 +35,7 @@ async function loadAgents() {
     import("@/lib/agents/classifier"),
     import("@/lib/agents/scout"),
     import("@/lib/agents/architect"),
+    import("@/lib/agents/developer"),
     import("@/lib/agents/chronicler"),
     import("@/lib/agents/phantom"),
     import("@/lib/agents/herald"),
@@ -46,7 +48,7 @@ async function loadAgents() {
     import("@/lib/agents/legal"),
   ]);
   return {
-    classifyIntent, runScoutAgent, runArchitectAgent, runChroniclerAgent,
+    classifyIntent, runScoutAgent, runArchitectAgent, runDeveloperAgent, runChroniclerAgent,
     runPhantom, runHerald, runOverseerAgent, PHASE_19_SYSTEM_PROMPT,
     runSecurityAudit, runSentinelAgent, runEconomyAgent, runBrokerAgent, runLegalAgent,
   };
@@ -165,7 +167,7 @@ USER REQUEST: "${row.prompt}"
   }
 }
 
-export async function runGenerateStage(jobId: string, baseUrl: string): Promise<void> {
+export async function runGenerateStage(jobId: string, _baseUrl: string): Promise<void> {
   const row = await loadManifestation(jobId);
   if (!row) return;
 
@@ -175,33 +177,19 @@ export async function runGenerateStage(jobId: string, baseUrl: string): Promise<
     const finalPrompt = state.finalPrompt as string;
     if (!finalPrompt) throw new Error("Intent stage did not produce finalPrompt.");
 
-    const fetchRes = await fetch(`${baseUrl}/api/generate`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Worker-Secret": process.env.WORKER_SHARED_SECRET ?? "",
-      },
-      // orgId is intentionally omitted: credits for this pipeline are already
-      // atomically reserved in the intent stage via reserve_credits. Forwarding
-      // orgId here would trigger /api/generate's own credit check/deduction and
-      // can reject an already-approved manifestation under concurrent load.
-      body: JSON.stringify({
-        prompt: finalPrompt,
-        multiFile: true,
-      }),
+    const agents = await loadAgents();
+    const result = await agents.runDeveloperAgent(finalPrompt, {
+      mode: (state.mode as "web-app" | "mobile-app") || "web-app",
+      multiFile: true,
+      orgId: row.org_id ?? undefined,
     });
 
-    if (!fetchRes.ok) {
-      const errBody = await fetchRes.text().catch(() => "no body");
-      throw new Error(`Generation failed at Developer layer (${fetchRes.status}): ${errBody}`);
-    }
-    const genData = await fetchRes.json();
-    const files = genData.files;
-    const projectName = (genData.description || "Untitled").split("\n")[0].slice(0, 100);
-    const projectDesc = genData.description || row.prompt;
+    const files = result.files;
+    const projectName = (result.description || "Untitled").split("\n")[0].slice(0, 100);
+    const projectDesc = result.description || row.prompt;
 
     const nextState = mergeState(row, {
-      genData,
+      genData: result,
       files,
       projectName,
       projectDesc,

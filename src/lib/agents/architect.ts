@@ -16,16 +16,18 @@ export async function runArchitectAgent(prompt: string, strategy: string): Promi
     Your goal is to take a project intent and a strategy, then plan the complete application architecture.
     
     You must define:
-    1. A detailed file structure.
-    2. Core logic requirements (Server Actions, API routes, DB interactions).
-    3. Database table requirements.
+    1. A detailed file structure following Next.js 15 App Router best practices.
+    2. Core logic requirements: Identify complex state management, Server Actions, and API routes.
+    3. Database architecture: Define RLS (Row Level Security) policies and table relationships.
+    4. Security hardening: Identify potential attack vectors and plan mitigations.
+    5. Scalability: How the architecture will handle 100k+ concurrent users.
     
     Return JSON ONLY:
     {
-      "scaffolding": { "path/to/file.ts": "Description of file purpose" },
-      "coreLogicPlan": "Markdown detailed plan of how the app should work.",
+      "scaffolding": { "path/to/file.ts": "Detailed description of file purpose and logic" },
+      "coreLogicPlan": "Markdown detailed plan of how the app should work, including specific implementation steps.",
       "fileStructure": ["src/app/page.tsx", "src/lib/db.ts", "..."],
-      "databaseRequirements": ["Users table with credit_balance", "Projects table", "..."]
+      "databaseRequirements": ["Users table with credit_balance and RLS", "Projects table with foreign key to orgs", "..."]
     }
   `;
 

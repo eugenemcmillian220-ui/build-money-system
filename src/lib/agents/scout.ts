@@ -51,12 +51,18 @@ export async function runScoutAgent(prompt: string, protocol: string): Promise<S
     RESEARCH STATUS:
     ${arxivStatus}
     
+    Your strategy must analyze:
+    1. Technical feasibility and recommended stack (Modern 2026 stack).
+    2. Market differentiation: How this manifestation will outperform existing solutions.
+    3. Monetization potential: Identify high-yield revenue models.
+    4. Virality hooks: How it will achieve exponential growth in the Sovereign Forge ecosystem.
+    
     Based on this data and the project intent, provide a detailed strategy.
     Return JSON ONLY:
     {
-      "strategyMarkdown": "...",
+      "strategyMarkdown": "Detailed markdown strategy...",
       "recommendedStack": ["...", "..."],
-      "competitorInsights": "..."
+      "competitorInsights": "Analysis of existing competitors and our tactical advantage."
     }
   `;
 
