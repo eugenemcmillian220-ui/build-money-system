@@ -1,6 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import { generateEmbedding } from "./openrouter";
+import { generateEmbedding } from "./llm";
 
 export interface MemoryContext {
   prompt: string;

@@ -310,9 +310,7 @@ export async function POST(req: NextRequest) {
 
   const results: PhaseResult[] = [];
 
-  const llmAvailable =
-    keyManager.isConfigured("opencodezen") ||
-    keyManager.isConfigured("openai");
+  const llmAvailable = keyManager.isConfigured("opencodezen");
 
   for (let i = 0; i < PHASE_RUNNERS.length; i++) {
     const phaseNum = i + 1;

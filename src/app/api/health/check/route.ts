@@ -58,7 +58,7 @@ function checkDatabase() {
 
 function checkLLM() {
   const providers = (
-    ["opencodezen", "openai", "deepseek", "cerebras", "cloudflare"] as const
+    ["opencodezen"] as const
   ).reduce(
     (acc, p) => {
       acc[p] = keyManager.isConfigured(p);

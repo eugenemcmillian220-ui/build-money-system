@@ -17,7 +17,7 @@ export async function GET(): Promise<Response> {
   const authResult = await requireAuth();
   if (isAuthError(authResult)) return authResult;
 
-  const providers = (["opencodezen", "openai", "deepseek", "cerebras", "cloudflare"] as const).reduce(
+  const providers = (["opencodezen"] as const).reduce(
     (acc, p) => {
       acc[p] = { available: keyManager.isConfigured(p) };
       return acc;

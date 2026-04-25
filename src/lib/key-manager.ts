@@ -1,10 +1,8 @@
 /**
- * Multi-Key Rotation Manager
- * Supports rotating multiple API keys across GROQ, Gemini, OpenAI, and OpenRouter
- * to avoid rate limits and maximize throughput.
+ * Multi-Key Rotation Manager - OpenCode Zen Edition
  */
 
-export type ProviderName = "opencodezen" | "openai" | "deepseek" | "cerebras" | "cloudflare";
+export type ProviderName = "opencodezen";
 
 interface KeyEntry {
   key: string;
@@ -73,9 +71,6 @@ class ProviderKeyPool {
   }
 }
 
-/**
- * Parse a comma-separated or newline-separated list of API keys from an env var.
- */
 function parseKeys(envValue: string | undefined): string[] {
   if (!envValue) return [];
   return envValue
@@ -96,37 +91,11 @@ class KeyManager {
 
   private buildPool(provider: ProviderName): ProviderKeyPool {
     let keys: string[] = [];
-    switch (provider) {
-      case "opencodezen":
-        keys = this.parseKeysWithFallback(
-          process.env.OPENCODE_ZEN_API_KEYS,
-          process.env.OPENCODE_ZEN_API_KEY
-        );
-        break;
-      case "openai":
-        keys = this.parseKeysWithFallback(
-          process.env.OPENAI_API_KEYS,
-          process.env.OPENAI_API_KEY
-        );
-        break;
-      case "deepseek":
-        keys = this.parseKeysWithFallback(
-          process.env.DEEPSEEK_API_KEYS,
-          process.env.DEEPSEEK_API_KEY
-        );
-        break;
-      case "cerebras":
-        keys = this.parseKeysWithFallback(
-          process.env.CEREBRAS_API_KEYS,
-          process.env.CEREBRAS_API_KEY
-        );
-        break;
-      case "cloudflare":
-        keys = this.parseKeysWithFallback(
-          process.env.CLOUDFLARE_API_KEYS,
-          process.env.CLOUDFLARE_API_KEY
-        );
-        break;
+    if (provider === "opencodezen") {
+      keys = this.parseKeysWithFallback(
+        process.env.OPENCODE_ZEN_API_KEYS,
+        process.env.OPENCODE_ZEN_API_KEY
+      );
     }
     return new ProviderKeyPool(keys);
   }
@@ -139,9 +108,6 @@ class KeyManager {
     return parseKeys(singleKeyEnv);
   }
 
-  /**
-   * Invalidate pool cache so fresh env vars are picked up.
-   */
   resetPool(provider: ProviderName): void {
     this.pools.delete(provider);
   }

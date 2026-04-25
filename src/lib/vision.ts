@@ -57,9 +57,9 @@ Rules:
     }
   ];
 
-  // Using GPT-4o for vision capabilities
+  // Using OpenCode Zen for vision capabilities
   const content = await callLLM(messages, { 
-    model: "openai/gpt-4o", 
+    model: "gpt-4o-zen", 
     temperature: 0.3, 
     maxTokens: 4096 
   });

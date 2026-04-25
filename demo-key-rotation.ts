@@ -5,10 +5,8 @@
 
 // Mock environment variables with sample multi-key configurations
 process.env.OPENCODE_ZEN_API_KEYS = "zen_key1,zen_key2,zen_key3";
-process.env.OPENAI_API_KEYS = "sk-proj-key1,sk-proj-key2,sk-proj-key3";
 
 import { keyManager } from "./src/lib/key-manager";
-import { llmRouter } from "./src/lib/llm-router";
 
 console.log("\n" + "=".repeat(70));
 console.log("🔄 Multi-Key Rotation System Demonstration");
@@ -48,21 +46,11 @@ console.log("   Reporting success for zen_key2...\n");
 keyManager.reportSuccess("opencodezen", "zen_key2");
 console.log("   ✅ Success reported - error count reset for zen_key2");
 
-// Demonstrate LLM Router integration
-console.log("\n📦 LLM Router Integration:");
-console.log("   Provider priority: OpenCode Zen → OpenAI → Cerebras → DeepSeek → Cloudflare\n");
-
-console.log("   Next 5 provider selections:");
-for (let i = 0; i < 5; i++) {
-  const req = llmRouter.getNextRequest([]);
-  console.log(`     Request ${i + 1}: ${req.provider.toUpperCase()} with model ${req.model}`);
-}
-
 // Show configuration status
 console.log("\n📦 Configuration Status:");
-const providers = ["opencodezen", "openai", "deepseek", "cerebras", "cloudflare"];
+const providers = ["opencodezen"] as const;
 providers.forEach((provider) => {
-  const isConfigured = keyManager.isConfigured(provider as any);
+  const isConfigured = keyManager.isConfigured(provider);
   const status = isConfigured ? "✅ Configured" : "❌ Not configured";
   console.log(`   ${provider.padEnd(12)}: ${status}`);
 });
