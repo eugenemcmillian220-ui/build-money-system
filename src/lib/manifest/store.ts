@@ -1,5 +1,6 @@
 import "server-only";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { ManifestLog } from "@/lib/types";
 
 export type ManifestStage =
   | "queued"
@@ -11,12 +12,6 @@ export type ManifestStage =
   | "error";
 
 export type ManifestStatus = "pending" | "running" | "complete" | "error";
-
-export interface ManifestLog {
-  ts: string;
-  level: "info" | "warn" | "error";
-  text: string;
-}
 
 export interface ManifestationRow {
   id: string;

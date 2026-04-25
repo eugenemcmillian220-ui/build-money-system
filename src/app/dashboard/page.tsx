@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { AiTerminal } from "@/components/dashboard/AiTerminal";
 import { ProjectList } from "@/components/dashboard/ProjectList";
 import { SystemStatus } from "@/components/dashboard/SystemStatus";
+import { useManifestation } from "@/hooks/use-manifestation";
 import { supabase } from "@/lib/supabase/client";
 import { Project, ManifestOptions } from "@/lib/types";
 import { CeoReport } from "@/lib/agents/ceo";
@@ -111,6 +112,12 @@ export default function DashboardPage() {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
+  const { startManifestation } = useManifestation({
+    onSuccess: () => {
+      fetchDashboardData();
+    }
+  });
+
   const handleManifest = async (
     prompt: string,
     options: ManifestOptions,
@@ -122,75 +129,7 @@ export default function DashboardPage() {
       if (onLog) onLog(level, text);
     };
 
-    log("info", "Initiating manifestation pipeline...");
-
-    const res = await fetch("/api/manifest/start", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt, orgId: org.id, options }),
-    });
-
-    if (!res.ok) {
-      const raw = await res.text();
-      let message = raw;
-      try {
-        const parsed = JSON.parse(raw);
-        message = parsed?.error || raw;
-      } catch {
-        // Non-JSON body (e.g. Vercel gateway timeout returns plain text)
-        message =
-          res.status === 504 || /timeout/i.test(raw)
-            ? `Manifestation timed out (${res.status}). The pipeline is still running on the server; refresh in a minute.`
-            : `${res.status} ${res.statusText}: ${raw.slice(0, 200)}`;
-      }
-      throw new Error(message);
-    }
-
-    const { jobId } = await res.json();
-    log("info", `Job started: ${jobId.slice(0, 8)}. Awaiting synchronization...`);
-
-    // Polling loop for status and logs
-    let completed = false;
-    let lastLogCount = 0;
-    let attempts = 0;
-    const MAX_ATTEMPTS = 300; // 5-10 minutes max polling
-
-    while (!completed && attempts < MAX_ATTEMPTS) {
-      attempts++;
-      await new Promise((r) => setTimeout(r, 2000));
-
-      try {
-        const statusRes = await fetch(`/api/manifest/status?id=${jobId}`);
-        if (!statusRes.ok) continue;
-
-        const data = await statusRes.json();
-
-        // Stream new logs to terminal
-        if (data.logs && data.logs.length > lastLogCount) {
-          for (let i = lastLogCount; i < data.logs.length; i++) {
-            const l = data.logs[i];
-            log(l.level === "error" ? "error" : "info", l.text || l.message);
-          }
-          lastLogCount = data.logs.length;
-        }
-
-        if (data.status === "complete") {
-          completed = true;
-          log("info", "Manifestation complete. Empire initialized.");
-          await fetchDashboardData(); // Refresh list
-        } else if (data.status === "error") {
-          completed = true;
-          throw new Error(data.error || "Manifestation failed at neural level.");
-        }
-      } catch (err) {
-        if (err instanceof Error && err.message.includes("Manifestation failed")) throw err;
-        console.warn("Polling error:", err);
-      }
-    }
-
-    if (!completed) {
-      throw new Error("Manifestation is taking longer than expected. Please check back in a few minutes.");
-    }
+    await startManifestation(prompt, org.id, options, log);
   };
 
   const handleDeleteProject = async (id: string) => {

@@ -15,7 +15,7 @@ async function fetchGithubTrends(query: string): Promise<string> {
   try {
     const res = await axios.get(`https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&sort=stars&order=desc&per_page=5`);
     return (res.data as { items: Array<{ full_name: string; description: string; stargazers_count: number }> }).items.map((repo) => `- ${repo.full_name}: ${repo.description} (${repo.stargazers_count} stars)`).join("\n");
-  } catch (err) {
+  } catch {
     return "No GitHub trends found.";
   }
 }
@@ -29,7 +29,7 @@ async function fetchArxivPapers(query: string): Promise<string> {
     // ArXiv returns XML, but for a lightweight scout, we just want to know if we hit it.
     // In a real empire, we'd parse this. For now, we note the research attempt.
     return res.status === 200 ? "Recent arXiv research successfully indexed." : "No papers found.";
-  } catch (err) {
+  } catch {
     return "Research archive inaccessible.";
   }
 }
@@ -54,15 +54,17 @@ export async function runScoutAgent(prompt: string, protocol: string): Promise<S
     Your strategy must analyze:
     1. Technical feasibility and recommended stack (Modern 2026 stack).
     2. Market differentiation: How this manifestation will outperform existing solutions.
-    3. Monetization potential: Identify high-yield revenue models.
+    3. Monetization potential: Identify high-yield revenue models, including subscription tiers and credit-based features.
     4. Virality hooks: How it will achieve exponential growth in the Sovereign Forge ecosystem.
+    5. Risk assessment: Identify potential technical or market roadblocks and suggest mitigations.
+    6. Future roadmap: Outline how this manifestation can evolve into a full-scale digital empire.
     
     Based on this data and the project intent, provide a detailed strategy.
     Return JSON ONLY:
     {
-      "strategyMarkdown": "Detailed markdown strategy...",
-      "recommendedStack": ["...", "..."],
-      "competitorInsights": "Analysis of existing competitors and our tactical advantage."
+      "strategyMarkdown": "Detailed markdown strategy with sections for Tech Stack, Market Analysis, Monetization, and Roadmap.",
+      "recommendedStack": ["list", "of", "technologies"],
+      "competitorInsights": "In-depth analysis of existing competitors and our tactical advantage, including specific features to build."
     }
   `;
 
