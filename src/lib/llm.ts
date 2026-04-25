@@ -1,6 +1,6 @@
 import { FileMap, AppSpec, AgentConfig, defaultAgentConfig, ChatMessage } from "./types";
 import { MemoryContext } from "./memory-store";
-import { aiComplete } from "./ai";
+import { aiComplete, aiEmbed, aiStream } from "./ai";
 import { llmCache } from "./llm-cache";
 import { logger } from "./logger";
 
@@ -105,16 +105,20 @@ export async function* streamLLM(
   messages: ChatMessage[],
   config: Partial<AgentConfig> = {}
 ): AsyncIterable<string> {
-  // Non-streaming fallback for now as aiComplete doesn't support streaming yet
-  const content = await callLLM(messages, config);
-  yield content;
+  const fullConfig = { ...defaultAgentConfig, ...config };
+  yield* aiStream({
+    messages,
+    model: fullConfig.model,
+    temperature: fullConfig.temperature,
+    maxTokens: fullConfig.maxTokens,
+  });
 }
 
 /**
- * Generates a zero-vector fallback for embeddings to maintain "OpenCode Zen exclusively"
+ * Generates embeddings using OpenCode Zen AI
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
-  return new Array(1536).fill(0);
+  return aiEmbed(text);
 }
 
 export async function planSpec(prompt: string, context: MemoryContext[] = []): Promise<AppSpec> {

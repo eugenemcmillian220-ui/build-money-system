@@ -10,19 +10,25 @@ export interface IntentClassification {
     auth: "supabase" | "clerk" | "better-auth";
     payments: "stripe" | "lemon-squeezy" | "coinbase";
   };
+  complexity?: "low" | "medium" | "high";
+  targetAudience?: "developers" | "business" | "consumers";
+  estimatedValue?: string;
 }
 
 export async function classifyIntent(prompt: string): Promise<IntentClassification> {
-  const systemPrompt = `You are the Intent Dispatcher. Classify the user prompt into a build mode and tech stack.
+  const systemPrompt = `You are the Intent Dispatcher for Sovereign Forge OS. Your role is to analyze user intent with extreme precision and select the optimal manifestation mode and infrastructure.
 Return JSON ONLY:
 {
   "mode": "elite" | "universal" | "nano",
-  "protocol": "saas" | "tma" | "farcaster" | "marketplace",
+  "protocol": "saas" | "tma" | "farcaster" | "marketplace" | "dashboard" | "landing-page",
   "infrastructure": {
     "database": "supabase" | "neon" | "turso",
     "auth": "supabase" | "clerk" | "better-auth",
     "payments": "stripe" | "lemon-squeezy" | "coinbase"
-  }
+  },
+  "complexity": "low" | "medium" | "high",
+  "targetAudience": "developers" | "business" | "consumers",
+  "estimatedValue": "string describing potential revenue impact"
 }`;
 
   try {

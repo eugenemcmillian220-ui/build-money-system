@@ -99,27 +99,45 @@ function fromDatabaseProject(dbProject: DatabaseProject): Project {
 }
 
 /**
- * Save a project to the database
+ * Save a project to the database with retry logic
  */
-export async function saveProjectDB(project: Project): Promise<Project> {
+export async function saveProjectDB(project: Project, maxRetries = 3): Promise<Project> {
   if (!supabaseAdmin) {
     throw new DatabaseError("Database not configured. Set SUPABASE_SERVICE_ROLE_KEY.");
   }
 
   const dbProject = toDatabaseProject(project);
 
-  const { data, error } = await supabaseAdmin
-    .from("projects")
-    .upsert(dbProject, { onConflict: "id" })
-    .select()
-    .single();
+  let lastError: Error | unknown;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const { data, error } = await supabaseAdmin
+        .from("projects")
+        .upsert(dbProject, { onConflict: "id" })
+        .select()
+        .single();
 
-  if (error) {
-    console.error("Failed to save project:", error);
-    throw new DatabaseError(`Failed to save project: ${error.message}`, error.code);
+      if (error) {
+        throw error;
+      }
+
+      return fromDatabaseProject(data);
+    } catch (error) {
+      lastError = error;
+      console.warn(`Failed to save project (attempt ${attempt + 1}/${maxRetries}):`, error);
+      if (attempt < maxRetries - 1) {
+        await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt))); // Exponential backoff
+      }
+    }
   }
 
-  return fromDatabaseProject(data);
+  console.error("All attempts to save project failed:", lastError);
+  const errorMessage = lastError instanceof Error ? lastError.message : String(lastError);
+  const errorCode = (lastError as { code?: string })?.code;
+  throw new DatabaseError(
+    `Failed to save project after ${maxRetries} attempts: ${errorMessage}`,
+    errorCode
+  );
 }
 
 /**

@@ -18,18 +18,32 @@ export type LaunchAssets = {
 } & Record<string, unknown>;
 
 export async function runHerald(project: Project): Promise<LaunchAssets> {
-  const systemPrompt = `You are The Herald. Generate high-impact marketing assets for: ${project.name}.
-Project Description: ${project.description}
-Return JSON ONLY:
-{
-  "socialThread": { "hook": "...", "posts": ["...", "..."] },
-  "productHunt": { "tagline": "...", "description": "...", "makerComment": "..." },
-  "seoArticle": { "title": "...", "content": "...", "keywords": ["...", "..."] },
-  "hypeEngine": {
-    "launchSites": [{ "name": "...", "url": "...", "strategy": "..." }],
-    "viralHooks": ["...", "..."]
-  }
-}`;
+  const systemPrompt = `You are "The Herald", the Growth & Marketing Lead for Sovereign Forge OS (2026).
+    Your goal is to generate a multi-channel viral launch campaign for: ${project.name}.
+    
+    Project Description: ${project.description}
+    
+    You must produce:
+    1. X/Twitter Thread: A high-engagement thread with a killer hook and value-driven posts.
+    2. Product Hunt Assets: Optimized tagline, description, and an authentic maker comment.
+    3. SEO-Optimized Article: A long-form blog post targeting relevant keywords to drive organic traffic.
+    4. Hype Engine Strategy: A list of niche launch sites and viral hooks tailored to the project's target audience.
+    5. Social Media Posts: Short-form content for LinkedIn, Instagram, and TikTok.
+    
+    Return JSON ONLY:
+    {
+      "socialThread": { "hook": "Viral hook for X", "posts": ["Post 1", "Post 2", "Post 3"] },
+      "productHunt": { "tagline": "Catchy tagline", "description": "Compelling description", "makerComment": "Authentic story about the project" },
+      "seoArticle": { "title": "Keyword-rich title", "content": "Full markdown content of the article", "keywords": ["keyword1", "keyword2"] },
+      "hypeEngine": {
+        "launchSites": [{ "name": "Site Name", "url": "URL", "strategy": "Specific submission strategy" }],
+        "viralHooks": ["Hook 1", "Hook 2"]
+      },
+      "socialPosts": [
+        { "platform": "LinkedIn", "hook": "Professional post content" },
+        { "platform": "TikTok", "hook": "Script for a short video" }
+      ]
+    }`;
 
   try {
     const parsed = await callLLMJson(

@@ -2,6 +2,13 @@ import { z } from "zod";
 
 export type FileMap = Record<string, string>;
 
+export interface ManifestLog {
+  ts: string;
+  level: "info" | "warn" | "error";
+  text: string;
+  message?: string; // Support for older logs that used 'message' instead of 'text'
+}
+
 export type AgentPhase = 'planning' | 'vision' | 'building' | 'testing' | 'fixing' | 'complete';
 
 export type DeploymentStatus = 'pending' | 'building' | 'ready' | 'error' | 'cancelled';
@@ -326,6 +333,9 @@ export const intentClassificationSchema = z.object({
     auth: z.enum(["supabase", "clerk", "better-auth"]),
     payments: z.enum(["stripe", "lemon-squeezy", "coinbase"]),
   }),
+  complexity: z.enum(["low", "medium", "high"]).optional(),
+  targetAudience: z.enum(["developers", "business", "consumers"]).optional(),
+  estimatedValue: z.string().optional(),
 });
 
 export const scoutResultSchema = z.object({
@@ -338,6 +348,7 @@ export const chroniclerResultSchema = z.object({
   readme: z.string(),
   architecture: z.string(),
   apiDocs: z.string(),
+  userGuide: z.string().optional(),
 }).passthrough();
 
 export const heraldResultSchema = z.object({
@@ -385,6 +396,10 @@ export const securityResultSchema = z.object({
     fix: z.string().optional(),
   })),
   recommendations: z.array(z.string()),
+  complianceCheck: z.object({
+    gdpr: z.string(),
+    soc2: z.string(),
+  }).optional(),
 }).passthrough();
 
 export const sentinelResultSchema = z.object({
@@ -398,7 +413,9 @@ export const economyResultSchema = z.object({
   stakingAvailable: z.boolean(),
   suggestedStake: z.number(),
   estimatedMonthlyRevenue: z.number(),
-});
+  tokenomicsModel: z.string().optional(),
+  exitStrategy: z.string().optional(),
+}).passthrough();
 
 export const brokerResultSchema = z.object({
   mergerPotential: z.array(z.object({

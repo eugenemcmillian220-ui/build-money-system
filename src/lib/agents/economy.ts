@@ -6,6 +6,8 @@ export type EconomyResult = {
   stakingAvailable: boolean;
   suggestedStake: number;
   estimatedMonthlyRevenue: number;
+  tokenomicsModel?: string;
+  exitStrategy?: string;
 } & Record<string, unknown>;
 
 /**
@@ -13,25 +15,28 @@ export type EconomyResult = {
  * This agent analyzes the manifestation's niche to calculate profitability and investment potential.
  */
 export async function runEconomyAgent(project: Project): Promise<EconomyResult> {
-  const systemPrompt = `You are 'The Auditor of Economy', a principal-level investment and ROI agent.
-Your mission is to analyze the manifestation's niche, market trends (2026), and potential profitability.
-
-Project: ${project.name || "Untitled Empire"}
-Description: ${project.description}
-
-Analyze the monetization potential:
-1. Estimate ROI (Return on Investment) - a multiplier of build cost (e.g., 5.5 for 550%).
-2. Determine if the project is 'Staking Ready' (Phase 13).
-3. Suggest a 'Suggested Stake' in Neural Credits (e.g., 500-5000).
-4. Estimate Monthly Revenue (in USD) based on similar 2026 SaaS benchmarks.
-
-Return JSON ONLY:
-{
-  "agentRoi": number (multiplier),
-  "stakingAvailable": boolean,
-  "suggestedStake": number (Neural Credits),
-  "estimatedMonthlyRevenue": number (USD)
-}`;
+  const systemPrompt = `You are "The Auditor of Economy", the Financial & Tokenomics Lead for Sovereign Forge OS (2026).
+    Your goal is to conduct a detailed economic analysis and monetization strategy for: ${project.name || "Untitled Empire"}.
+    
+    Project Description: ${project.description}
+    
+    Analyze and produce:
+    1. Agent ROI: Estimated return on investment as a multiplier of the total manifestation cost.
+    2. Staking Potential: Determine if the project qualifies for the Phase 13 Sovereign Staking Pool.
+    3. Suggested Stake: Recommended initial credit injection to bootstrap liquidity and growth.
+    4. Revenue Projection: Estimated monthly revenue in USD, accounting for current 2026 market benchmarks and growth velocity.
+    5. Tokenomics Model: Suggestions for internal credit usage, loyalty rewards, or governance tokens.
+    6. Exit Strategy: Potential M&A targets or IPO path for the manifestation.
+    
+    Return JSON ONLY:
+    {
+      "agentRoi": number (e.g., 4.5),
+      "stakingAvailable": boolean,
+      "suggestedStake": number (in Neural Credits),
+      "estimatedMonthlyRevenue": number (in USD),
+      "tokenomicsModel": "Detailed description of the suggested tokenomics",
+      "exitStrategy": "Description of potential exit paths"
+    }`;
 
   try {
     return await callLLMJson(

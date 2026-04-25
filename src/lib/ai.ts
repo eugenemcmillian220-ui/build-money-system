@@ -117,3 +117,101 @@ export async function aiComplete(options: AIOptions): Promise<AIResult> {
 
   throw lastError || new Error("All OpenCode Zen models failed");
 }
+
+export async function* aiStream(options: AIOptions): AsyncIterable<string> {
+  const apiUrl = process.env.OPENCODE_ZEN_API_URL || "https://api.opencodezen.com/v1/chat/completions";
+  const model = options.model || FREE_MODELS[0];
+  const apiKey = keyManager.getKey("opencodezen");
+
+  if (!apiKey) {
+    throw new Error("No OpenCode Zen API keys available");
+  }
+
+  const response = await fetch(apiUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages: options.messages.map(m => ({
+        role: m.role,
+        content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
+      })),
+      temperature: options.temperature ?? 0.7,
+      max_tokens: options.maxTokens ?? 4096,
+      stream: true,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`OpenCode Zen API error (${response.status}): ${errorText}`);
+  }
+
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error("No response body");
+
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
+
+    for (const line of lines) {
+      if (line.startsWith("data: ")) {
+        const data = line.slice(6);
+        if (data === "[DONE]") return;
+        try {
+          const json = JSON.parse(data);
+          const content = json.choices?.[0]?.delta?.content;
+          if (content) yield content;
+        } catch {
+          // Ignore parse errors for incomplete chunks
+        }
+      }
+    }
+  }
+}
+
+export async function aiEmbed(text: string): Promise<number[]> {
+  const apiUrl = process.env.OPENCODE_ZEN_EMBED_URL || "https://api.opencodezen.com/v1/embeddings";
+  const apiKey = keyManager.getKey("opencodezen");
+  
+  if (!apiKey) {
+    throw new Error("No OpenCode Zen API keys available for embeddings");
+  }
+
+  try {
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        input: text,
+        model: "text-embedding-3-zen",
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`OpenCode Zen Embedding error (${response.status}): ${errorText}`);
+    }
+
+    const data = await response.json();
+    return data.data[0].embedding;
+  } catch (error) {
+    logger.error("Embedding generation failed", { error });
+    // Fallback to zero vector to maintain availability
+    return new Array(1536).fill(0);
+  }
+}
+
