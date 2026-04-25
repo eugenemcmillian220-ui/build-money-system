@@ -17,7 +17,7 @@ const SECURITY_HEADERS: Record<string, string> = {
     "style-src 'self' 'unsafe-inline'; " +
     "img-src 'self' data: blob: https:; " +
     "font-src 'self' data:; " +
-    "connect-src 'self' https://*.supabase.co https://*.sentry.io https://api.stripe.com https://api.opencodezen.com https://api.openai.com; " +
+    "connect-src 'self' https://*.supabase.co https://*.sentry.io https://api.stripe.com https://api.opencodezen.com; " +
     "frame-src 'self' https://js.stripe.com; " +
     "object-src 'none'; " +
     "base-uri 'self';",

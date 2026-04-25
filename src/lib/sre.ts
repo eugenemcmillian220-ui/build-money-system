@@ -17,7 +17,7 @@ export async function diagnoseAndHeal(projectId: string, errorLog: string): Prom
   const project = await loadProjectDB(projectId);
   if (!project) return null;
 
-  // 1. Diagnose the error using GPT-4o
+  // 1. Diagnose the error using OpenCode Zen
   const diagnosis = await diagnoseError(errorLog, project.files);
   console.log(`[SRE] Diagnosis for ${projectId}:`, diagnosis);
 

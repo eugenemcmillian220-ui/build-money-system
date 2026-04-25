@@ -30,23 +30,6 @@ export async function GET(): Promise<Response> {
         configured: keyManager.isConfigured("opencodezen"),
         keyCount: countKeys(process.env.OPENCODE_ZEN_API_KEY, process.env.OPENCODE_ZEN_API_KEYS),
       },
-      openai: {
-        configured: keyManager.isConfigured("openai"),
-        keyCount: countKeys(process.env.OPENAI_API_KEY, process.env.OPENAI_API_KEYS),
-      },
-      deepseek: {
-        configured: keyManager.isConfigured("deepseek"),
-        keyCount: countKeys(process.env.DEEPSEEK_API_KEY, process.env.DEEPSEEK_API_KEYS),
-      },
-      cerebras: {
-        configured: keyManager.isConfigured("cerebras"),
-        keyCount: countKeys(process.env.CEREBRAS_API_KEY, process.env.CEREBRAS_API_KEYS),
-      },
-      cloudflare: {
-        configured: keyManager.isConfigured("cloudflare"),
-        keyCount: countKeys(process.env.CLOUDFLARE_API_KEY, process.env.CLOUDFLARE_API_KEYS),
-        accountId: { configured: !!process.env.CLOUDFLARE_ACCOUNT_ID },
-      },
     },
     deployment: {
       vercel: { configured: !!process.env.VERCEL_TOKEN },
@@ -73,8 +56,8 @@ export async function GET(): Promise<Response> {
     ...envStatus,
     ready: anyAiConfigured,
     message: anyAiConfigured
-      ? "At least one AI provider is configured."
-      : "No AI provider configured. Add at least one of: OPENCODE_ZEN_API_KEY, OPENAI_API_KEY, or DEEPSEEK_API_KEY.",
+      ? "OpenCode Zen is configured."
+      : "OpenCode Zen not configured. Add OPENCODE_ZEN_API_KEY to continue.",
     note: "Only configuration status is exposed. Actual key values are never returned.",
   });
 }

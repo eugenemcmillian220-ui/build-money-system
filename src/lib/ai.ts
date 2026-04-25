@@ -1,14 +1,17 @@
 import { ChatMessage } from "./types";
 import { logger } from "./logger";
+import { keyManager } from "./key-manager";
 
 export const FREE_MODELS = [
-  "opencode-zen-free",
-  "opencode-zen-nano"
+  "gpt-5-nano",
+  "gpt-5-mini",
+  "gpt-4o-zen"
 ];
 
 export const PAID_MODELS = [
-  "opencode-zen-pro",
-  "opencode-zen-ultra"
+  "gpt-5-ultra",
+  "gpt-5-pro",
+  "gpt-o1-zen"
 ];
 
 export interface AIOptions {
@@ -30,27 +33,29 @@ export interface AIResult {
 }
 
 const MODEL_COSTS: Record<string, number> = {
-  "opencode-zen-free": 0,
-  "opencode-zen-nano": 0,
-  "opencode-zen-pro": 0.00001, // 0.01 credits per 1k tokens
-  "opencode-zen-ultra": 0.00005, // 0.05 credits per 1k tokens
+  "gpt-5-nano": 0,
+  "gpt-5-mini": 0,
+  "gpt-4o-zen": 0,
+  "gpt-5-ultra": 0.00005, // 0.05 credits per 1k tokens
+  "gpt-5-pro": 0.00003, // 0.03 credits per 1k tokens
+  "gpt-o1-zen": 0.00008, // 0.08 credits per 1k tokens
 };
 
 export async function aiComplete(options: AIOptions): Promise<AIResult> {
-  const apiKey = process.env.OPENCODE_ZEN_API_KEY;
   const apiUrl = process.env.OPENCODE_ZEN_API_URL || "https://api.opencodezen.com/v1/chat/completions";
 
-  if (!apiKey) {
-    throw new Error("OPENCODE_ZEN_API_KEY is not set");
-  }
-
   const modelsToTry = options.model 
-    ? [options.model, ...FREE_MODELS.filter(m => m !== options.model)]
-    : [...PAID_MODELS, ...FREE_MODELS];
+    ? [options.model, ...FREE_MODELS, ...PAID_MODELS].filter((m, i, self) => self.indexOf(m) === i)
+    : [...FREE_MODELS, ...PAID_MODELS];
 
   let lastError: Error | null = null;
 
   for (const model of modelsToTry) {
+    const apiKey = keyManager.getKey("opencodezen");
+    if (!apiKey) {
+      throw new Error("No OpenCode Zen API keys available");
+    }
+
     try {
       const response = await fetch(apiUrl, {
         method: "POST",
@@ -71,9 +76,13 @@ export async function aiComplete(options: AIOptions): Promise<AIResult> {
 
       if (!response.ok) {
         const errorText = await response.text();
+        if (response.status === 429) {
+          keyManager.reportError("opencodezen", apiKey);
+        }
         throw new Error(`OpenCode Zen API error (${response.status}): ${errorText}`);
       }
 
+      keyManager.reportSuccess("opencodezen", apiKey);
       const data = await response.json();
       const content = data.choices?.[0]?.message?.content;
       

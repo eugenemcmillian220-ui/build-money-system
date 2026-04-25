@@ -1,7 +1,6 @@
 import { FileMap, AppSpec, AgentConfig, defaultAgentConfig, ChatMessage } from "./types";
 import { MemoryContext } from "./memory-store";
-import { llmRouter, LLMProvider } from "./llm-router";
-import { keyManager } from "./key-manager";
+import { aiComplete } from "./ai";
 import { llmCache } from "./llm-cache";
 import { logger } from "./logger";
 
@@ -60,9 +59,8 @@ export async function callLLM(
   options: { cache?: boolean; cacheTTL?: number } = {}
 ): Promise<string> {
   const fullConfig = { ...defaultAgentConfig, ...config };
-  const useCache = options.cache !== false; // Cache by default
+  const useCache = options.cache !== false;
 
-  // Check cache first (skip for streaming or explicitly disabled)
   if (useCache) {
     const cachedModel = fullConfig.model || "default";
     const simpleMessages = messages.map(m => ({
@@ -76,120 +74,30 @@ export async function callLLM(
     }
   }
 
-  let result: string | null = null;
-
-  if (!result) {
-    try {
-      const failoverResult = await llmRouter.executeWithFailover(messages, fullConfig, { skipCache: !useCache });
-      result = failoverResult.content;
-      logger.info("callLLM succeeded via executeWithFailover", {
-        provider: failoverResult.provider,
-        model: failoverResult.model,
-        cached: failoverResult.cached,
-      });
-    } catch (e) {
-      const detail = e instanceof Error ? e.message : String(e);
-      const configured = ["opencodezen", "openai", "cerebras", "deepseek", "cloudflare"]
-        .filter(p => keyManager.isConfigured(p as LLMProvider));
-      logger.error("All LLM providers exhausted via executeWithFailover", {
-        error: detail,
-        configuredProviders: configured,
-      });
-      throw new LLMError(
-        `All AI providers are currently unavailable (configured: ${configured.join(", ") || "none"}). Last error: ${detail}`,
-        503
-      );
-    }
-  }
-
-  // Store in cache
-  if (useCache && result) {
-    const cachedModel = fullConfig.model || "default";
-    const simpleMessages = messages.map(m => ({
-      role: m.role,
-      content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
-    }));
-    llmCache.set(cachedModel, simpleMessages, result);
-  }
-
-  return result;
-}
-
-async function callProvider(
-  provider: LLMProvider,
-  model: string,
-  messages: ChatMessage[],
-  config: AgentConfig
-): Promise<string> {
-  const { url, headers, body, apiKey } = llmRouter.getFetchParams({ provider, model, messages, config });
-
-  let response: Response;
   try {
-    response = await fetch(url, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(body),
+    const result = await aiComplete({
+      messages,
+      model: fullConfig.model,
+      temperature: fullConfig.temperature,
+      maxTokens: fullConfig.maxTokens,
     });
-  } catch (cause) {
-    keyManager.reportError(provider, apiKey);
-    throw new LLMError(`Failed to reach ${provider} API`, undefined, cause);
-  }
 
-  if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    keyManager.reportError(provider, apiKey);
-    throw new LLMError(`LLM API (${provider}) returned ${response.status}: ${text}`, response.status);
-  }
-
-  keyManager.reportSuccess(provider, apiKey);
-
-  const json = await response.json();
-
-  const content = json.choices?.[0]?.message?.content ?? "";
-
-  if (!content) {
-    throw new LLMError(`LLM API (${provider}) returned an empty response`);
-  }
-
-  return content;
-}
-
-/**
- * Generates a vector embedding for text using Cloudflare Workers AI (Free tier)
- * Returns a 1536-dimensional vector (padded/truncated from 384/768 as needed for schema)
- */
-export async function generateEmbedding(text: string): Promise<number[]> {
-  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
-  const apiKey = process.env.CLOUDFLARE_API_KEY;
-
-  if (!accountId || !apiKey) {
-    console.warn("[LLM] Cloudflare credentials missing, returning zero-vector.");
-    return new Array(1536).fill(0);
-  }
-
-  try {
-    const response = await fetch(
-      `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/@cf/baai/bge-small-en-v1.5`,
-      {
-        method: "POST",
-        headers: { Authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify({ text: [text] }),
-      }
-    );
-
-    if (!response.ok) throw new Error(`Cloudflare AI failed: ${response.statusText}`);
-
-    const json = await response.json();
-    const vector = json.result.data[0];
-
-    // Pad to 1536 if needed (bge-small is 384)
-    if (vector.length < 1536) {
-      return [...vector, ...new Array(1536 - vector.length).fill(0)];
+    if (useCache) {
+      const simpleMessages = messages.map(m => ({
+        role: m.role,
+        content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
+      }));
+      llmCache.set(result.model, simpleMessages, result.content);
     }
-    return vector.slice(0, 1536);
-  } catch (err) {
-    logger.error("Embedding generation failed", { error: err });
-    return new Array(1536).fill(0);
+
+    return result.content;
+  } catch (e) {
+    const detail = e instanceof Error ? e.message : String(e);
+    logger.error("OpenCode Zen AI call failed", { error: detail });
+    throw new LLMError(
+      `OpenCode Zen AI is currently unavailable. Error: ${detail}`,
+      503
+    );
   }
 }
 
@@ -197,12 +105,16 @@ export async function* streamLLM(
   messages: ChatMessage[],
   config: Partial<AgentConfig> = {}
 ): AsyncIterable<string> {
-  const fullConfig = { ...defaultAgentConfig, ...config };
+  // Non-streaming fallback for now as aiComplete doesn't support streaming yet
+  const content = await callLLM(messages, config);
+  yield content;
+}
 
-  // Fallback: use the multi-provider failover chain (non-streaming for now, but works across all providers)
-  logger.info("streamLLM: Using executeWithFailover as non-streaming fallback");
-  const result = await llmRouter.executeWithFailover(messages, fullConfig);
-  yield result.content;
+/**
+ * Generates a zero-vector fallback for embeddings to maintain "OpenCode Zen exclusively"
+ */
+export async function generateEmbedding(text: string): Promise<number[]> {
+  return new Array(1536).fill(0);
 }
 
 export async function planSpec(prompt: string, context: MemoryContext[] = []): Promise<AppSpec> {

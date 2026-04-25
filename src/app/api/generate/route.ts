@@ -1,5 +1,5 @@
 export const dynamic = "force-dynamic";
-import { generateText, generateTextStream, OpenRouterError } from "@/lib/openrouter";
+import { callLLM, streamLLM } from "@/lib/llm";
 import { runDeveloperAgent } from "@/lib/agents/developer";
 import { keyManager } from "@/lib/key-manager";
 import { supabaseAdmin } from "@/lib/supabase/admin";
@@ -22,12 +22,7 @@ const SYSTEM_PROMPT =
   "You are an expert React and Next.js developer. Generate clean, production-ready Next.js components using Tailwind CSS. Return only the component code without markdown fences or explanations unless asked. Use TypeScript and modern React 19 patterns.";
 
 function isAnyLLMAvailable(): boolean {
-  return (
-    keyManager.isConfigured("opencodezen") ||
-    keyManager.isConfigured("openai") ||
-    keyManager.isConfigured("deepseek") ||
-    keyManager.isConfigured("cerebras")
-  );
+  return keyManager.isConfigured("opencodezen");
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -111,13 +106,9 @@ export async function POST(request: Request): Promise<Response> {
           async start(controller) {
             try {
               const fullPrompt = `${SYSTEM_PROMPT}\n\nUser request: ${prompt}\n\nGenerate a complete Next.js component with Tailwind CSS:`;
-              const readable = await generateTextStream(fullPrompt);
-              const reader = readable.getReader();
-              while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                const delta = new TextDecoder().decode(value);
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "chunk", delta })}\n\n`));
+              const readable = streamLLM([{ role: "user", content: fullPrompt }]);
+              for await (const chunk of readable) {
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "chunk", delta: chunk })}\n\n`));
               }
               controller.close();
             } catch (error) {
@@ -129,14 +120,14 @@ export async function POST(request: Request): Promise<Response> {
         return new Response(streamResult, { headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache" } });
       }
 
-      const code = await generateText(`${SYSTEM_PROMPT}\n\nUser request: ${prompt}\n\nGenerate a complete Next.js component with Tailwind CSS:`);
+      const code = await callLLM([{ role: "user", content: `${SYSTEM_PROMPT}\n\nUser request: ${prompt}\n\nGenerate a complete Next.js component with Tailwind CSS:` }]);
       if (orgId) {
         await supabaseAdmin.rpc("decrement_org_balance", { p_org_id: orgId, p_amount: creditCost });
         agentEconomy.chargeResourceCost(orgId, "Developer", creditCost * 1000, "single-component-generation").catch(() => {});
       }
       return Response.json({ code });
     } catch (error) {
-      const status = (error as OpenRouterError).status === 429 ? 429 : 502;
+      const status = (error as { status?: number })?.status === 429 ? 429 : 502;
       return Response.json({ error: (error as Error).message }, { status });
     }
   }

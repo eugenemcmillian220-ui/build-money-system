@@ -28,38 +28,12 @@ export interface Transaction {
  */
 const MODEL_COST_TABLE: Record<string, number> = {
   // === OpenCode Zen ===
-  "opencode-zen-free": 0,
-  "opencode-zen-nano": 0,
-  "opencode-zen-pro": 0.00001,
-  "opencode-zen-ultra": 0.00005,
-
-  // === Micro tier ===
-  "llama-3.1-8b-instant": 0.000005,
-  "llama3.1-8b": 0.000005,
-  "@cf/meta/llama-3.2-1b-instruct": 0,
-  "@cf/meta/llama-3.2-3b-instruct": 0,
-
-  // === Small tier ===
-  "gemini-2.0-flash": 0.00001,
-  "gemini-2.0-flash-lite": 0.000005,
-  "gemini-1.5-flash": 0.00001,
-  "gpt-3.5-turbo": 0.00001,
-  "qwen-2.5-coder-32b": 0.00001,
-  "deepseek-chat": 0.00001,
-
-  // === Medium tier ===
-  "meta-llama/llama-4-scout-17b-16e-instruct": 0.00005,
-  "llama-3.3-70b-versatile": 0.00005,
-  "llama3.1-70b": 0.00005,
-  "gpt-4o-mini": 0.00005,
-
-  // === Large tier ===
-  "deepseek-reasoner": 0.0001,
-
-  // === XL tier (if user brings own key for premium models) ===
-  "gpt-4o": 0.0003,
-  "gpt-4-turbo": 0.0003,
-  "claude-3-opus": 0.0005,
+  "gpt-5-nano": 0,
+  "gpt-5-mini": 0,
+  "gpt-4o-zen": 0,
+  "gpt-5-ultra": 0.00005, // 0.05 credits per 1k tokens
+  "gpt-5-pro": 0.00003, // 0.03 credits per 1k tokens
+  "gpt-o1-zen": 0.00008, // 0.08 credits per 1k tokens
 };
 
 /** Default rate when a model isn't in the table */
