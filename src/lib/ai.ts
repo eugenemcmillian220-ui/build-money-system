@@ -1,24 +1,34 @@
 import { ChatMessage } from "./types";
 import { logger } from "./logger";
-import { keyManager, ProviderName } from "./key-manager";
+import { keyManager } from "./key-manager";
 
 /**
- * Free-tier models available via OpenRouter (no cost).
- * These are the primary models used for generation.
+ * OpenCode Zen — Free-tier models (primary, used first).
+ * Rate-limited on free plan; unlimited on Go/Pro plans.
  */
-export const FREE_MODELS = [
-  "google/gemini-2.0-flash-exp:free",
-  "meta-llama/llama-4-maverick:free",
-  "deepseek/deepseek-chat-v3-0324:free",
+export const ZEN_FREE_MODELS = [
+  "deepseek-v4-flash",
+  "glm-5",
+  "mimo-v2.5",
+  "qwen3.5-plus",
+  "kimi-k2.5",
+  "minimax-m2.5",
 ];
 
 /**
- * Paid models available via OpenRouter or direct provider APIs.
+ * OpenCode Zen — Paid-tier models (fallback).
+ * Available on Go ($5/$10/mo) and Pro plans.
+ * No rate limits on paid plans.
  */
-export const PAID_MODELS = [
-  "openai/gpt-4o",
-  "anthropic/claude-sonnet-4",
-  "google/gemini-2.5-pro-preview",
+export const ZEN_PAID_MODELS = [
+  "kimi-k2.6",
+  "glm-5.1",
+  "mimo-v2-pro",
+  "mimo-v2-omni",
+  "mimo-v2.5-pro",
+  "minimax-m2.7",
+  "qwen3.6-plus",
+  "deepseek-v4-pro",
 ];
 
 export interface AIOptions {
@@ -42,87 +52,45 @@ export interface AIResult {
 }
 
 const MODEL_COSTS: Record<string, number> = {
-  "google/gemini-2.0-flash-exp:free": 0,
-  "meta-llama/llama-4-maverick:free": 0,
-  "deepseek/deepseek-chat-v3-0324:free": 0,
-  "openai/gpt-4o": 0.00005,
-  "anthropic/claude-sonnet-4": 0.00006,
-  "google/gemini-2.5-pro-preview": 0.00003,
+  // Free-tier models (no cost)
+  "deepseek-v4-flash": 0,
+  "glm-5": 0,
+  "mimo-v2.5": 0,
+  "qwen3.5-plus": 0,
+  "kimi-k2.5": 0,
+  "minimax-m2.5": 0,
+  // Paid-tier models
+  "kimi-k2.6": 0.00003,
+  "glm-5.1": 0.00003,
+  "mimo-v2-pro": 0.00004,
+  "mimo-v2-omni": 0.00004,
+  "mimo-v2.5-pro": 0.00005,
+  "minimax-m2.7": 0.00004,
+  "qwen3.6-plus": 0.00004,
+  "deepseek-v4-pro": 0.00005,
 };
 
-interface ProviderEndpoint {
-  provider: ProviderName;
-  url: string;
+function getApiUrl(): string {
+  return process.env.OPENCODE_ZEN_API_URL || "https://api.opencodezen.com/v1/chat/completions";
 }
 
-function getProviderEndpoint(): ProviderEndpoint {
-  if (keyManager.isConfigured("openrouter")) {
-    return {
-      provider: "openrouter",
-      url: process.env.OPENROUTER_API_URL || "https://openrouter.ai/api/v1/chat/completions",
-    };
-  }
-  if (keyManager.isConfigured("groq")) {
-    return {
-      provider: "groq",
-      url: "https://api.groq.com/openai/v1/chat/completions",
-    };
-  }
-  if (keyManager.isConfigured("openai")) {
-    return {
-      provider: "openai",
-      url: "https://api.openai.com/v1/chat/completions",
-    };
-  }
-  if (keyManager.isConfigured("deepseek")) {
-    return {
-      provider: "deepseek",
-      url: "https://api.deepseek.com/v1/chat/completions",
-    };
-  }
-  if (keyManager.isConfigured("gemini")) {
-    return {
-      provider: "gemini",
-      url: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-    };
-  }
-  return {
-    provider: "openrouter",
-    url: "https://openrouter.ai/api/v1/chat/completions",
-  };
-}
-
-function getModelsForProvider(provider: ProviderName): string[] {
-  switch (provider) {
-    case "openrouter":
-      return [...FREE_MODELS, ...PAID_MODELS];
-    case "groq":
-      return ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "gemma2-9b-it"];
-    case "openai":
-      return ["gpt-4o", "gpt-4o-mini"];
-    case "deepseek":
-      return ["deepseek-chat", "deepseek-reasoner"];
-    case "gemini":
-      return ["gemini-2.0-flash", "gemini-2.5-pro-preview"];
-    default:
-      return FREE_MODELS;
-  }
+function getEmbedUrl(): string {
+  return process.env.OPENCODE_ZEN_EMBED_URL || "https://api.opencodezen.com/v1/embeddings";
 }
 
 export async function aiComplete(options: AIOptions): Promise<AIResult> {
-  const endpoint = getProviderEndpoint();
-  const providerModels = getModelsForProvider(endpoint.provider);
+  const allModels = [...ZEN_FREE_MODELS, ...ZEN_PAID_MODELS];
 
   const modelsToTry = options.model
-    ? [options.model, ...providerModels].filter((m, i, self) => self.indexOf(m) === i)
-    : providerModels;
+    ? [options.model, ...allModels].filter((m, i, self) => self.indexOf(m) === i)
+    : allModels;
 
   let lastError: Error | null = null;
 
   for (const model of modelsToTry) {
-    const apiKey = keyManager.getKey(endpoint.provider);
+    const apiKey = keyManager.getKey("opencodezen");
     if (!apiKey) {
-      throw new Error(`No ${endpoint.provider} API keys available`);
+      throw new Error("No OpenCode Zen API keys available — set OPENCODE_ZEN_API_KEY or OPENCODE_ZEN_API_KEYS");
     }
 
     try {
@@ -130,19 +98,12 @@ export async function aiComplete(options: AIOptions): Promise<AIResult> {
       const timeoutMs = options.timeout ?? 90000;
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
-      };
-
-      if (endpoint.provider === "openrouter") {
-        headers["HTTP-Referer"] = process.env.NEXT_PUBLIC_SITE_URL || "https://sovereign-forge.app";
-        headers["X-Title"] = "Sovereign Forge OS";
-      }
-
-      const response = await fetch(endpoint.url, {
+      const response = await fetch(getApiUrl(), {
         method: "POST",
-        headers,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`,
+        },
         body: JSON.stringify({
           model,
           messages: options.messages.map(m => ({
@@ -160,17 +121,17 @@ export async function aiComplete(options: AIOptions): Promise<AIResult> {
       if (!response.ok) {
         const errorText = await response.text();
         if (response.status === 429) {
-          keyManager.reportError(endpoint.provider, apiKey);
+          keyManager.reportError("opencodezen", apiKey);
         }
-        throw new Error(`${endpoint.provider} API error (${response.status}): ${errorText}`);
+        throw new Error(`OpenCode Zen API error (${response.status}): ${errorText}`);
       }
 
-      keyManager.reportSuccess(endpoint.provider, apiKey);
+      keyManager.reportSuccess("opencodezen", apiKey);
       const data = await response.json();
       const content = data.choices?.[0]?.message?.content;
 
       if (!content) {
-        throw new Error(`Empty response from ${endpoint.provider}`);
+        throw new Error(`Empty response from OpenCode Zen model ${model}`);
       }
 
       const usage = data.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
@@ -178,7 +139,7 @@ export async function aiComplete(options: AIOptions): Promise<AIResult> {
       const completionTokens = usage.completion_tokens || 0;
       const totalTokens = usage.total_tokens || promptTokens + completionTokens;
 
-      const costRate = MODEL_COSTS[model] || 0.00001;
+      const costRate = MODEL_COSTS[model] || 0.00003;
       const cost = totalTokens * costRate;
 
       return {
@@ -202,22 +163,21 @@ export async function aiComplete(options: AIOptions): Promise<AIResult> {
           timedOut: true,
         };
       }
-      logger.warn(`Failed to call ${endpoint.provider} with model ${model}:`, { error });
+      logger.warn(`Failed to call OpenCode Zen model ${model}:`, { error });
       lastError = error instanceof Error ? error : new Error(String(error));
       continue;
     }
   }
 
-  throw lastError || new Error("All AI models failed");
+  throw lastError || new Error("All OpenCode Zen models failed");
 }
 
 export async function* aiStream(options: AIOptions): AsyncIterable<string> {
-  const endpoint = getProviderEndpoint();
-  const model = options.model || FREE_MODELS[0];
-  const apiKey = keyManager.getKey(endpoint.provider);
+  const model = options.model || ZEN_FREE_MODELS[0];
+  const apiKey = keyManager.getKey("opencodezen");
 
   if (!apiKey) {
-    throw new Error(`No ${endpoint.provider} API keys available`);
+    throw new Error("No OpenCode Zen API keys available");
   }
 
   const controller = new AbortController();
@@ -225,19 +185,12 @@ export async function* aiStream(options: AIOptions): AsyncIterable<string> {
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${apiKey}`,
-    };
-
-    if (endpoint.provider === "openrouter") {
-      headers["HTTP-Referer"] = process.env.NEXT_PUBLIC_SITE_URL || "https://sovereign-forge.app";
-      headers["X-Title"] = "Sovereign Forge OS";
-    }
-
-    const response = await fetch(endpoint.url, {
+    const response = await fetch(getApiUrl(), {
       method: "POST",
-      headers,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
       body: JSON.stringify({
         model,
         messages: options.messages.map(m => ({
@@ -255,7 +208,7 @@ export async function* aiStream(options: AIOptions): AsyncIterable<string> {
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`${endpoint.provider} API error (${response.status}): ${errorText}`);
+      throw new Error(`OpenCode Zen API error (${response.status}): ${errorText}`);
     }
 
     const reader = response.body?.getReader();
@@ -298,49 +251,28 @@ export async function* aiStream(options: AIOptions): AsyncIterable<string> {
 }
 
 export async function aiEmbed(text: string): Promise<number[]> {
-  const endpoint = getProviderEndpoint();
-  let embedUrl: string;
-  let embedModel: string;
-
-  if (endpoint.provider === "openrouter") {
-    embedUrl = "https://openrouter.ai/api/v1/embeddings";
-    embedModel = "openai/text-embedding-3-small";
-  } else if (endpoint.provider === "openai") {
-    embedUrl = "https://api.openai.com/v1/embeddings";
-    embedModel = "text-embedding-3-small";
-  } else {
-    embedUrl = "https://openrouter.ai/api/v1/embeddings";
-    embedModel = "openai/text-embedding-3-small";
-  }
-
-  const apiKey = keyManager.getKey(endpoint.provider);
+  const apiKey = keyManager.getKey("opencodezen");
 
   if (!apiKey) {
-    throw new Error(`No ${endpoint.provider} API keys available for embeddings`);
+    throw new Error("No OpenCode Zen API keys available for embeddings");
   }
 
   try {
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${apiKey}`,
-    };
-
-    if (endpoint.provider === "openrouter") {
-      headers["HTTP-Referer"] = process.env.NEXT_PUBLIC_SITE_URL || "https://sovereign-forge.app";
-    }
-
-    const response = await fetch(embedUrl, {
+    const response = await fetch(getEmbedUrl(), {
       method: "POST",
-      headers,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
       body: JSON.stringify({
         input: text,
-        model: embedModel,
+        model: "text-embedding-zen",
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Embedding error (${response.status}): ${errorText}`);
+      throw new Error(`OpenCode Zen embedding error (${response.status}): ${errorText}`);
     }
 
     const data = await response.json();

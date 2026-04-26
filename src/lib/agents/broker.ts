@@ -33,7 +33,7 @@ Identify:
 1. Merger Potential: Find projects in the list that would be more profitable if merged with the current one.
    - Compatibility: 0-100.
    - Strategy: How to combine the codebases and markets.
-2. Negotiation Strategy: Define a strategy to negotiate volume discounts with API vendors (OpenRouter, Groq, Stripe, Supabase) for this project's scale.
+2. Negotiation Strategy: Define a strategy to negotiate volume discounts with API vendors (OpenCode Zen, Stripe, Supabase) for this project's scale.
 
 Return JSON ONLY:
 {

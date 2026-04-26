@@ -27,21 +27,22 @@ export interface Transaction {
  * Update this table when adding new models to llm-router.ts FREE_MODELS.
  */
 const MODEL_COST_TABLE: Record<string, number> = {
-  // === Free-Tier (OpenRouter) ===
-  "google/gemini-2.0-flash-exp:free": 0,
-  "meta-llama/llama-4-maverick:free": 0,
-  "deepseek/deepseek-chat-v3-0324:free": 0,
-  // === Paid Models ===
-  "openai/gpt-4o": 0.00005,
-  "anthropic/claude-sonnet-4": 0.00006,
-  "google/gemini-2.5-pro-preview": 0.00003,
-  // === Direct Provider Models ===
-  "llama-3.3-70b-versatile": 0,        // Groq free tier
-  "llama-3.1-8b-instant": 0,           // Groq free tier
-  "gpt-4o": 0.00005,
-  "gpt-4o-mini": 0.000005,
-  "deepseek-chat": 0.000005,
-  "gemini-2.0-flash": 0,
+  // === OpenCode Zen Free-Tier ===
+  "deepseek-v4-flash": 0,
+  "glm-5": 0,
+  "mimo-v2.5": 0,
+  "qwen3.5-plus": 0,
+  "kimi-k2.5": 0,
+  "minimax-m2.5": 0,
+  // === OpenCode Zen Paid-Tier (Go/Pro plans) ===
+  "kimi-k2.6": 0.00003,
+  "glm-5.1": 0.00003,
+  "mimo-v2-pro": 0.00004,
+  "mimo-v2-omni": 0.00004,
+  "mimo-v2.5-pro": 0.00005,
+  "minimax-m2.7": 0.00004,
+  "qwen3.6-plus": 0.00004,
+  "deepseek-v4-pro": 0.00005,
 };
 
 /** Default rate when a model isn't in the table */

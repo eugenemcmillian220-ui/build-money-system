@@ -58,7 +58,7 @@ Rules:
   ];
 
   const content = await callLLM(messages, { 
-    model: "openai/gpt-4o", 
+    model: "mimo-v2-omni", 
     temperature: 0.3, 
     maxTokens: 4096 
   });

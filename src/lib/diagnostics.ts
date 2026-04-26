@@ -15,11 +15,7 @@ export async function runDiagnostics() {
       github: !!(serverEnv.GITHUB_ACCESS_TOKEN || serverEnv.GITHUB_TOKEN),
       vercel: !!(serverEnv.VERCEL_ACCESS_TOKEN || serverEnv.VERCEL_TOKEN),
       llm: {
-        openrouter: !!serverEnv.OPENROUTER_API_KEY || !!serverEnv.OPENROUTER_API_KEYS,
-        groq: !!serverEnv.GROQ_API_KEY || !!serverEnv.GROQ_API_KEYS,
-        gemini: !!serverEnv.GEMINI_API_KEY || !!serverEnv.GEMINI_API_KEYS,
-        openai: !!serverEnv.OPENAI_API_KEY || !!serverEnv.OPENAI_API_KEYS,
-        deepseek: !!serverEnv.DEEPSEEK_API_KEY || !!serverEnv.DEEPSEEK_API_KEYS,
+        opencodezen: !!serverEnv.OPENCODE_ZEN_API_KEY || !!serverEnv.OPENCODE_ZEN_API_KEYS,
       }
     },
     integrations: {

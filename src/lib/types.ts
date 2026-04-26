@@ -249,7 +249,7 @@ export interface AgentConfig {
 export const defaultAgentConfig: AgentConfig = {
   maxRetries: 3,
   retryDelay: 1000,
-  model: "google/gemini-2.0-flash-exp:free",
+  model: "deepseek-v4-flash",
   temperature: 0.7,
   maxTokens: 16384,
   enablePIIScanning: true,

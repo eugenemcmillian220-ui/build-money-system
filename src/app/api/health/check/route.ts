@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
-import { keyManager, ProviderName } from "@/lib/key-manager";
+import { keyManager } from "@/lib/key-manager";
 
 export const runtime = "nodejs";
 
@@ -57,8 +57,9 @@ function checkDatabase() {
 }
 
 function checkLLM() {
-  const providerNames: ProviderName[] = ["openrouter", "groq", "gemini", "openai", "deepseek"];
-  const providers = providerNames.reduce(
+  const providers = (
+    ["opencodezen"] as const
+  ).reduce(
     (acc, p) => {
       acc[p] = keyManager.isConfigured(p);
       return acc;
@@ -74,7 +75,7 @@ function checkLLM() {
     pass: configured,
     message: configured
       ? `${available.length} provider(s) configured: ${available.map(([p]) => p).join(", ")}`
-      : "No LLM providers configured. Add at least one API key (OPENROUTER_API_KEY, GROQ_API_KEY, etc.).",
+      : "No LLM providers configured. Set OPENCODE_ZEN_API_KEY.",
     details: {
       providers,
       count: available.length,

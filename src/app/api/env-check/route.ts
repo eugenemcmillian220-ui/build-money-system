@@ -9,11 +9,9 @@ export const runtime = "nodejs";
  * Check environment variable configuration (safe exposure only - no key values)
  */
 export async function GET(): Promise<Response> {
-  const countKeys = (single: string | undefined, multi: string | undefined): number => {
-    const combined = [single, multi]
-      .filter(Boolean)
-      .join(",");
-    return combined
+  const countKeys = (envVar: string | undefined): number => {
+    if (!envVar) return 0;
+    return envVar
       .split(/[\n,]+/)
       .map((k) => k.trim())
       .filter(Boolean).length;
@@ -26,25 +24,11 @@ export async function GET(): Promise<Response> {
       serviceRole: { configured: !!process.env.SUPABASE_SERVICE_ROLE_KEY },
     },
     aiProviders: {
-      openrouter: {
-        configured: keyManager.isConfigured("openrouter"),
-        keyCount: countKeys(process.env.OPENROUTER_API_KEY, process.env.OPENROUTER_API_KEYS),
-      },
-      groq: {
-        configured: keyManager.isConfigured("groq"),
-        keyCount: countKeys(process.env.GROQ_API_KEY, process.env.GROQ_API_KEYS),
-      },
-      gemini: {
-        configured: keyManager.isConfigured("gemini"),
-        keyCount: countKeys(process.env.GEMINI_API_KEY, process.env.GEMINI_API_KEYS),
-      },
-      openai: {
-        configured: keyManager.isConfigured("openai"),
-        keyCount: countKeys(process.env.OPENAI_API_KEY, process.env.OPENAI_API_KEYS),
-      },
-      deepseek: {
-        configured: keyManager.isConfigured("deepseek"),
-        keyCount: countKeys(process.env.DEEPSEEK_API_KEY, process.env.DEEPSEEK_API_KEYS),
+      opencodezen: {
+        configured: keyManager.isConfigured("opencodezen"),
+        keyCount:
+          countKeys(process.env.OPENCODE_ZEN_API_KEYS) ||
+          countKeys(process.env.OPENCODE_ZEN_API_KEY),
       },
     },
     deployment: {
@@ -66,17 +50,14 @@ export async function GET(): Promise<Response> {
     },
   };
 
-  const anyAiConfigured = Object.values(envStatus.aiProviders).some((p) => p.configured);
-  const configuredProviders = Object.entries(envStatus.aiProviders)
-    .filter(([, v]) => v.configured)
-    .map(([k]) => k);
+  const aiConfigured = envStatus.aiProviders.opencodezen.configured;
 
   return NextResponse.json({
     ...envStatus,
-    ready: anyAiConfigured,
-    message: anyAiConfigured
-      ? `AI providers configured: ${configuredProviders.join(", ")}.`
-      : "No AI provider configured. Add at least one API key (OPENROUTER_API_KEY, GROQ_API_KEY, etc.).",
+    ready: aiConfigured,
+    message: aiConfigured
+      ? `OpenCode Zen configured with ${envStatus.aiProviders.opencodezen.keyCount} key(s).`
+      : "OpenCode Zen not configured. Set OPENCODE_ZEN_API_KEY or OPENCODE_ZEN_API_KEYS.",
     note: "Only configuration status is exposed. Actual key values are never returned.",
   });
 }

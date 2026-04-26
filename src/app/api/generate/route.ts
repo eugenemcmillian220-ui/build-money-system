@@ -22,7 +22,7 @@ const SYSTEM_PROMPT =
   "You are an expert React and Next.js developer. Generate clean, production-ready Next.js components using Tailwind CSS. Return only the component code without markdown fences or explanations unless asked. Use TypeScript and modern React 19 patterns.";
 
 function isAnyLLMAvailable(): boolean {
-  return keyManager.isAnyConfigured();
+  return keyManager.isConfigured("opencodezen");
 }
 
 export async function POST(request: Request): Promise<Response> {
