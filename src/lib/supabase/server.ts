@@ -3,7 +3,13 @@ import { cookies } from "next/headers";
 import type { ResponseCookie } from "next/dist/compiled/@edge-runtime/cookies";
 
 export async function createClient() {
-  const cookieStore = await cookies();
+  let cookieStore: Awaited<ReturnType<typeof cookies>> | undefined;
+  try {
+    cookieStore = await cookies();
+  } catch (e) {
+    // Background task or non-request context — cookies() is unavailable
+  }
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -14,9 +20,10 @@ export async function createClient() {
   return createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll() {
-        return cookieStore.getAll();
+        return cookieStore?.getAll() ?? [];
       },
       setAll(cookiesToSet: { name: string; value: string; options?: Partial<ResponseCookie> }[]) {
+        if (!cookieStore) return;
         try {
           cookiesToSet.forEach(({ name, value, options }) =>
             cookieStore.set(name, value, options)

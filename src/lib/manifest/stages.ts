@@ -234,7 +234,8 @@ export async function runPolishStage(jobId: string, _baseUrl: string): Promise<v
     const genData = state.genData as Record<string, unknown>;
     const isElite = mode === "elite";
 
-    const [docs, security, economy, legal] = await Promise.all([
+    // Parallelize independent agents
+    const [docs, security, economy, legal, sentinel, simulation, broker] = await Promise.all([
       traced("agent.chronicler", { "agent.role": "Chronicler" }, () => agents.runChroniclerAgent(files)),
       traced("agent.security", { "agent.role": "Security" }, () => agents.runSecurityAudit(files)),
       traced("agent.economy", { "agent.role": "Economy" }, () => agents.runEconomyAgent({
@@ -247,53 +248,50 @@ export async function runPolishStage(jobId: string, _baseUrl: string): Promise<v
         description: projectDesc,
         manifest: { protocol },
       } as unknown as Project)),
+      isElite
+        ? traced("agent.sentinel", { "agent.role": "Sentinel" }, () => agents.runSentinelAgent(files))
+        : Promise.resolve(undefined),
+      isElite
+        ? traced("agent.phantom", { "agent.role": "Phantom" }, () => agents.runPhantom({ files, id: "temp", createdAt: new Date().toISOString() } as Project))
+        : Promise.resolve(undefined),
+      (async () => {
+        if (isElite && row.org_id) {
+          const { data: existingProjects } = await supabaseAdmin
+            .from("projects")
+            .select("*")
+            .eq("org_id", row.org_id)
+            .limit(10);
+          return traced("agent.broker", { "agent.role": "Broker" }, () => agents.runBrokerAgent({
+            description: projectDesc,
+            id: "temp",
+          } as unknown as Project, existingProjects || []));
+        }
+        return {
+          mergerPotential: [],
+          negotiationStrategy: isElite ? "Audit pending (no organization linked)." : "Audit skipped (non-elite mode).",
+        };
+      })()
     ]);
 
-    let sentinel: Awaited<ReturnType<typeof agents.runSentinelAgent>> | undefined;
-    let simulation: Awaited<ReturnType<typeof agents.runPhantom>> | undefined;
-    if (isElite) {
-      [sentinel, simulation] = await Promise.all([
-        traced("agent.sentinel", { "agent.role": "Sentinel" }, () => agents.runSentinelAgent(files)),
-        traced("agent.phantom", { "agent.role": "Phantom" }, () => agents.runPhantom({ files, id: "temp", createdAt: new Date().toISOString() } as Project)),
-      ]);
-    }
-
-    const launch = await traced("agent.herald", { "agent.role": "Herald" }, () => agents.runHerald({
-      description: projectDesc,
-      files,
-      id: "temp",
-      createdAt: new Date().toISOString(),
-      manifest: { strategy: strategyMarkdown, docs: docs as unknown as Record<string, unknown>, mode, protocol },
-    } as unknown as Project));
-
-    let broker: {
-      mergerPotential: { targetProjectId: string; compatibility: number; strategy: string }[];
-      negotiationStrategy: string;
-    } = {
-      mergerPotential: [],
-      negotiationStrategy: isElite ? "Audit pending (no organization linked)." : "Audit skipped (non-elite mode).",
-    };
-    let qaResult: { status?: string; testSteps?: { result?: string; error?: string; step?: string }[] } | null = null;
-    if (isElite) {
-      if (row.org_id) {
-        const { data: existingProjects } = await supabaseAdmin
-          .from("projects")
-          .select("*")
-          .eq("org_id", row.org_id)
-          .limit(10);
-        broker = await traced("agent.broker", { "agent.role": "Broker" }, () => agents.runBrokerAgent({
-          description: projectDesc,
-          id: "temp",
-        } as unknown as Project, existingProjects || []));
-      }
-      qaResult = await traced("agent.overseer", { "agent.role": "Overseer" }, () => agents.runOverseerAgent({
-        ...genData,
+    // Herald and Overseer depend on Chronicler (docs)
+    const [launch, qaResult] = await Promise.all([
+      traced("agent.herald", { "agent.role": "Herald" }, () => agents.runHerald({
+        description: projectDesc,
         files,
         id: "temp",
         createdAt: new Date().toISOString(),
-        manifest: { strategy: strategyMarkdown, docs, mode, protocol },
-      } as unknown as Project));
-    }
+        manifest: { strategy: strategyMarkdown, docs: docs as unknown as Record<string, unknown>, mode, protocol },
+      } as unknown as Project)),
+      isElite
+        ? traced("agent.overseer", { "agent.role": "Overseer" }, () => agents.runOverseerAgent({
+          ...genData,
+          files,
+          id: "temp",
+          createdAt: new Date().toISOString(),
+          manifest: { strategy: strategyMarkdown, docs, mode, protocol },
+        } as unknown as Project))
+        : Promise.resolve(null)
+    ]);
 
     const nextState = mergeState(row, {
       docs,
