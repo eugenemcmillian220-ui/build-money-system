@@ -1,4 +1,4 @@
-import { Project, ChroniclerResult } from "@/lib/types";
+import { Project } from "@/lib/types";
 import { callLLMJson } from "@/lib/llm";
 import { z } from "zod";
 
@@ -38,8 +38,20 @@ export async function runOverseerAgent(project: Project): Promise<OverseerResult
     Return a structured JSON report.
   `;
 
-  return callLLMJson([
-    { role: "system", content: systemPrompt },
-    { role: "user", content: "Perform full E2E browser audit and visual regression simulation." }
-  ], overseerResultSchema);
+  try {
+    return await callLLMJson([
+      { role: "system", content: systemPrompt },
+      { role: "user", content: "Perform full E2E browser audit and visual regression simulation." }
+    ], overseerResultSchema);
+  } catch (err) {
+    console.error("Overseer Agent failed:", err);
+    return {
+      status: "fail",
+      score: 0,
+      testSteps: [{ step: "Initialization", result: "failure", latency: 0, error: "Overseer neural link error — manual QA required." }],
+      visualRegressions: [],
+      performanceBottlenecks: [],
+      summary: "Overseer agent encountered a neural link error. Manual QA audit required."
+    };
+  }
 }

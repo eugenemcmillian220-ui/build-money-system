@@ -35,8 +35,18 @@ export class MediaAgent {
       { "platform": "tiktok", "hook": "...", "body": "...", "cta": "...", "visualCues": ["..."] }
     ]`;
 
-    const response = await callLLM([{ role: "system", content: systemPrompt }, { role: "user", content: "Action: Produce scripts." }], { temperature: 0.8 });
-    return JSON.parse(cleanJson(response));
+    try {
+      const response = await callLLM([{ role: "system", content: systemPrompt }, { role: "user", content: "Action: Produce scripts." }], { temperature: 0.8 });
+      return JSON.parse(cleanJson(response));
+    } catch (err) {
+      console.error("[MediaAgent] Video script generation failed:", err);
+      const desc = project.description || "AI-Powered App";
+      return [
+        { platform: "tiktok", hook: `What if AI could build your entire app?`, body: `${desc} — built autonomously by sovereign AI agents.`, cta: "Link in bio to try it free.", visualCues: ["Show the dashboard", "Quick demo of code generation"] },
+        { platform: "reels", hook: `Stop coding. Start commanding.`, body: `From idea to production SaaS in minutes with ${desc}.`, cta: "Follow for more AI dev content.", visualCues: ["Screen recording of app creation"] },
+        { platform: "shorts", hook: `This AI just built a full SaaS...`, body: `${desc} — the future of software development.`, cta: "Subscribe to see what it builds next.", visualCues: ["Side-by-side: prompt vs deployed app"] },
+      ];
+    }
   }
 
   /**

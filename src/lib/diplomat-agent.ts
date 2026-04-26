@@ -67,6 +67,14 @@ export class DiplomatAgent {
 
     console.log(`[Diplomat] Opening negotiation with ${incident.vendorName} — Trigger: ${incident.trigger}`);
 
+    // Capture original status before changing to 'negotiating'
+    const { data: vendorRow } = await supabaseAdmin
+      .from("vendor_relations")
+      .select("status")
+      .eq("id", incident.vendorId)
+      .single();
+    const originalStatus = vendorRow?.status ?? "active";
+
     // Update vendor status to 'negotiating'
     await supabaseAdmin
       .from("vendor_relations")
@@ -95,11 +103,28 @@ Return ONLY a JSON object:
   "nextAction": "Description of what happens next..."
 }`;
 
-    const raw = await callLLM(
-      [{ role: "system", content: systemPrompt }, { role: "user", content: "Draft negotiation now:" }],
-      { temperature: 0.4 }
-    );
-    const result = JSON.parse(cleanJson(raw));
+    let result: { agentMessage: string; simulatedVendorResponse: string; outcome: NegotiationOutcome; savingsUsd: number; nextAction: string };
+    try {
+      const raw = await callLLM(
+        [{ role: "system", content: systemPrompt }, { role: "user", content: "Draft negotiation now:" }],
+        { temperature: 0.4 }
+      );
+      result = JSON.parse(cleanJson(raw));
+    } catch (err) {
+      console.error(`[Diplomat] Negotiation draft failed for ${incident.vendorName}:`, err);
+      // Revert vendor status to its original value so it doesn't get stuck in "negotiating"
+      await supabaseAdmin
+        .from("vendor_relations")
+        .update({ status: originalStatus, updated_at: new Date().toISOString() })
+        .eq("id", incident.vendorId);
+      return {
+        outcome: "failed",
+        agentMessage: "Negotiation draft could not be generated — neural link error.",
+        vendorResponse: "N/A",
+        savingsUsd: 0,
+        nextAction: `Manual negotiation required. Vendor status reverted to '${originalStatus}'.`,
+      };
+    }
 
     // 2. Log the negotiation
     await supabaseAdmin.from("negotiation_logs").insert({

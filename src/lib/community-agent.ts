@@ -26,8 +26,17 @@ export class CommunityAgent {
     Return ONLY a JSON object:
     { "answer": "...", "suggestedAction": "...", "sentiment": "positive" }`;
 
-    const response = await callLLM([{ role: "system", content: systemPrompt }, { role: "user", content: query }], { temperature: 0.5 });
-    return JSON.parse(cleanJson(response));
+    try {
+      const response = await callLLM([{ role: "system", content: systemPrompt }, { role: "user", content: query }], { temperature: 0.5 });
+      return JSON.parse(cleanJson(response));
+    } catch (err) {
+      console.error("[CommunityAgent] Query handling failed:", err);
+      return {
+        answer: "Thanks for reaching out! Our team is looking into this. Please check back shortly or visit our documentation for more info.",
+        suggestedAction: "Review documentation",
+        sentiment: "neutral"
+      };
+    }
   }
 
   /**

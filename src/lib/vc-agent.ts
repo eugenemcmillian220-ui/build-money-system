@@ -55,18 +55,22 @@ export class VCAgent {
         "equityShare": number (decimal, e.g. 0.05 for 5%)
       }`;
 
-      const response = await callLLM([{ role: "system", content: systemPrompt }, { role: "user", content: "Evaluate project now:" }], { temperature: 0.2 });
-      const analysis = JSON.parse(cleanJson(response));
+      try {
+        const response = await callLLM([{ role: "system", content: systemPrompt }, { role: "user", content: "Evaluate project now:" }], { temperature: 0.2 });
+        const analysis = JSON.parse(cleanJson(response));
 
-      if (analysis.shouldInvest) {
-        proposals.push({
-          projectId: metric.project_id,
-          orgId,
-          score: analysis.score,
-          reasoning: analysis.reasoning,
-          suggestedCredits: analysis.suggestedCredits,
-          equityShare: analysis.equityShare
-        });
+        if (analysis.shouldInvest) {
+          proposals.push({
+            projectId: metric.project_id,
+            orgId,
+            score: analysis.score,
+            reasoning: analysis.reasoning,
+            suggestedCredits: analysis.suggestedCredits,
+            equityShare: analysis.equityShare
+          });
+        }
+      } catch (err) {
+        console.error(`[VCAgent] Evaluation failed for project ${project.name}:`, err);
       }
     }
 
