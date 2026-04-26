@@ -1,8 +1,8 @@
 import { ChatMessage, AgentConfig } from "./types";
 import { keyManager, ProviderName } from "./key-manager";
-import { aiComplete, FREE_MODELS as ZEN_FREE_MODELS, PAID_MODELS as ZEN_PAID_MODELS } from "./ai";
+import { aiComplete, FREE_MODELS, PAID_MODELS } from "./ai";
 
-export type LLMProvider = "opencodezen";
+export type LLMProvider = ProviderName;
 
 export interface ProviderRequest {
   provider: LLMProvider;
@@ -11,19 +11,23 @@ export interface ProviderRequest {
   config?: Partial<AgentConfig>;
 }
 
-export const FREE_MODELS: Record<LLMProvider, string[]> = {
-  opencodezen: [...ZEN_FREE_MODELS, ...ZEN_PAID_MODELS],
+export const FREE_MODEL_LIST: Record<LLMProvider, string[]> = {
+  openrouter: [...FREE_MODELS, ...PAID_MODELS],
+  groq: ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"],
+  gemini: ["gemini-2.0-flash", "gemini-2.5-pro-preview"],
+  openai: ["gpt-4o", "gpt-4o-mini"],
+  deepseek: ["deepseek-chat", "deepseek-reasoner"],
 };
 
 export class LLMRouter {
-  private priorityChain: LLMProvider[] = ["opencodezen"];
+  private priorityChain: LLMProvider[] = ["openrouter", "groq", "gemini", "openai", "deepseek"];
 
   async executeWithFailover(
     messages: ChatMessage[],
     config?: Partial<AgentConfig>
   ): Promise<{ provider: LLMProvider; model: string; content: string; cached: boolean }> {
-    const model = config?.model || ZEN_FREE_MODELS[0];
-    
+    const model = config?.model || FREE_MODELS[0];
+
     try {
       const result = await aiComplete({
         messages,
@@ -32,8 +36,10 @@ export class LLMRouter {
         maxTokens: config?.maxTokens,
       });
 
+      const provider = keyManager.getFirstConfiguredProvider() || "openrouter";
+
       return {
-        provider: "opencodezen",
+        provider,
         model: result.model,
         content: result.content,
         cached: false,
@@ -44,13 +50,31 @@ export class LLMRouter {
   }
 
   getFetchParams(req: { provider: string; model: string; messages: ChatMessage[]; config?: Partial<AgentConfig> }) {
-    const apiKey = keyManager.getKey("opencodezen") ?? "";
+    const provider = (keyManager.getFirstConfiguredProvider() || "openrouter") as ProviderName;
+    const apiKey = keyManager.getKey(provider) ?? "";
+    const url = provider === "openrouter"
+      ? (process.env.OPENROUTER_API_URL || "https://openrouter.ai/api/v1/chat/completions")
+      : provider === "groq"
+        ? "https://api.groq.com/openai/v1/chat/completions"
+        : provider === "openai"
+          ? "https://api.openai.com/v1/chat/completions"
+          : provider === "deepseek"
+            ? "https://api.deepseek.com/v1/chat/completions"
+            : "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`,
+    };
+
+    if (provider === "openrouter") {
+      headers["HTTP-Referer"] = process.env.NEXT_PUBLIC_SITE_URL || "https://sovereign-forge.app";
+      headers["X-Title"] = "Sovereign Forge OS";
+    }
+
     return {
-      url: process.env.OPENCODE_ZEN_API_URL || "https://api.opencodezen.com/v1/chat/completions",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
-      },
+      url,
+      headers,
       body: {
         model: req.model,
         messages: req.messages.map(m => ({

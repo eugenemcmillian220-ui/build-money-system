@@ -64,7 +64,7 @@ Return ONLY a JSON object:
         content: post.content,
         status: "posted",
         posted_at: new Date().toISOString(),
-        external_id: `mock_${Math.random().toString(36).substring(2, 9)}`
+        external_id: `campaign_${campaignId}_${Math.random().toString(36).substring(2, 9)}`
       });
     }
 
@@ -73,7 +73,8 @@ Return ONLY a JSON object:
 
   private async postToPlatform(post: SocialPost): Promise<string> {
     // This is where the real API calls would go
-    return `mock_id_social`;
+    console.log(`[HypeAgent] Would post: ${post.content.slice(0, 50)}...`);
+    return `pending_post_${Date.now()}`;
   }
 }
 

@@ -29,10 +29,18 @@ const serverEnvSchema = z.object({
   // Admin
   ADMIN_API_KEYS: z.string().optional(),
 
-  // AI providers - OpenCode Zen exclusively
-  OPENCODE_ZEN_API_KEY: z.string().optional(),
-  OPENCODE_ZEN_API_KEYS: z.string().optional(),
-  OPENCODE_ZEN_API_URL: z.string().optional(),
+  // AI providers — Multi-provider support
+  OPENROUTER_API_KEY: z.string().optional(),
+  OPENROUTER_API_KEYS: z.string().optional(),
+  OPENROUTER_API_URL: z.string().optional(),
+  GROQ_API_KEY: z.string().optional(),
+  GROQ_API_KEYS: z.string().optional(),
+  GEMINI_API_KEY: z.string().optional(),
+  GEMINI_API_KEYS: z.string().optional(),
+  OPENAI_API_KEY: z.string().optional(),
+  OPENAI_API_KEYS: z.string().optional(),
+  DEEPSEEK_API_KEY: z.string().optional(),
+  DEEPSEEK_API_KEYS: z.string().optional(),
 
   // Stripe
   STRIPE_SECRET_KEY: z.string().optional(),
@@ -73,8 +81,7 @@ const serverEnvSchema = z.object({
   SLACK_BOT_TOKEN: z.string().optional(),
   SLACK_WEBHOOK_URL: z.string().optional(),
   SLACK_CHANNEL_ID: z.string().optional(),
-  // FIX: Removed duplicate GROQ_API_KEYS, GEMINI_API_KEYS, OPENAI_API_KEYS, 
-  // OPENROUTER_API_KEYS entries (already declared above under AI providers)
+
 
   // Arize AI / OTel
   ARIZE_API_KEY: z.string().optional(),
@@ -207,10 +214,13 @@ export function validateCriticalEnv(): { valid: boolean; missing: string[]; warn
     warnings.push(`Billing disabled: missing ${missingBilling.join(", ")}`);
   }
 
-  // Check that OpenCode Zen is configured
-  const hasAiKey = !!process.env.OPENCODE_ZEN_API_KEY || !!process.env.OPENCODE_ZEN_API_KEYS;
+  const hasAiKey = !!process.env.OPENROUTER_API_KEY || !!process.env.OPENROUTER_API_KEYS
+    || !!process.env.GROQ_API_KEY || !!process.env.GROQ_API_KEYS
+    || !!process.env.GEMINI_API_KEY || !!process.env.GEMINI_API_KEYS
+    || !!process.env.OPENAI_API_KEY || !!process.env.OPENAI_API_KEYS
+    || !!process.env.DEEPSEEK_API_KEY || !!process.env.DEEPSEEK_API_KEYS;
   if (!hasAiKey) {
-    warnings.push("OpenCode Zen API key not configured — AI features will not function");
+    warnings.push("No AI provider API key configured — AI features will not function. Set at least one of: OPENROUTER_API_KEY, GROQ_API_KEY, GEMINI_API_KEY, OPENAI_API_KEY, DEEPSEEK_API_KEY");
   }
 
   return { valid: missing.length === 0, missing: [...missing], warnings };

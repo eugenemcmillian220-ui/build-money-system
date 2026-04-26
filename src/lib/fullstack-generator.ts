@@ -491,7 +491,7 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 NODE_ENV=development
 
 # AI API
-OPENCODE_ZEN_API_KEY=your-opencode-zen-api-key
+OPENROUTER_API_KEY=your-openrouter-api-key
 
 `;
 

@@ -1,8 +1,12 @@
 /**
- * Multi-Key Rotation Manager - OpenCode Zen Edition
+ * Multi-Key Rotation Manager — OpenRouter + Direct Provider Support
+ *
+ * Supports round-robin rotation across multiple API keys for each provider.
+ * Keys are read from environment variables on first access. Providers that
+ * hit error thresholds are temporarily placed on cooldown.
  */
 
-export type ProviderName = "opencodezen";
+export type ProviderName = "openrouter" | "groq" | "gemini" | "openai" | "deepseek";
 
 interface KeyEntry {
   key: string;
@@ -91,11 +95,37 @@ class KeyManager {
 
   private buildPool(provider: ProviderName): ProviderKeyPool {
     let keys: string[] = [];
-    if (provider === "opencodezen") {
-      keys = this.parseKeysWithFallback(
-        process.env.OPENCODE_ZEN_API_KEYS,
-        process.env.OPENCODE_ZEN_API_KEY
-      );
+    switch (provider) {
+      case "openrouter":
+        keys = this.parseKeysWithFallback(
+          process.env.OPENROUTER_API_KEYS,
+          process.env.OPENROUTER_API_KEY
+        );
+        break;
+      case "groq":
+        keys = this.parseKeysWithFallback(
+          process.env.GROQ_API_KEYS,
+          process.env.GROQ_API_KEY
+        );
+        break;
+      case "gemini":
+        keys = this.parseKeysWithFallback(
+          process.env.GEMINI_API_KEYS,
+          process.env.GEMINI_API_KEY
+        );
+        break;
+      case "openai":
+        keys = this.parseKeysWithFallback(
+          process.env.OPENAI_API_KEYS,
+          process.env.OPENAI_API_KEY
+        );
+        break;
+      case "deepseek":
+        keys = this.parseKeysWithFallback(
+          process.env.DEEPSEEK_API_KEYS,
+          process.env.DEEPSEEK_API_KEY
+        );
+        break;
     }
     return new ProviderKeyPool(keys);
   }
@@ -118,6 +148,16 @@ class KeyManager {
 
   isConfigured(provider: ProviderName): boolean {
     return this.getPool(provider).size > 0;
+  }
+
+  isAnyConfigured(): boolean {
+    const providers: ProviderName[] = ["openrouter", "groq", "gemini", "openai", "deepseek"];
+    return providers.some((p) => this.isConfigured(p));
+  }
+
+  getFirstConfiguredProvider(): ProviderName | null {
+    const priority: ProviderName[] = ["openrouter", "groq", "gemini", "openai", "deepseek"];
+    return priority.find((p) => this.isConfigured(p)) ?? null;
   }
 
   reportError(provider: ProviderName, key: string): void {

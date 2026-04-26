@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { isDatabaseAvailable } from "@/lib/supabase/db";
 import { isVercelAvailable } from "@/lib/deploy";
 import { isGitHubAvailable } from "@/lib/github";
-import { keyManager } from "@/lib/key-manager";
+import { keyManager, ProviderName } from "@/lib/key-manager";
 
 export const runtime = "nodejs";
 
@@ -17,7 +17,8 @@ export async function GET(): Promise<Response> {
   const authResult = await requireAuth();
   if (isAuthError(authResult)) return authResult;
 
-  const providers = (["opencodezen"] as const).reduce(
+  const providerNames: ProviderName[] = ["openrouter", "groq", "gemini", "openai", "deepseek"];
+  const providers = providerNames.reduce(
     (acc, p) => {
       acc[p] = { available: keyManager.isConfigured(p) };
       return acc;

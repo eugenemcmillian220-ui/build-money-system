@@ -27,13 +27,21 @@ export interface Transaction {
  * Update this table when adding new models to llm-router.ts FREE_MODELS.
  */
 const MODEL_COST_TABLE: Record<string, number> = {
-  // === OpenCode Zen ===
-  "gpt-5-nano": 0,
-  "gpt-5-mini": 0,
-  "gpt-4o-zen": 0,
-  "gpt-5-ultra": 0.00005, // 0.05 credits per 1k tokens
-  "gpt-5-pro": 0.00003, // 0.03 credits per 1k tokens
-  "gpt-o1-zen": 0.00008, // 0.08 credits per 1k tokens
+  // === Free-Tier (OpenRouter) ===
+  "google/gemini-2.0-flash-exp:free": 0,
+  "meta-llama/llama-4-maverick:free": 0,
+  "deepseek/deepseek-chat-v3-0324:free": 0,
+  // === Paid Models ===
+  "openai/gpt-4o": 0.00005,
+  "anthropic/claude-sonnet-4": 0.00006,
+  "google/gemini-2.5-pro-preview": 0.00003,
+  // === Direct Provider Models ===
+  "llama-3.3-70b-versatile": 0,        // Groq free tier
+  "llama-3.1-8b-instant": 0,           // Groq free tier
+  "gpt-4o": 0.00005,
+  "gpt-4o-mini": 0.000005,
+  "deepseek-chat": 0.000005,
+  "gemini-2.0-flash": 0,
 };
 
 /** Default rate when a model isn't in the table */

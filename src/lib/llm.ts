@@ -115,7 +115,7 @@ export async function callLLM(
     });
 
     if (result.timedOut) {
-      throw new LLMError("OpenCode Zen AI call timed out", 504);
+      throw new LLMError("AI call timed out", 504);
     }
 
     if (useCache) {
@@ -129,9 +129,9 @@ export async function callLLM(
     return result.content;
   } catch (e) {
     const detail = e instanceof Error ? e.message : String(e);
-    logger.error("OpenCode Zen AI call failed", { error: detail });
+    logger.error("AI call failed", { error: detail });
     throw new LLMError(
-      `OpenCode Zen AI is currently unavailable. Error: ${detail}`,
+      `AI provider is currently unavailable. Error: ${detail}`,
       503
     );
   }
@@ -151,7 +151,7 @@ export async function* streamLLM(
 }
 
 /**
- * Generates embeddings using OpenCode Zen AI
+ * Generates embeddings using the configured AI provider
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
   return aiEmbed(text);

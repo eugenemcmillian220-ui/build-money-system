@@ -26,9 +26,25 @@ export async function GET(): Promise<Response> {
       serviceRole: { configured: !!process.env.SUPABASE_SERVICE_ROLE_KEY },
     },
     aiProviders: {
-      opencodezen: {
-        configured: keyManager.isConfigured("opencodezen"),
-        keyCount: countKeys(process.env.OPENCODE_ZEN_API_KEY, process.env.OPENCODE_ZEN_API_KEYS),
+      openrouter: {
+        configured: keyManager.isConfigured("openrouter"),
+        keyCount: countKeys(process.env.OPENROUTER_API_KEY, process.env.OPENROUTER_API_KEYS),
+      },
+      groq: {
+        configured: keyManager.isConfigured("groq"),
+        keyCount: countKeys(process.env.GROQ_API_KEY, process.env.GROQ_API_KEYS),
+      },
+      gemini: {
+        configured: keyManager.isConfigured("gemini"),
+        keyCount: countKeys(process.env.GEMINI_API_KEY, process.env.GEMINI_API_KEYS),
+      },
+      openai: {
+        configured: keyManager.isConfigured("openai"),
+        keyCount: countKeys(process.env.OPENAI_API_KEY, process.env.OPENAI_API_KEYS),
+      },
+      deepseek: {
+        configured: keyManager.isConfigured("deepseek"),
+        keyCount: countKeys(process.env.DEEPSEEK_API_KEY, process.env.DEEPSEEK_API_KEYS),
       },
     },
     deployment: {
@@ -51,13 +67,16 @@ export async function GET(): Promise<Response> {
   };
 
   const anyAiConfigured = Object.values(envStatus.aiProviders).some((p) => p.configured);
+  const configuredProviders = Object.entries(envStatus.aiProviders)
+    .filter(([, v]) => v.configured)
+    .map(([k]) => k);
 
   return NextResponse.json({
     ...envStatus,
     ready: anyAiConfigured,
     message: anyAiConfigured
-      ? "OpenCode Zen is configured."
-      : "OpenCode Zen not configured. Add OPENCODE_ZEN_API_KEY to continue.",
+      ? `AI providers configured: ${configuredProviders.join(", ")}.`
+      : "No AI provider configured. Add at least one API key (OPENROUTER_API_KEY, GROQ_API_KEY, etc.).",
     note: "Only configuration status is exposed. Actual key values are never returned.",
   });
 }
