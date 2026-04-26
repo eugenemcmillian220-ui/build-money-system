@@ -12,8 +12,7 @@ import {
   type ManifestationRow,
 } from "./store";
 
-const AGENT_THROTTLE_MS = 500;
-const throttle = () => new Promise((r) => setTimeout(r, AGENT_THROTTLE_MS));
+const AGENT_THROTTLE_MS = 100;
 
 async function loadAgents() {
   const [
@@ -107,7 +106,6 @@ export async function runIntentStage(jobId: string, baseUrl: string): Promise<vo
       await appendLog(jobId, "info", `Reserved ${dynamicCost} credits for manifestation.`);
     }
 
-    await throttle();
     const strategy = await traced(
       "agent.scout",
       { "agent.role": "Scout" },
@@ -115,13 +113,12 @@ export async function runIntentStage(jobId: string, baseUrl: string): Promise<vo
     );
     await appendLog(jobId, "info", "Scout complete — strategy drafted.");
 
-    await throttle();
     const architecture = await traced(
       "agent.architect",
       { "agent.role": "Architect" },
       () => agents.runArchitectAgent(row.prompt, strategy.strategyMarkdown),
     );
-    await appendLog(jobId, "info", "Architect complete — blueprint locked.");
+
 
     const visualTokens = {
       theme: opts.theme || "dark",
@@ -187,14 +184,33 @@ export async function runGenerateStage(jobId: string, _baseUrl: string): Promise
     const files = result.files;
     const projectName = (result.description || "Untitled").split("\n")[0].slice(0, 100);
     const projectDesc = result.description || row.prompt;
+    const projectId = crypto.randomUUID();
+
+    // Early persistence: Save the project immediately after generation.
+    // This ensures the user gets their code even if polish agents fail.
+    const initialProject = await saveProjectDB({
+      id: projectId,
+      files,
+      description: projectDesc,
+      prompt: row.prompt,
+      orgId: row.org_id ?? undefined,
+      createdAt: new Date().toISOString(),
+      manifest: {
+        mode: (state.mode as string) || "universal",
+        protocol: (state.protocol as string) || "unknown",
+        strategy: state.strategyMarkdown as string,
+        visuals: state.visualTokens as Project["manifest"] extends infer M ? (M extends { visuals?: infer V } ? V : never) : never,
+      },
+    } as Project);
 
     const nextState = mergeState(row, {
       genData: result,
       files,
       projectName,
       projectDesc,
+      projectId: initialProject.id,
     });
-    await setStage(jobId, "generate", { state: nextState }, `Developer complete — ${Object.keys(files || {}).length} files generated.`);
+    await setStage(jobId, "generate", { state: nextState, project_id: initialProject.id }, `Developer complete — ${Object.keys(files || {}).length} files generated. Project persisted.`);
   } catch (err) {
     await failManifestation(jobId, `Generate stage failed: ${(err as Error).message}`);
     throw err;
@@ -218,7 +234,6 @@ export async function runPolishStage(jobId: string, _baseUrl: string): Promise<v
     const genData = state.genData as Record<string, unknown>;
     const isElite = mode === "elite";
 
-    await throttle();
     const [docs, security, economy, legal] = await Promise.all([
       traced("agent.chronicler", { "agent.role": "Chronicler" }, () => agents.runChroniclerAgent(files)),
       traced("agent.security", { "agent.role": "Security" }, () => agents.runSecurityAudit(files)),
@@ -237,14 +252,12 @@ export async function runPolishStage(jobId: string, _baseUrl: string): Promise<v
     let sentinel: Awaited<ReturnType<typeof agents.runSentinelAgent>> | undefined;
     let simulation: Awaited<ReturnType<typeof agents.runPhantom>> | undefined;
     if (isElite) {
-      await throttle();
       [sentinel, simulation] = await Promise.all([
         traced("agent.sentinel", { "agent.role": "Sentinel" }, () => agents.runSentinelAgent(files)),
         traced("agent.phantom", { "agent.role": "Phantom" }, () => agents.runPhantom({ files, id: "temp", createdAt: new Date().toISOString() } as Project)),
       ]);
     }
 
-    await throttle();
     const launch = await traced("agent.herald", { "agent.role": "Herald" }, () => agents.runHerald({
       description: projectDesc,
       files,
@@ -263,7 +276,6 @@ export async function runPolishStage(jobId: string, _baseUrl: string): Promise<v
     let qaResult: { status?: string; testSteps?: { result?: string; error?: string; step?: string }[] } | null = null;
     if (isElite) {
       if (row.org_id) {
-        await throttle();
         const { data: existingProjects } = await supabaseAdmin
           .from("projects")
           .select("*")
@@ -274,7 +286,6 @@ export async function runPolishStage(jobId: string, _baseUrl: string): Promise<v
           id: "temp",
         } as unknown as Project, existingProjects || []));
       }
-      await throttle();
       qaResult = await traced("agent.overseer", { "agent.role": "Overseer" }, () => agents.runOverseerAgent({
         ...genData,
         files,
@@ -332,9 +343,10 @@ export async function runPersistStage(jobId: string, _baseUrl: string): Promise<
     } | null;
     const genData = state.genData as Record<string, unknown>;
     const dynamicCost = state.dynamicCost as number;
+    const projectId = state.projectId as string;
 
     const projectData: Partial<Project> = {
-      id: crypto.randomUUID(),
+      id: projectId || crypto.randomUUID(),
       files,
       description: (genData?.description as string) || row.prompt,
       prompt: row.prompt,

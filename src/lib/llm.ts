@@ -17,23 +17,55 @@ export class LLMError extends Error {
 
 export function cleanJson(text: string): string {
   return text
-    .replace(/^```json\s*/g, "")
-    .replace(/^```\s*/g, "")
-    .replace(/\s*```$/g, "")
+    .replace(/^```[a-zA-Z]*\s*/g, "")
+    .replace(/```$/g, "")
+    .replace(/^\s*{\s*/, "{")
+    .replace(/\s*}\s*$/, "}")
     .trim();
 }
 
-export function parseMultiFileJson(content: string): { files: FileMap } {
-  const cleaned = cleanJson(content);
-
+/**
+ * Attempts to parse JSON from a string, even if it's surrounded by noise or markdown.
+ */
+export function robustParseJson<T>(text: string): T {
+  const cleaned = cleanJson(text);
   try {
-    const parsed = JSON.parse(cleaned);
+    return JSON.parse(cleaned) as T;
+  } catch (e) {
+    // If standard parse fails, try to find the JSON object boundaries
+    const firstOpen = text.indexOf("{");
+    const lastClose = text.lastIndexOf("}");
+
+    if (firstOpen !== -1 && lastClose !== -1 && lastClose > firstOpen) {
+      const candidate = text.slice(firstOpen, lastClose + 1);
+      try {
+        const parsed = JSON.parse(candidate) as T;
+        logger.warn("Robust JSON parser recovered data from noisy response", {
+          originalLength: text.length,
+          recoveredLength: candidate.length,
+        });
+        return parsed;
+      } catch (innerError) {
+        throw new LLMError(
+          `Failed to parse JSON even with robust extraction: ${innerError instanceof Error ? innerError.message : String(innerError)}`,
+          undefined,
+          e
+        );
+      }
+    }
+    throw new LLMError(`Failed to parse JSON: ${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
+export function parseMultiFileJson(content: string): { files: FileMap } {
+  try {
+    const parsed = robustParseJson<{ files: FileMap }>(content);
     if (!parsed.files || typeof parsed.files !== "object") {
       throw new Error("Invalid response: missing files object");
     }
     return parsed;
   } catch (e) {
-    throw new LLMError(`Failed to parse JSON: ${e instanceof Error ? e.message : String(e)}`);
+    throw new LLMError(`Failed to parse multi-file JSON: ${e instanceof Error ? e.message : String(e)}`);
   }
 }
 
@@ -43,9 +75,8 @@ export async function callLLMJson<T>(
   config: Partial<AgentConfig> = {}
 ): Promise<T> {
   const content = await callLLM(messages, config);
-  const cleaned = cleanJson(content);
   try {
-    const parsed = JSON.parse(cleaned);
+    const parsed = robustParseJson<unknown>(content);
     return schema.parse(parsed);
   } catch (e) {
     logger.error("LLM JSON parse error", { error: e, rawContentPreview: content.slice(0, 200) });
@@ -80,7 +111,12 @@ export async function callLLM(
       model: fullConfig.model,
       temperature: fullConfig.temperature,
       maxTokens: fullConfig.maxTokens,
+      timeout: fullConfig.timeout,
     });
+
+    if (result.timedOut) {
+      throw new LLMError("OpenCode Zen AI call timed out", 504);
+    }
 
     if (useCache) {
       const simpleMessages = messages.map(m => ({
@@ -154,10 +190,9 @@ Rules:
   ];
 
   const content = await callLLM(messages, { temperature: 0.7, maxTokens: 8192 });
-  const cleaned = cleanJson(content);
 
   try {
-    const parsed = JSON.parse(cleaned) as AppSpec;
+    const parsed = robustParseJson<AppSpec>(content);
 
     if (!parsed.name || !parsed.description || !Array.isArray(parsed.features)) {
       throw new LLMError("Invalid spec: missing required fields");
