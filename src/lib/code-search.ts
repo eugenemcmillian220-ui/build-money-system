@@ -15,20 +15,28 @@ export interface CodeSearchResult {
  */
 export class CodeSearch {
   /**
-   * Indexes a project's files for semantic search
+   * Indexes a project's files for semantic search in parallel
    */
   async indexProject(projectId: string, files: Record<string, string>) {
     const supabase = await createClient();
 
-    for (const [path, content] of Object.entries(files)) {
-      const embedding = await generateEmbedding(content);
-      await supabase.from("code_chunks").insert({
-        project_id: projectId,
-        file_path: path,
-        content: content.slice(0, 5000), // Simple chunking
-        embedding: embedding
-      });
-    }
+    // Parallelize embedding generation and insertion
+    await Promise.all(
+      Object.entries(files).map(async ([path, content]) => {
+        try {
+          const embedding = await generateEmbedding(content);
+          const { error } = await supabase.from("code_chunks").insert({
+            project_id: projectId,
+            file_path: path,
+            content: content.slice(0, 5000), // Simple chunking
+            embedding: embedding
+          });
+          if (error) throw error;
+        } catch (err) {
+          console.error(`Failed to index file ${path}:`, err);
+        }
+      })
+    );
   }
 
   /**
