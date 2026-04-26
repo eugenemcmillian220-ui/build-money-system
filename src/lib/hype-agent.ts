@@ -42,9 +42,14 @@ Return ONLY a JSON object:
       { role: "user" as const, content: "Generate the campaign now:" }
     ];
 
-    const response = await callLLM(messages, { temperature: 0.8 });
-    const result = JSON.parse(cleanJson(response));
-    return result.posts;
+    try {
+      const response = await callLLM(messages, { temperature: 0.8 });
+      const result = JSON.parse(cleanJson(response));
+      return result.posts;
+    } catch (err) {
+      console.error("[HypeAgent] Campaign generation failed:", err);
+      return [{ content: `Check out ${project.description || "our latest project"} — built with sovereign AI technology.` }];
+    }
   }
 
   /**

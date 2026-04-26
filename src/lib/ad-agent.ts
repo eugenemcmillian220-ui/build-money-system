@@ -29,8 +29,17 @@ export class AdAgent {
       { "platform": "meta", "headline": "...", "body": "...", "budgetCredits": 500 }
     ]`;
 
-    const response = await callLLM([{ role: "system", content: systemPrompt }, { role: "user", content: "Action: Create ads." }], { temperature: 0.3 });
-    return JSON.parse(cleanJson(response));
+    try {
+      const response = await callLLM([{ role: "system", content: systemPrompt }, { role: "user", content: "Action: Create ads." }], { temperature: 0.3 });
+      return JSON.parse(cleanJson(response));
+    } catch (err) {
+      console.error("[AdAgent] Campaign generation failed:", err);
+      return [
+        { platform: "meta", headline: project.description?.slice(0, 60) || "Build Faster with AI", body: "Ship production-ready apps in minutes.", budgetCredits: 500 },
+        { platform: "google", headline: project.description?.slice(0, 60) || "AI-Powered Development", body: "From idea to deployed SaaS — autonomously.", budgetCredits: 300 },
+        { platform: "x", headline: project.description?.slice(0, 60) || "The Future of Software", body: "Sovereign AI builds your next empire.", budgetCredits: 200 },
+      ];
+    }
   }
 
   /**

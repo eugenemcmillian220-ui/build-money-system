@@ -41,9 +41,16 @@ export class LegalAgent {
     try {
       const response = await callLLM([{ role: "system", content: systemPrompt }, { role: "user", content: "Execute legal drafting:" }], { temperature: 0.2 });
       return JSON.parse(cleanJson(response));
-    } catch (e) {
-      console.error("[LegalAgent] Drafting failed:", e);
-      throw e;
+    } catch (err) {
+      console.error("[LegalAgent] Drafting failed:", err);
+      const name = project.description?.split(" ").slice(0, 3).join(" ") || "Sovereign Entity";
+      return {
+        entityName: `${name} LLC`,
+        type: "llc",
+        jurisdiction: "Delaware",
+        operatingAgreement: "Standard single-member LLC operating agreement — manual legal review required.",
+        termsOfService: "Standard SaaS Terms of Service — manual legal review required."
+      };
     }
   }
 
@@ -72,14 +79,31 @@ export class LegalAgent {
   async protectIP(projectId: string, description: string): Promise<void> {
     if (!supabaseAdmin) return;
 
-    // AI logic to identify unique assets
-    const assets = ["Main Logo Trademark", "Autonomous Logic Patent"];
+    const systemPrompt = `You are an IP Protection Specialist. Identify patentable innovations and trademarkable assets for the following project.
     
+    Project: ${description}
+    
+    Return ONLY a JSON array of IP assets:
+    [
+      { "type": "trademark" | "patent", "description": "Specific asset description" }
+    ]`;
+
+    let assets: Array<{ type: string; description: string }>;
+    try {
+      const response = await callLLM([{ role: "system", content: systemPrompt }, { role: "user", content: "Identify IP assets:" }], { temperature: 0.2 });
+      assets = JSON.parse(cleanJson(response));
+    } catch {
+      assets = [
+        { type: "trademark", description: `Brand identity and logo for: ${description}` },
+        { type: "patent", description: `Core autonomous logic and workflow for: ${description}` },
+      ];
+    }
+
     for (const asset of assets) {
       await supabaseAdmin.from("ip_vault").insert({
         project_id: projectId,
-        asset_type: asset.includes("Trademark") ? "trademark" : "patent",
-        asset_description: `${asset} for: ${description}`,
+        asset_type: asset.type === "trademark" ? "trademark" : "patent",
+        asset_description: asset.description,
         filing_status: "pending"
       });
     }

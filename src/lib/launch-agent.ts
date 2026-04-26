@@ -29,8 +29,18 @@ export class LaunchAgent {
       { "platform": "product_hunt", "title": "...", "body": "...", "launchTime": "ISO_DATE" }
     ]`;
 
-    const response = await callLLM([{ role: "system", content: systemPrompt }, { role: "user", content: "Action: Draft pitches." }], { temperature: 0.6 });
-    return JSON.parse(cleanJson(response));
+    try {
+      const response = await callLLM([{ role: "system", content: systemPrompt }, { role: "user", content: "Action: Draft pitches." }], { temperature: 0.6 });
+      return JSON.parse(cleanJson(response));
+    } catch (err) {
+      console.error("[LaunchAgent] Pitch generation failed:", err);
+      const desc = project.description || "AI-Powered Full-Stack App";
+      return [
+        { platform: "product_hunt", title: desc, body: "Ship production apps autonomously with sovereign AI.", launchTime: new Date(Date.now() + 7 * 86400000).toISOString() },
+        { platform: "hacker_news", title: `Show HN: ${desc}`, body: "Built with Next.js 15, Supabase, and autonomous AI agents.", launchTime: new Date(Date.now() + 7 * 86400000).toISOString() },
+        { platform: "indie_hackers", title: desc, body: "From prompt to production SaaS in minutes.", launchTime: new Date(Date.now() + 7 * 86400000).toISOString() },
+      ];
+    }
   }
 
   /**

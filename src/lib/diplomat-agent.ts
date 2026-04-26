@@ -95,11 +95,28 @@ Return ONLY a JSON object:
   "nextAction": "Description of what happens next..."
 }`;
 
-    const raw = await callLLM(
-      [{ role: "system", content: systemPrompt }, { role: "user", content: "Draft negotiation now:" }],
-      { temperature: 0.4 }
-    );
-    const result = JSON.parse(cleanJson(raw));
+    let result: { agentMessage: string; simulatedVendorResponse: string; outcome: NegotiationOutcome; savingsUsd: number; nextAction: string };
+    try {
+      const raw = await callLLM(
+        [{ role: "system", content: systemPrompt }, { role: "user", content: "Draft negotiation now:" }],
+        { temperature: 0.4 }
+      );
+      result = JSON.parse(cleanJson(raw));
+    } catch (err) {
+      console.error(`[Diplomat] Negotiation draft failed for ${incident.vendorName}:`, err);
+      // Revert vendor status so it doesn't get stuck in "negotiating"
+      await supabaseAdmin
+        .from("vendor_relations")
+        .update({ status: "at_risk", updated_at: new Date().toISOString() })
+        .eq("id", incident.vendorId);
+      return {
+        outcome: "failed",
+        agentMessage: "Negotiation draft could not be generated — neural link error.",
+        vendorResponse: "N/A",
+        savingsUsd: 0,
+        nextAction: "Manual negotiation required. Vendor status reverted to at_risk.",
+      };
+    }
 
     // 2. Log the negotiation
     await supabaseAdmin.from("negotiation_logs").insert({
