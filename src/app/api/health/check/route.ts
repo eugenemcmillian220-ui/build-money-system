@@ -75,7 +75,7 @@ function checkLLM() {
     pass: configured,
     message: configured
       ? `${available.length} provider(s) configured: ${available.map(([p]) => p).join(", ")}`
-      : "No LLM providers configured. Add at least one API key.",
+      : "No LLM providers configured. Set OPENCODE_ZEN_API_KEY.",
     details: {
       providers,
       count: available.length,

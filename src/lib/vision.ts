@@ -57,9 +57,8 @@ Rules:
     }
   ];
 
-  // Using OpenCode Zen for vision capabilities
   const content = await callLLM(messages, { 
-    model: "gpt-4o-zen", 
+    model: "mimo-v2-omni", 
     temperature: 0.3, 
     maxTokens: 4096 
   });

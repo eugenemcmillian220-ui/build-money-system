@@ -9,11 +9,9 @@ export const runtime = "nodejs";
  * Check environment variable configuration (safe exposure only - no key values)
  */
 export async function GET(): Promise<Response> {
-  const countKeys = (single: string | undefined, multi: string | undefined): number => {
-    const combined = [single, multi]
-      .filter(Boolean)
-      .join(",");
-    return combined
+  const countKeys = (envVar: string | undefined): number => {
+    if (!envVar) return 0;
+    return envVar
       .split(/[\n,]+/)
       .map((k) => k.trim())
       .filter(Boolean).length;
@@ -28,7 +26,9 @@ export async function GET(): Promise<Response> {
     aiProviders: {
       opencodezen: {
         configured: keyManager.isConfigured("opencodezen"),
-        keyCount: countKeys(process.env.OPENCODE_ZEN_API_KEY, process.env.OPENCODE_ZEN_API_KEYS),
+        keyCount:
+          countKeys(process.env.OPENCODE_ZEN_API_KEYS) ||
+          countKeys(process.env.OPENCODE_ZEN_API_KEY),
       },
     },
     deployment: {
@@ -50,14 +50,14 @@ export async function GET(): Promise<Response> {
     },
   };
 
-  const anyAiConfigured = Object.values(envStatus.aiProviders).some((p) => p.configured);
+  const aiConfigured = envStatus.aiProviders.opencodezen.configured;
 
   return NextResponse.json({
     ...envStatus,
-    ready: anyAiConfigured,
-    message: anyAiConfigured
-      ? "OpenCode Zen is configured."
-      : "OpenCode Zen not configured. Add OPENCODE_ZEN_API_KEY to continue.",
+    ready: aiConfigured,
+    message: aiConfigured
+      ? `OpenCode Zen configured with ${envStatus.aiProviders.opencodezen.keyCount} key(s).`
+      : "OpenCode Zen not configured. Set OPENCODE_ZEN_API_KEY or OPENCODE_ZEN_API_KEYS.",
     note: "Only configuration status is exposed. Actual key values are never returned.",
   });
 }

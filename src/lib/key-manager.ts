@@ -1,5 +1,13 @@
 /**
- * Multi-Key Rotation Manager - OpenCode Zen Edition
+ * Multi-Key Rotation Manager — OpenCode Zen Exclusive
+ *
+ * Supports round-robin rotation across multiple API keys for the
+ * OpenCode Zen provider. Keys are read from environment variables
+ * on first access. Keys that hit error thresholds are temporarily
+ * placed on cooldown.
+ *
+ * Rate limiting applies only to the free tier. Paid plans (Go, Pro)
+ * have no rate limits on the paid model pool.
  */
 
 export type ProviderName = "opencodezen";
@@ -80,52 +88,35 @@ function parseKeys(envValue: string | undefined): string[] {
 }
 
 class KeyManager {
-  private pools: Map<ProviderName, ProviderKeyPool> = new Map();
+  private pool: ProviderKeyPool | null = null;
 
-  private getPool(provider: ProviderName): ProviderKeyPool {
-    if (!this.pools.has(provider)) {
-      this.pools.set(provider, this.buildPool(provider));
+  private getPool(): ProviderKeyPool {
+    if (!this.pool) {
+      const multiKeys = parseKeys(process.env.OPENCODE_ZEN_API_KEYS);
+      const singleKey = parseKeys(process.env.OPENCODE_ZEN_API_KEY);
+      this.pool = new ProviderKeyPool(multiKeys.length > 0 ? multiKeys : singleKey);
     }
-    return this.pools.get(provider)!;
+    return this.pool;
   }
 
-  private buildPool(provider: ProviderName): ProviderKeyPool {
-    let keys: string[] = [];
-    if (provider === "opencodezen") {
-      keys = this.parseKeysWithFallback(
-        process.env.OPENCODE_ZEN_API_KEYS,
-        process.env.OPENCODE_ZEN_API_KEY
-      );
-    }
-    return new ProviderKeyPool(keys);
+  resetPool(_provider?: ProviderName): void {
+    this.pool = null;
   }
 
-  private parseKeysWithFallback(multiKeyEnv: string | undefined, singleKeyEnv: string | undefined): string[] {
-    const multiKeys = parseKeys(multiKeyEnv);
-    if (multiKeys.length > 0) {
-      return multiKeys;
-    }
-    return parseKeys(singleKeyEnv);
+  getKey(_provider?: ProviderName): string | null {
+    return this.getPool().getNext();
   }
 
-  resetPool(provider: ProviderName): void {
-    this.pools.delete(provider);
+  isConfigured(_provider?: ProviderName): boolean {
+    return this.getPool().size > 0;
   }
 
-  getKey(provider: ProviderName): string | null {
-    return this.getPool(provider).getNext();
+  reportError(_provider: ProviderName, key: string): void {
+    this.getPool().reportError(key);
   }
 
-  isConfigured(provider: ProviderName): boolean {
-    return this.getPool(provider).size > 0;
-  }
-
-  reportError(provider: ProviderName, key: string): void {
-    this.getPool(provider).reportError(key);
-  }
-
-  reportSuccess(provider: ProviderName, key: string): void {
-    this.getPool(provider).reportSuccess(key);
+  reportSuccess(_provider: ProviderName, key: string): void {
+    this.getPool().reportSuccess(key);
   }
 }
 

@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 
 /**
  * GET /api/status
- * Returns the operational status of all integrations and AI providers.
+ * Returns the operational status of all integrations and OpenCode Zen AI.
  */
 import { requireAuth, isAuthError } from "@/lib/api-auth";
 
@@ -17,25 +17,17 @@ export async function GET(): Promise<Response> {
   const authResult = await requireAuth();
   if (isAuthError(authResult)) return authResult;
 
-  const providers = (["opencodezen"] as const).reduce(
-    (acc, p) => {
-      acc[p] = { available: keyManager.isConfigured(p) };
-      return acc;
-    },
-    {} as Record<string, { available: boolean }>,
-  );
-
-  const anyAiAvailable = Object.values(providers).some((p) => p.available);
+  const aiAvailable = keyManager.isConfigured("opencodezen");
 
   return NextResponse.json({
     status: "ok",
     timestamp: new Date().toISOString(),
     ai: {
-      available: anyAiAvailable,
-      providers,
-      message: anyAiAvailable
-        ? "AI generation is available"
-        : "No AI provider configured. Add at least one API key.",
+      available: aiAvailable,
+      provider: "opencodezen",
+      message: aiAvailable
+        ? "OpenCode Zen AI is available"
+        : "OpenCode Zen not configured. Set OPENCODE_ZEN_API_KEY.",
     },
     integrations: {
       database: {

@@ -2,16 +2,33 @@ import { ChatMessage } from "./types";
 import { logger } from "./logger";
 import { keyManager } from "./key-manager";
 
-export const FREE_MODELS = [
-  "gpt-5-nano",
-  "gpt-5-mini",
-  "gpt-4o-zen"
+/**
+ * OpenCode Zen — Free-tier models (primary, used first).
+ * Rate-limited on free plan; unlimited on Go/Pro plans.
+ */
+export const ZEN_FREE_MODELS = [
+  "deepseek-v4-flash",
+  "glm-5",
+  "mimo-v2.5",
+  "qwen3.5-plus",
+  "kimi-k2.5",
+  "minimax-m2.5",
 ];
 
-export const PAID_MODELS = [
-  "gpt-5-ultra",
-  "gpt-5-pro",
-  "gpt-o1-zen"
+/**
+ * OpenCode Zen — Paid-tier models (fallback).
+ * Available on Go ($5/$10/mo) and Pro plans.
+ * No rate limits on paid plans.
+ */
+export const ZEN_PAID_MODELS = [
+  "kimi-k2.6",
+  "glm-5.1",
+  "mimo-v2-pro",
+  "mimo-v2-omni",
+  "mimo-v2.5-pro",
+  "minimax-m2.7",
+  "qwen3.6-plus",
+  "deepseek-v4-pro",
 ];
 
 export interface AIOptions {
@@ -35,27 +52,45 @@ export interface AIResult {
 }
 
 const MODEL_COSTS: Record<string, number> = {
-  "gpt-5-nano": 0,
-  "gpt-5-mini": 0,
-  "gpt-4o-zen": 0,
-  "gpt-5-ultra": 0.00005, // 0.05 credits per 1k tokens
-  "gpt-5-pro": 0.00003, // 0.03 credits per 1k tokens
-  "gpt-o1-zen": 0.00008, // 0.08 credits per 1k tokens
+  // Free-tier models (no cost)
+  "deepseek-v4-flash": 0,
+  "glm-5": 0,
+  "mimo-v2.5": 0,
+  "qwen3.5-plus": 0,
+  "kimi-k2.5": 0,
+  "minimax-m2.5": 0,
+  // Paid-tier models
+  "kimi-k2.6": 0.00003,
+  "glm-5.1": 0.00003,
+  "mimo-v2-pro": 0.00004,
+  "mimo-v2-omni": 0.00004,
+  "mimo-v2.5-pro": 0.00005,
+  "minimax-m2.7": 0.00004,
+  "qwen3.6-plus": 0.00004,
+  "deepseek-v4-pro": 0.00005,
 };
 
-export async function aiComplete(options: AIOptions): Promise<AIResult> {
-  const apiUrl = process.env.OPENCODE_ZEN_API_URL || "https://api.opencodezen.com/v1/chat/completions";
+function getApiUrl(): string {
+  return process.env.OPENCODE_ZEN_API_URL || "https://api.opencodezen.com/v1/chat/completions";
+}
 
-  const modelsToTry = options.model 
-    ? [options.model, ...FREE_MODELS, ...PAID_MODELS].filter((m, i, self) => self.indexOf(m) === i)
-    : [...FREE_MODELS, ...PAID_MODELS];
+function getEmbedUrl(): string {
+  return process.env.OPENCODE_ZEN_EMBED_URL || "https://api.opencodezen.com/v1/embeddings";
+}
+
+export async function aiComplete(options: AIOptions): Promise<AIResult> {
+  const allModels = [...ZEN_FREE_MODELS, ...ZEN_PAID_MODELS];
+
+  const modelsToTry = options.model
+    ? [options.model, ...allModels].filter((m, i, self) => self.indexOf(m) === i)
+    : allModels;
 
   let lastError: Error | null = null;
 
   for (const model of modelsToTry) {
     const apiKey = keyManager.getKey("opencodezen");
     if (!apiKey) {
-      throw new Error("No OpenCode Zen API keys available");
+      throw new Error("No OpenCode Zen API keys available — set OPENCODE_ZEN_API_KEY or OPENCODE_ZEN_API_KEYS");
     }
 
     try {
@@ -63,7 +98,7 @@ export async function aiComplete(options: AIOptions): Promise<AIResult> {
       const timeoutMs = options.timeout ?? 90000;
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-      const response = await fetch(apiUrl, {
+      const response = await fetch(getApiUrl(), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -94,9 +129,9 @@ export async function aiComplete(options: AIOptions): Promise<AIResult> {
       keyManager.reportSuccess("opencodezen", apiKey);
       const data = await response.json();
       const content = data.choices?.[0]?.message?.content;
-      
+
       if (!content) {
-        throw new Error("Empty response from OpenCode Zen");
+        throw new Error(`Empty response from OpenCode Zen model ${model}`);
       }
 
       const usage = data.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
@@ -104,7 +139,7 @@ export async function aiComplete(options: AIOptions): Promise<AIResult> {
       const completionTokens = usage.completion_tokens || 0;
       const totalTokens = usage.total_tokens || promptTokens + completionTokens;
 
-      const costRate = MODEL_COSTS[model] || 0.00001;
+      const costRate = MODEL_COSTS[model] || 0.00003;
       const cost = totalTokens * costRate;
 
       return {
@@ -119,7 +154,7 @@ export async function aiComplete(options: AIOptions): Promise<AIResult> {
       };
     } catch (error: unknown) {
       if (error instanceof Error && error.name === "AbortError") {
-        logger.error(`OpenCode Zen call timed out after ${options.timeout ?? 90000}ms for model ${model}`);
+        logger.error(`AI call timed out after ${options.timeout ?? 90000}ms for model ${model}`);
         return {
           content: "ERROR: Request timed out",
           model,
@@ -128,7 +163,7 @@ export async function aiComplete(options: AIOptions): Promise<AIResult> {
           timedOut: true,
         };
       }
-      logger.warn(`Failed to call OpenCode Zen with model ${model}:`, { error });
+      logger.warn(`Failed to call OpenCode Zen model ${model}:`, { error });
       lastError = error instanceof Error ? error : new Error(String(error));
       continue;
     }
@@ -138,8 +173,7 @@ export async function aiComplete(options: AIOptions): Promise<AIResult> {
 }
 
 export async function* aiStream(options: AIOptions): AsyncIterable<string> {
-  const apiUrl = process.env.OPENCODE_ZEN_API_URL || "https://api.opencodezen.com/v1/chat/completions";
-  const model = options.model || FREE_MODELS[0];
+  const model = options.model || ZEN_FREE_MODELS[0];
   const apiKey = keyManager.getKey("opencodezen");
 
   if (!apiKey) {
@@ -151,7 +185,7 @@ export async function* aiStream(options: AIOptions): AsyncIterable<string> {
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const response = await fetch(apiUrl, {
+    const response = await fetch(getApiUrl(), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -207,7 +241,7 @@ export async function* aiStream(options: AIOptions): AsyncIterable<string> {
     }
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
-      logger.error(`OpenCode Zen stream timed out after ${timeoutMs}ms`);
+      logger.error(`AI stream timed out after ${timeoutMs}ms`);
       throw new Error("Generation timed out");
     }
     throw error;
@@ -217,15 +251,14 @@ export async function* aiStream(options: AIOptions): AsyncIterable<string> {
 }
 
 export async function aiEmbed(text: string): Promise<number[]> {
-  const apiUrl = process.env.OPENCODE_ZEN_EMBED_URL || "https://api.opencodezen.com/v1/embeddings";
   const apiKey = keyManager.getKey("opencodezen");
-  
+
   if (!apiKey) {
     throw new Error("No OpenCode Zen API keys available for embeddings");
   }
 
   try {
-    const response = await fetch(apiUrl, {
+    const response = await fetch(getEmbedUrl(), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -233,21 +266,19 @@ export async function aiEmbed(text: string): Promise<number[]> {
       },
       body: JSON.stringify({
         input: text,
-        model: "text-embedding-3-zen",
+        model: "text-embedding-zen",
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`OpenCode Zen Embedding error (${response.status}): ${errorText}`);
+      throw new Error(`OpenCode Zen embedding error (${response.status}): ${errorText}`);
     }
 
     const data = await response.json();
     return data.data[0].embedding;
   } catch (error) {
     logger.error("Embedding generation failed", { error });
-    // Fallback to zero vector to maintain availability
     return new Array(1536).fill(0);
   }
 }
-

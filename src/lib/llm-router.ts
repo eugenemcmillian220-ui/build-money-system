@@ -1,8 +1,8 @@
 import { ChatMessage, AgentConfig } from "./types";
 import { keyManager, ProviderName } from "./key-manager";
-import { aiComplete, FREE_MODELS as ZEN_FREE_MODELS, PAID_MODELS as ZEN_PAID_MODELS } from "./ai";
+import { aiComplete, ZEN_FREE_MODELS, ZEN_PAID_MODELS } from "./ai";
 
-export type LLMProvider = "opencodezen";
+export type LLMProvider = ProviderName;
 
 export interface ProviderRequest {
   provider: LLMProvider;
@@ -16,18 +16,16 @@ export const FREE_MODELS: Record<LLMProvider, string[]> = {
 };
 
 export class LLMRouter {
-  private priorityChain: LLMProvider[] = ["opencodezen"];
-
   async executeWithFailover(
     messages: ChatMessage[],
     config?: Partial<AgentConfig>
   ): Promise<{ provider: LLMProvider; model: string; content: string; cached: boolean }> {
     const model = config?.model || ZEN_FREE_MODELS[0];
-    
+
     try {
       const result = await aiComplete({
         messages,
-        model: model,
+        model,
         temperature: config?.temperature,
         maxTokens: config?.maxTokens,
       });
@@ -45,8 +43,10 @@ export class LLMRouter {
 
   getFetchParams(req: { provider: string; model: string; messages: ChatMessage[]; config?: Partial<AgentConfig> }) {
     const apiKey = keyManager.getKey("opencodezen") ?? "";
+    const url = process.env.OPENCODE_ZEN_API_URL || "https://api.opencodezen.com/v1/chat/completions";
+
     return {
-      url: process.env.OPENCODE_ZEN_API_URL || "https://api.opencodezen.com/v1/chat/completions",
+      url,
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${apiKey}`,

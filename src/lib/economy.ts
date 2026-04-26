@@ -27,13 +27,22 @@ export interface Transaction {
  * Update this table when adding new models to llm-router.ts FREE_MODELS.
  */
 const MODEL_COST_TABLE: Record<string, number> = {
-  // === OpenCode Zen ===
-  "gpt-5-nano": 0,
-  "gpt-5-mini": 0,
-  "gpt-4o-zen": 0,
-  "gpt-5-ultra": 0.00005, // 0.05 credits per 1k tokens
-  "gpt-5-pro": 0.00003, // 0.03 credits per 1k tokens
-  "gpt-o1-zen": 0.00008, // 0.08 credits per 1k tokens
+  // === OpenCode Zen Free-Tier ===
+  "deepseek-v4-flash": 0,
+  "glm-5": 0,
+  "mimo-v2.5": 0,
+  "qwen3.5-plus": 0,
+  "kimi-k2.5": 0,
+  "minimax-m2.5": 0,
+  // === OpenCode Zen Paid-Tier (Go/Pro plans) ===
+  "kimi-k2.6": 0.00003,
+  "glm-5.1": 0.00003,
+  "mimo-v2-pro": 0.00004,
+  "mimo-v2-omni": 0.00004,
+  "mimo-v2.5-pro": 0.00005,
+  "minimax-m2.7": 0.00004,
+  "qwen3.6-plus": 0.00004,
+  "deepseek-v4-pro": 0.00005,
 };
 
 /** Default rate when a model isn't in the table */

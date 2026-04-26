@@ -1,5 +1,5 @@
 /**
- * Multi-Key Rotation System Test - OpenCode Zen Edition
+ * Multi-Key Rotation System Test — OpenCode Zen
  * Tests the key-manager's rotation, error tracking, and cooldown functionality
  */
 
