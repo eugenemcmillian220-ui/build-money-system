@@ -67,6 +67,14 @@ export class DiplomatAgent {
 
     console.log(`[Diplomat] Opening negotiation with ${incident.vendorName} — Trigger: ${incident.trigger}`);
 
+    // Capture original status before changing to 'negotiating'
+    const { data: vendorRow } = await supabaseAdmin
+      .from("vendor_relations")
+      .select("status")
+      .eq("id", incident.vendorId)
+      .single();
+    const originalStatus = vendorRow?.status ?? "active";
+
     // Update vendor status to 'negotiating'
     await supabaseAdmin
       .from("vendor_relations")
@@ -104,17 +112,17 @@ Return ONLY a JSON object:
       result = JSON.parse(cleanJson(raw));
     } catch (err) {
       console.error(`[Diplomat] Negotiation draft failed for ${incident.vendorName}:`, err);
-      // Revert vendor status so it doesn't get stuck in "negotiating"
+      // Revert vendor status to its original value so it doesn't get stuck in "negotiating"
       await supabaseAdmin
         .from("vendor_relations")
-        .update({ status: "at_risk", updated_at: new Date().toISOString() })
+        .update({ status: originalStatus, updated_at: new Date().toISOString() })
         .eq("id", incident.vendorId);
       return {
         outcome: "failed",
         agentMessage: "Negotiation draft could not be generated — neural link error.",
         vendorResponse: "N/A",
         savingsUsd: 0,
-        nextAction: "Manual negotiation required. Vendor status reverted to at_risk.",
+        nextAction: `Manual negotiation required. Vendor status reverted to '${originalStatus}'.`,
       };
     }
 
