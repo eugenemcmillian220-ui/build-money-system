@@ -71,11 +71,11 @@ const MODEL_COSTS: Record<string, number> = {
 };
 
 function getApiUrl(): string {
-  return process.env.OPENCODE_ZEN_API_URL || "https://api.opencodezen.com/v1/chat/completions";
+  return process.env.OPENCODE_ZEN_API_URL || "https://opencode.ai/zen/go/v1/chat/completions";
 }
 
 function getEmbedUrl(): string {
-  return process.env.OPENCODE_ZEN_EMBED_URL || "https://api.opencodezen.com/v1/embeddings";
+  return process.env.OPENCODE_ZEN_EMBED_URL || "https://opencode.ai/zen/go/v1/embeddings";
 }
 
 export async function aiComplete(options: AIOptions): Promise<AIResult> {
