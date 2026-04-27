@@ -5,6 +5,7 @@ import { keyManager } from "@/lib/key-manager";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { z } from "zod";
 import { agentEconomy } from "@/lib/economy";
+import { isAdminOrg } from "@/lib/admin-emails";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -46,20 +47,24 @@ export async function POST(request: Request): Promise<Response> {
   // STEP 0: CREDIT CHECK — use atomic reservation to prevent race conditions
   const creditCost = multiFile ? 25 : 5;
   if (orgId) {
-    const { data: reserved, error: reserveError } = await supabaseAdmin.rpc("reserve_credits", {
-      p_org_id: orgId,
-      p_amount: creditCost,
-    });
+    const { data: orgData } = await supabaseAdmin
+      .from("organizations")
+      .select("metadata, credit_balance")
+      .eq("id", orgId)
+      .single();
+    
+    const isUnlimited = isAdminOrg(orgData?.metadata);
 
-    if (reserveError || !reserved) {
-      const { data: org } = await supabaseAdmin
-        .from("organizations")
-        .select("credit_balance")
-        .eq("id", orgId)
-        .single();
+    if (!isUnlimited) {
+      const { data: reserved, error: reserveError } = await supabaseAdmin.rpc("reserve_credits", {
+        p_org_id: orgId,
+        p_amount: creditCost,
+      });
 
-      if (!org || Number(org.credit_balance) < creditCost) {
-        return Response.json({ error: `Insufficient credits. This operation requires ${creditCost} units.` }, { status: 402 });
+      if (reserveError || !reserved) {
+        if (!orgData || Number(orgData.credit_balance) < creditCost) {
+          return Response.json({ error: `Insufficient credits. This operation requires ${creditCost} units.` }, { status: 402 });
+        }
       }
     }
   }
@@ -85,7 +90,7 @@ export async function POST(request: Request): Promise<Response> {
         orgId
       });
 
-      if (orgId) {
+      if (orgId && !isUnlimited) {
         await supabaseAdmin.rpc("decrement_org_balance", { p_org_id: orgId, p_amount: creditCost });
         agentEconomy.chargeResourceCost(orgId, "Developer", creditCost * 1000, "multi-file-generation").catch(() => {});
       }
@@ -121,7 +126,7 @@ export async function POST(request: Request): Promise<Response> {
       }
 
       const code = await callLLM([{ role: "user", content: `${SYSTEM_PROMPT}\n\nUser request: ${prompt}\n\nGenerate a complete Next.js component with Tailwind CSS:` }]);
-      if (orgId) {
+      if (orgId && !isUnlimited) {
         await supabaseAdmin.rpc("decrement_org_balance", { p_org_id: orgId, p_amount: creditCost });
         agentEconomy.chargeResourceCost(orgId, "Developer", creditCost * 1000, "single-component-generation").catch(() => {});
       }

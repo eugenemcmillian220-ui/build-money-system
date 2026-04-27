@@ -28,6 +28,13 @@ export function isAdminEmail(email: string | null | undefined): boolean {
 }
 
 /**
+ * Checks if an organization should have unlimited credits based on its metadata.
+ */
+export function isAdminOrg(metadata: any): boolean {
+  return metadata?.admin === true || metadata?.is_unlimited === true;
+}
+
+/**
  * Tiers that should be treated as fully-unlocked / elite for feature gating.
  * Keep in sync with any new premium tier naming.
  */

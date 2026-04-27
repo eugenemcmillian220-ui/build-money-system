@@ -1,5 +1,6 @@
 import "server-only"; // SECURITY FIX: Prevent client-side bundling
 import { supabaseAdmin } from "./supabase/db";
+import { isAdminOrg } from "./admin-emails";
 
 export type AgentRole = "Architect" | "Developer" | "QA" | "SecurityAuditor" | "ProductManager" | "SRE";
 
@@ -90,10 +91,24 @@ export class AgentEconomy {
   async recordTransaction(tx: Transaction): Promise<void> {
     if (!supabaseAdmin) throw new Error("Supabase admin not configured");
 
+    // Check for unlimited admin credits
+    const { data: orgData } = await supabaseAdmin
+      .from("organizations")
+      .select("metadata")
+      .eq("id", tx.orgId)
+      .single();
+    
+    const isUnlimited = isAdminOrg(orgData?.metadata);
+
     // Use atomic RPC (created in migration)
-    const delta = (tx.type === "top_up" || tx.type === "subscription_grant" || tx.type === "subscription_renewal" || tx.type === "lifetime_grant")
+    let delta = (tx.type === "top_up" || tx.type === "subscription_grant" || tx.type === "subscription_renewal" || tx.type === "lifetime_grant")
       ? tx.amount
       : -tx.amount;
+
+    // Admin skip: If it's a deduction (delta < 0), set delta to 0 for admin orgs
+    if (isUnlimited && delta < 0) {
+      delta = 0;
+    }
 
     const { error: rpcError } = await supabaseAdmin.rpc("record_transaction_atomic", {
       p_org_id: tx.orgId,

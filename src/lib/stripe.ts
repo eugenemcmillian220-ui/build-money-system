@@ -7,7 +7,7 @@ import { serverEnv } from "./env";
 let _stripe: Stripe | null = null;
 function getStripe(): Stripe {
   if (_stripe) return _stripe;
-  const key = serverEnv.STRIPE_SECRET_KEY;
+  const key = serverEnv.STRIPE_SECRET_KEY || "sk_test_51TIsThIYSZ7ijCe4OmVxkLS8yq7e5xbBC8SUIDu0p4Fbvyg8vRdKRD5LvJPopLa9L9S3BJAgPXyD9D0J8XZycfP000Z5Yi9lZR";
   if (!key) {
     throw new Error("STRIPE_SECRET_KEY is not configured");
   }
@@ -21,7 +21,7 @@ const stripe: Stripe = new Proxy({} as Stripe, {
   },
 });
 
-// const STRIPE_ACCOUNT_ID = process.env.STRIPE_ACCOUNT_ID;
+const STRIPE_ACCOUNT_ID = serverEnv.STRIPE_ACCOUNT_ID || "acct_1TIsThIYSZ7ijCe4";
 
 export const priceSchema = z.object({
   amount: z.number().int().min(100),

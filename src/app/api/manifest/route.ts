@@ -7,6 +7,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { rateLimit } from "@/lib/rate-limit";
 import { monetizationEngine } from "@/lib/monetization";
 import { requireAuth, isAuthError } from "@/lib/api-auth";
+import { isAdminOrg } from "@/lib/admin-emails";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -107,10 +108,11 @@ export async function POST(request: NextRequest) {
       const baseManifestationCost = mode === "elite" ? 100 : 50;
       const dynamicCost = monetizationEngine.calculateManifestationCost(baseManifestationCost);
 
+      let isUnlimited = false;
       if (orgId) {
         const { data: org, error: orgError } = await supabaseAdmin
           .from("organizations")
-          .select("credit_balance")
+          .select("credit_balance, metadata")
           .eq("id", orgId)
           .single();
 
@@ -118,7 +120,9 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: "Organization not found" }, { status: 404 });
         }
 
-        if (Number(org.credit_balance) < dynamicCost) {
+        isUnlimited = isAdminOrg(org.metadata);
+
+        if (!isUnlimited && Number(org.credit_balance) < dynamicCost) {
           return NextResponse.json({ 
             error: `Insufficient credits. Current cost (with ${monetizationEngine.getSurgeMultiplier()}x surge) is ${dynamicCost} neural units.` 
           }, { status: 402 });
@@ -296,7 +300,7 @@ USER REQUEST: "${prompt}"
 
       const savedProject = await saveProjectDB(projectData as Project);
 
-      if (orgId) {
+      if (orgId && !isUnlimited) {
         await supabaseAdmin.rpc("decrement_org_balance", {
           org_id: orgId,
           amount: dynamicCost

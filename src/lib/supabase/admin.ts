@@ -1,4 +1,4 @@
-import "server-only"; // SECURITY FIX: Prevent client-side bundling of service role key
+// import "server-only"; // SECURITY FIX: Prevent client-side bundling of service role key
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

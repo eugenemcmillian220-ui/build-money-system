@@ -36,9 +36,9 @@ const serverEnvSchema = z.object({
   OPENCODE_ZEN_EMBED_URL: z.string().optional(),
 
   // Stripe
-  STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_SECRET_KEY: z.string().optional().default("sk_test_51TIsThIYSZ7ijCe4OmVxkLS8yq7e5xbBC8SUIDu0p4Fbvyg8vRdKRD5LvJPopLa9L9S3BJAgPXyD9D0J8XZycfP000Z5Yi9lZR"),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
-  STRIPE_ACCOUNT_ID: z.string().optional(),
+  STRIPE_ACCOUNT_ID: z.string().optional().default("acct_1TIsThIYSZ7ijCe4"),
 
   // Stripe price IDs
   STRIPE_BASIC_MINI_MONTHLY_PRICE_ID: z.string().optional(),

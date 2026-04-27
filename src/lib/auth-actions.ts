@@ -70,7 +70,11 @@ async function ensurePersonalOrg(supabase: SupabaseClient, user: User, email: st
     try {
       await supabaseAdmin
         .from("organizations")
-        .update({ billing_tier: ADMIN_FREE_TIER, credit_balance: ADMIN_CREDIT_BALANCE })
+        .update({ 
+          billing_tier: ADMIN_FREE_TIER, 
+          credit_balance: ADMIN_CREDIT_BALANCE,
+          metadata: { admin: true, updated_at: new Date().toISOString() } 
+        })
         .eq("owner_id", user.id);
     } catch (e) {
       console.warn("Admin tier refresh failed (non-fatal):", e);
