@@ -253,7 +253,7 @@ export const defaultAgentConfig: AgentConfig = {
   temperature: 0.7,
   maxTokens: 16384,
   enablePIIScanning: true,
-  timeout: 90000,
+  timeout: 120000,
 };
 
 export function detectFileType(filename: string): FileType {
