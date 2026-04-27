@@ -4,6 +4,7 @@ import { Project } from "@/lib/types";
 import { saveProjectDB } from "@/lib/supabase/db";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { monetizationEngine } from "@/lib/monetization";
+import { ADMIN_FREE_TIER } from "@/lib/admin-emails";
 import {
   appendLog,
   failManifestation,
@@ -82,17 +83,27 @@ export async function runIntentStage(jobId: string, baseUrl: string): Promise<vo
 
     let creditsReserved = false;
     if (row.org_id) {
-      const { data: reserved, error: reserveError } = await supabaseAdmin.rpc("reserve_credits", {
-        p_org_id: row.org_id,
-        p_amount: dynamicCost,
-      });
-      if (reserveError) throw new Error(`Credit reservation failed: ${reserveError.message}`);
-      if (!reserved) {
-        throw new Error(
-          `Insufficient credits. Current cost (with ${monetizationEngine.getSurgeMultiplier()}x surge) is ${dynamicCost} neural units.`,
-        );
+      // Check if this org is an admin account — admins bypass credit checks
+      const { data: orgData } = await supabaseAdmin
+        .from("organizations")
+        .select("billing_tier")
+        .eq("id", row.org_id)
+        .single();
+      const isAdmin = orgData?.billing_tier === ADMIN_FREE_TIER;
+
+      if (!isAdmin) {
+        const { data: reserved, error: reserveError } = await supabaseAdmin.rpc("reserve_credits", {
+          p_org_id: row.org_id,
+          p_amount: dynamicCost,
+        });
+        if (reserveError) throw new Error(`Credit reservation failed: ${reserveError.message}`);
+        if (!reserved) {
+          throw new Error(
+            `Insufficient credits. Current cost (with ${monetizationEngine.getSurgeMultiplier()}x surge) is ${dynamicCost} neural units.`,
+          );
+        }
       }
-      creditsReserved = true;
+      creditsReserved = !isAdmin;
       // Persist reservation BEFORE running subsequent agents. If Scout/Architect
       // (or anything else below) throws, failManifestation can then read
       // creditsReserved + dynamicCost from DB state and refund properly.

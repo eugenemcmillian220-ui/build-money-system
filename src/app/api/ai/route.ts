@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { aiComplete } from "@/lib/ai";
 import { logger } from "@/lib/logger";
+import { isAdminEmail } from "@/lib/admin-emails";
 
 export const runtime = "nodejs";
 
@@ -47,20 +48,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Messages are required" }, { status: 400 });
     }
 
-    // Check credits
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("credits")
-      .eq("id", user.id)
-      .single();
+    // Admin accounts bypass credit checks entirely
+    const adminBypass = isAdminEmail(user.email);
 
-    if (profileError || !profile) {
-      logger.error("Failed to fetch user profile", { error: profileError, userId: user.id });
-      return NextResponse.json({ error: "User profile not found" }, { status: 404 });
-    }
+    if (!adminBypass) {
+      // Check credits
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("credits")
+        .eq("id", user.id)
+        .single();
 
-    if (profile.credits <= 0) {
-      return NextResponse.json({ error: "Insufficient credits" }, { status: 402 });
+      if (profileError || !profile) {
+        logger.error("Failed to fetch user profile", { error: profileError, userId: user.id });
+        return NextResponse.json({ error: "User profile not found" }, { status: 404 });
+      }
+
+      if (profile.credits <= 0) {
+        return NextResponse.json({ error: "Insufficient credits" }, { status: 402 });
+      }
     }
 
     // Call AI
@@ -71,15 +77,16 @@ export async function POST(req: NextRequest) {
       maxTokens,
     });
 
-    // Deduct credits atomically
-    const { error: deductError } = await supabase.rpc("deduct_credits", {
-      p_user_id: user.id,
-      p_amount: Math.max(1, Math.ceil(result.cost)), // Deduct at least 1 credit for success
-    });
+    // Deduct credits atomically (skip for admin accounts)
+    if (!adminBypass) {
+      const { error: deductError } = await supabase.rpc("deduct_credits", {
+        p_user_id: user.id,
+        p_amount: Math.max(1, Math.ceil(result.cost)),
+      });
 
-    if (deductError) {
-      logger.error("Failed to deduct credits", { error: deductError, userId: user.id });
-      // We still return the result because the AI call succeeded, but this is an issue.
+      if (deductError) {
+        logger.error("Failed to deduct credits", { error: deductError, userId: user.id });
+      }
     }
 
     return NextResponse.json({

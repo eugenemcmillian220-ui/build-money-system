@@ -7,6 +7,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { rateLimit } from "@/lib/rate-limit";
 import { monetizationEngine } from "@/lib/monetization";
 import { requireAuth, isAuthError } from "@/lib/api-auth";
+import { ADMIN_FREE_TIER } from "@/lib/admin-emails";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -110,7 +111,7 @@ export async function POST(request: NextRequest) {
       if (orgId) {
         const { data: org, error: orgError } = await supabaseAdmin
           .from("organizations")
-          .select("credit_balance")
+          .select("credit_balance, billing_tier")
           .eq("id", orgId)
           .single();
 
@@ -118,7 +119,8 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: "Organization not found" }, { status: 404 });
         }
 
-        if (Number(org.credit_balance) < dynamicCost) {
+        // Admin accounts bypass credit checks entirely
+        if (org.billing_tier !== ADMIN_FREE_TIER && Number(org.credit_balance) < dynamicCost) {
           return NextResponse.json({ 
             error: `Insufficient credits. Current cost (with ${monetizationEngine.getSurgeMultiplier()}x surge) is ${dynamicCost} neural units.` 
           }, { status: 402 });
@@ -297,10 +299,19 @@ USER REQUEST: "${prompt}"
       const savedProject = await saveProjectDB(projectData as Project);
 
       if (orgId) {
-        await supabaseAdmin.rpc("decrement_org_balance", {
-          org_id: orgId,
-          amount: dynamicCost
-        });
+        // Skip credit deduction for admin accounts
+        const { data: orgTier } = await supabaseAdmin
+          .from("organizations")
+          .select("billing_tier")
+          .eq("id", orgId)
+          .single();
+
+        if (orgTier?.billing_tier !== ADMIN_FREE_TIER) {
+          await supabaseAdmin.rpc("decrement_org_balance", {
+            org_id: orgId,
+            amount: dynamicCost
+          });
+        }
       }
 
       return NextResponse.json({ success: true, project: savedProject });
