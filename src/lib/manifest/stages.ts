@@ -110,11 +110,15 @@ export async function runIntentStage(jobId: string, baseUrl: string): Promise<vo
       await supabaseAdmin
         .from("manifestations")
         .update({
-          state: { ...(row.state ?? {}), creditsReserved: true, dynamicCost },
+          state: { ...(row.state ?? {}), creditsReserved, dynamicCost },
           updated_at: new Date().toISOString(),
         })
         .eq("id", jobId);
-      await appendLog(jobId, "info", `Reserved ${dynamicCost} credits for manifestation.`);
+      if (creditsReserved) {
+        await appendLog(jobId, "info", `Reserved ${dynamicCost} credits for manifestation.`);
+      } else {
+        await appendLog(jobId, "info", "Admin account — credit reservation skipped.");
+      }
     }
 
     const strategy = await traced(

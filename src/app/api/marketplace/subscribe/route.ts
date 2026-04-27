@@ -48,14 +48,16 @@ export async function POST(request: Request): Promise<Response> {
       }
     }
 
-    // 3. Record transaction
-    await agentEconomy.recordTransaction({
-      orgId,
-      fromAgent: "System",
-      amount: skill.price,
-      type: "hiring",
-      description: `Subscription to agent skill: ${skill.name}`,
-    });
+    // 3. Record transaction (skip credit deduction for admin accounts)
+    if (!isAdmin) {
+      await agentEconomy.recordTransaction({
+        orgId,
+        fromAgent: "System",
+        amount: skill.price,
+        type: "hiring",
+        description: `Subscription to agent skill: ${skill.name}`,
+      });
+    }
 
     // 4. Increment usage count
     await supabase.rpc("increment_skill_usage", { skill_id: skillId });
