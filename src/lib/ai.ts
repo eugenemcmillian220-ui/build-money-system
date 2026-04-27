@@ -176,7 +176,7 @@ export async function* aiStream(options: AIOptions): AsyncIterable<string> {
   }
 
   const controller = new AbortController();
-  const timeoutMs = options.timeout ?? 90000;
+  const timeoutMs = options.timeout ?? 120000;
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {

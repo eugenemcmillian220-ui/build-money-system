@@ -115,11 +115,12 @@ export async function callLLM(
     });
 
     if (useCache) {
+      const cacheKey = fullConfig.model || "default";
       const simpleMessages = messages.map(m => ({
         role: m.role,
         content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
       }));
-      llmCache.set(result.model, simpleMessages, result.content);
+      llmCache.set(cacheKey, simpleMessages, result.content);
     }
 
     return result.content;
@@ -143,6 +144,7 @@ export async function* streamLLM(
     model: fullConfig.model,
     temperature: fullConfig.temperature,
     maxTokens: fullConfig.maxTokens,
+    timeout: fullConfig.timeout,
   });
 }
 
