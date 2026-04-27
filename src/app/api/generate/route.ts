@@ -5,6 +5,7 @@ import { keyManager } from "@/lib/key-manager";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { z } from "zod";
 import { agentEconomy } from "@/lib/economy";
+import { ADMIN_FREE_TIER } from "@/lib/admin-emails";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -44,22 +45,34 @@ export async function POST(request: Request): Promise<Response> {
   const { prompt, imageUrl, stream, multiFile, mode, orgId } = parsed.data;
 
   // STEP 0: CREDIT CHECK — use atomic reservation to prevent race conditions
+  // Admin accounts (admin_free tier) bypass credit checks entirely.
   const creditCost = multiFile ? 25 : 5;
+  let isAdmin = false;
   if (orgId) {
-    const { data: reserved, error: reserveError } = await supabaseAdmin.rpc("reserve_credits", {
-      p_org_id: orgId,
-      p_amount: creditCost,
-    });
+    const { data: org } = await supabaseAdmin
+      .from("organizations")
+      .select("credit_balance, billing_tier")
+      .eq("id", orgId)
+      .single();
 
-    if (reserveError || !reserved) {
-      const { data: org } = await supabaseAdmin
-        .from("organizations")
-        .select("credit_balance")
-        .eq("id", orgId)
-        .single();
+    isAdmin = org?.billing_tier === ADMIN_FREE_TIER;
 
-      if (!org || Number(org.credit_balance) < creditCost) {
-        return Response.json({ error: `Insufficient credits. This operation requires ${creditCost} units.` }, { status: 402 });
+    if (!isAdmin) {
+      const { data: reserved, error: reserveError } = await supabaseAdmin.rpc("reserve_credits", {
+        p_org_id: orgId,
+        p_amount: creditCost,
+      });
+
+      if (reserveError || !reserved) {
+        const { data: freshOrg } = await supabaseAdmin
+          .from("organizations")
+          .select("credit_balance")
+          .eq("id", orgId)
+          .single();
+
+        if (!freshOrg || Number(freshOrg.credit_balance) < creditCost) {
+          return Response.json({ error: `Insufficient credits. This operation requires ${creditCost} units.` }, { status: 402 });
+        }
       }
     }
   }
@@ -85,7 +98,7 @@ export async function POST(request: Request): Promise<Response> {
         orgId
       });
 
-      if (orgId) {
+      if (orgId && !isAdmin) {
         await supabaseAdmin.rpc("decrement_org_balance", { p_org_id: orgId, p_amount: creditCost });
         agentEconomy.chargeResourceCost(orgId, "Developer", creditCost * 1000, "multi-file-generation").catch(() => {});
       }
@@ -121,7 +134,7 @@ export async function POST(request: Request): Promise<Response> {
       }
 
       const code = await callLLM([{ role: "user", content: `${SYSTEM_PROMPT}\n\nUser request: ${prompt}\n\nGenerate a complete Next.js component with Tailwind CSS:` }]);
-      if (orgId) {
+      if (orgId && !isAdmin) {
         await supabaseAdmin.rpc("decrement_org_balance", { p_org_id: orgId, p_amount: creditCost });
         agentEconomy.chargeResourceCost(orgId, "Developer", creditCost * 1000, "single-component-generation").catch(() => {});
       }

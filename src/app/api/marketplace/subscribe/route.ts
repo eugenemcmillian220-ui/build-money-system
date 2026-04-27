@@ -3,6 +3,8 @@ export const dynamic = "force-dynamic";
 import { createClient } from "@/lib/supabase/server";
 import { agentEconomy } from "@/lib/economy";
 import { z } from "zod";
+import { supabaseAdmin } from "@/lib/supabase/admin";
+import { ADMIN_FREE_TIER } from "@/lib/admin-emails";
 
 export const runtime = "nodejs";
 
@@ -31,20 +33,31 @@ export async function POST(request: Request): Promise<Response> {
 
     if (skillError || !skill) return Response.json({ error: "Skill not found" }, { status: 404 });
 
-    // 2. Check balance and charge
-    const balance = await agentEconomy.getBalance(orgId);
-    if (balance < skill.price) {
-      return Response.json({ error: "Insufficient credits" }, { status: 402 });
+    // 2. Check balance and charge (admin accounts bypass)
+    const { data: orgData } = await supabaseAdmin
+      .from("organizations")
+      .select("billing_tier")
+      .eq("id", orgId)
+      .single();
+    const isAdmin = orgData?.billing_tier === ADMIN_FREE_TIER;
+
+    if (!isAdmin) {
+      const balance = await agentEconomy.getBalance(orgId);
+      if (balance < skill.price) {
+        return Response.json({ error: "Insufficient credits" }, { status: 402 });
+      }
     }
 
-    // 3. Record transaction
-    await agentEconomy.recordTransaction({
-      orgId,
-      fromAgent: "System",
-      amount: skill.price,
-      type: "hiring",
-      description: `Subscription to agent skill: ${skill.name}`,
-    });
+    // 3. Record transaction (skip credit deduction for admin accounts)
+    if (!isAdmin) {
+      await agentEconomy.recordTransaction({
+        orgId,
+        fromAgent: "System",
+        amount: skill.price,
+        type: "hiring",
+        description: `Subscription to agent skill: ${skill.name}`,
+      });
+    }
 
     // 4. Increment usage count
     await supabase.rpc("increment_skill_usage", { skill_id: skillId });
