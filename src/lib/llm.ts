@@ -114,10 +114,6 @@ export async function callLLM(
       timeout: fullConfig.timeout,
     });
 
-    if (result.timedOut) {
-      throw new LLMError("OpenCode Zen AI call timed out", 504);
-    }
-
     if (useCache) {
       const simpleMessages = messages.map(m => ({
         role: m.role,
@@ -224,7 +220,7 @@ Rules:
     { role: "user", content: `App Specification:\n${specJson}\n\nGenerate all files:` },
   ];
 
-  const content = await callLLM(messages, { temperature: 0.7, maxTokens: 16384 });
+  const content = await callLLM(messages, { temperature: 0.7, maxTokens: 16384, timeout: 180000 });
   const parsed = parseMultiFileJson(content);
   return parsed.files;
 }

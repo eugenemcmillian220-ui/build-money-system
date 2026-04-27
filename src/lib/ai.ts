@@ -95,7 +95,7 @@ export async function aiComplete(options: AIOptions): Promise<AIResult> {
 
     try {
       const controller = new AbortController();
-      const timeoutMs = options.timeout ?? 90000;
+      const timeoutMs = options.timeout ?? 120000;
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
       const response = await fetch(getApiUrl(), {
@@ -154,14 +154,9 @@ export async function aiComplete(options: AIOptions): Promise<AIResult> {
       };
     } catch (error: unknown) {
       if (error instanceof Error && error.name === "AbortError") {
-        logger.error(`AI call timed out after ${options.timeout ?? 90000}ms for model ${model}`);
-        return {
-          content: "ERROR: Request timed out",
-          model,
-          usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-          cost: 0,
-          timedOut: true,
-        };
+        logger.warn(`AI call timed out after ${options.timeout ?? 120000}ms for model ${model}, trying next model`);
+        lastError = new Error(`Model ${model} timed out`);
+        continue;
       }
       logger.warn(`Failed to call OpenCode Zen model ${model}:`, { error });
       lastError = error instanceof Error ? error : new Error(String(error));
