@@ -114,16 +114,13 @@ export async function callLLM(
       timeout: fullConfig.timeout,
     });
 
-    if (result.timedOut) {
-      throw new LLMError("OpenCode Zen AI call timed out", 504);
-    }
-
     if (useCache) {
+      const cacheKey = fullConfig.model || "default";
       const simpleMessages = messages.map(m => ({
         role: m.role,
         content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
       }));
-      llmCache.set(result.model, simpleMessages, result.content);
+      llmCache.set(cacheKey, simpleMessages, result.content);
     }
 
     return result.content;
@@ -147,6 +144,7 @@ export async function* streamLLM(
     model: fullConfig.model,
     temperature: fullConfig.temperature,
     maxTokens: fullConfig.maxTokens,
+    timeout: fullConfig.timeout,
   });
 }
 
@@ -224,7 +222,7 @@ Rules:
     { role: "user", content: `App Specification:\n${specJson}\n\nGenerate all files:` },
   ];
 
-  const content = await callLLM(messages, { temperature: 0.7, maxTokens: 16384 });
+  const content = await callLLM(messages, { temperature: 0.7, maxTokens: 16384, timeout: 180000 });
   const parsed = parseMultiFileJson(content);
   return parsed.files;
 }

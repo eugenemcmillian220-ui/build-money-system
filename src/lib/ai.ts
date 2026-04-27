@@ -86,6 +86,8 @@ export async function aiComplete(options: AIOptions): Promise<AIResult> {
     : allModels;
 
   let lastError: Error | null = null;
+  const MAX_TIMEOUT_RETRIES = 2;
+  let timeoutCount = 0;
 
   for (const model of modelsToTry) {
     const apiKey = keyManager.getKey("opencodezen");
@@ -95,7 +97,7 @@ export async function aiComplete(options: AIOptions): Promise<AIResult> {
 
     try {
       const controller = new AbortController();
-      const timeoutMs = options.timeout ?? 90000;
+      const timeoutMs = options.timeout ?? 120000;
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
       const response = await fetch(getApiUrl(), {
@@ -154,14 +156,14 @@ export async function aiComplete(options: AIOptions): Promise<AIResult> {
       };
     } catch (error: unknown) {
       if (error instanceof Error && error.name === "AbortError") {
-        logger.error(`AI call timed out after ${options.timeout ?? 90000}ms for model ${model}`);
-        return {
-          content: "ERROR: Request timed out",
-          model,
-          usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-          cost: 0,
-          timedOut: true,
-        };
+        timeoutCount++;
+        lastError = new Error(`Model ${model} timed out`);
+        if (timeoutCount >= MAX_TIMEOUT_RETRIES) {
+          logger.error(`AI call timed out for ${timeoutCount} models, stopping retries`);
+          break;
+        }
+        logger.warn(`AI call timed out after ${options.timeout ?? 120000}ms for model ${model}, trying next model (${timeoutCount}/${MAX_TIMEOUT_RETRIES})`);
+        continue;
       }
       logger.warn(`Failed to call OpenCode Zen model ${model}:`, { error });
       lastError = error instanceof Error ? error : new Error(String(error));
@@ -181,7 +183,7 @@ export async function* aiStream(options: AIOptions): AsyncIterable<string> {
   }
 
   const controller = new AbortController();
-  const timeoutMs = options.timeout ?? 90000;
+  const timeoutMs = options.timeout ?? 120000;
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
