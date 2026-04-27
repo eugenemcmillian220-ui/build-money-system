@@ -64,7 +64,13 @@ export async function POST(request: Request): Promise<Response> {
       });
 
       if (reserveError || !reserved) {
-        if (!org || Number(org.credit_balance) < creditCost) {
+        const { data: freshOrg } = await supabaseAdmin
+          .from("organizations")
+          .select("credit_balance")
+          .eq("id", orgId)
+          .single();
+
+        if (!freshOrg || Number(freshOrg.credit_balance) < creditCost) {
           return Response.json({ error: `Insufficient credits. This operation requires ${creditCost} units.` }, { status: 402 });
         }
       }
