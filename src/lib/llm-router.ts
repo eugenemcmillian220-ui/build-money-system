@@ -43,7 +43,7 @@ export class LLMRouter {
 
   getFetchParams(req: { provider: string; model: string; messages: ChatMessage[]; config?: Partial<AgentConfig> }) {
     const apiKey = keyManager.getKey("opencodezen") ?? "";
-    const url = process.env.OPENCODE_ZEN_API_URL || "https://api.opencodezen.com/v1/chat/completions";
+    const url = process.env.OPENCODE_ZEN_API_URL || "https://opencode.ai/zen/go/v1/chat/completions";
 
     return {
       url,
