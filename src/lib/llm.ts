@@ -187,7 +187,7 @@ Rules:
     { role: "user", content: `User request: ${prompt}\n\nGenerate the app specification:` },
   ];
 
-  const content = await callLLM(messages, { temperature: 0.7, maxTokens: 8192 });
+  const content = await callLLM(messages, { temperature: 0.7, maxTokens: 8192, timeout: 180000 });
 
   try {
     const parsed = robustParseJson<AppSpec>(content);
@@ -258,7 +258,7 @@ Rules:
     { role: "user", content: `Current Files:\n${filesList}${errorContext}\n\nReturn fixed files:` },
   ];
 
-  const content = await callLLM(messages, { temperature: 0.2, maxTokens: 16384 });
+  const content = await callLLM(messages, { temperature: 0.2, maxTokens: 16384, timeout: 180000 });
   const parsed = parseMultiFileJson(content);
   return parsed.files;
 }
@@ -330,7 +330,7 @@ Rules:
     },
   ];
 
-  const content = await callLLM(messages, { temperature: 0.1, maxTokens: 8192 });
+  const content = await callLLM(messages, { temperature: 0.1, maxTokens: 8192, timeout: 180000 });
   const parsed = parseMultiFileJson(content);
 
   return { ...allFiles, ...parsed.files };

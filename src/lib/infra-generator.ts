@@ -36,7 +36,7 @@ Return ONLY a JSON object:
     { role: "user" as const, content: `App Specification:\n${JSON.stringify(spec, null, 2)}` }
   ];
 
-  const response = await callLLM(messages, { temperature: 0.2 });
+  const response = await callLLM(messages, { temperature: 0.2, timeout: 180000 });
   const result = JSON.parse(cleanJson(response)) as InfraResult;
 
   return result;
