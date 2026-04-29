@@ -155,52 +155,147 @@ export async function generateEmbedding(text: string): Promise<number[]> {
   return aiEmbed(text);
 }
 
-export async function planSpec(prompt: string, context: MemoryContext[] = []): Promise<AppSpec> {
+/**
+ * Outline half of planSpec: produces the high-level app structure
+ * (name, description, features, pages, integrations, visuals).
+ * Smaller JSON = faster, less truncation risk.
+ */
+export type AppSpecOutline = Pick<AppSpec, "name" | "description" | "features" | "pages" | "integrations" | "visuals">;
+
+const MAX_PLAN_RETRIES = 2;
+
+export async function planSpecOutline(prompt: string, context: MemoryContext[] = []): Promise<AppSpecOutline> {
   const contextText =
     context.length > 0
       ? `\n\nRelevant context from previous projects:\n${JSON.stringify(context, null, 2)}`
       : "";
 
-  const systemPrompt = `You are "The Architect", the Structural Planning Lead for Sovereign Forge OS (2026). Given a user request, create a detailed specification for a high-performance Next.js 15 application.${contextText}
+  const systemPrompt = `You are "The Architect", the Structural Planning Lead for Sovereign Forge OS (2026). Given a user request, create the HIGH-LEVEL architecture outline for a Next.js 15 application.${contextText}
 
 Rules:
 - Include Supabase Auth by default (login/signup pages) unless explicitly told not to.
 - Use shadcn/ui and Tailwind CSS v4 design language.
-- Ensure Row Level Security (RLS) is considered in the schema.
-- Focus on accessibility (a11y) and responsive design.
 - Keep the app focused and achievable (5-12 files max).
-- Return a JSON object with this exact structure:
+- Return ONLY a JSON object with this EXACT structure — no extra fields:
 {
   "name": "App Name",
   "description": "Brief description",
   "features": ["auth", "dashboard", "..."],
   "pages": [{ "route": "/login", "description": "Login page", "components": ["LoginForm"] }],
-  "components": [{ "name": "LoginForm", "description": "Auth form", "props": {} }],
   "integrations": ["supabase", "stripe", "..."],
-  "schema": "SQL schema with RLS policies here",
-  "fileStructure": ["app/layout.tsx", "app/page.tsx", "lib/supabase.ts", "..."],
   "visuals": { "theme": "dark", "primaryColor": "#f59e0b" }
-}`;
+}
+- Keep descriptions concise. Do NOT include component details, schema, or file paths — those come in a follow-up step.`;
 
   const messages: ChatMessage[] = [
     { role: "system", content: systemPrompt },
-    { role: "user", content: `User request: ${prompt}\n\nGenerate the app specification:` },
+    { role: "user", content: `User request: ${prompt}\n\nGenerate the architecture outline:` },
   ];
 
-  const content = await callLLM(messages, { temperature: 0.7, maxTokens: 8192, timeout: 180000 });
+  let lastError: Error | null = null;
 
-  try {
-    const parsed = robustParseJson<AppSpec>(content);
+  for (let attempt = 1; attempt <= MAX_PLAN_RETRIES + 1; attempt++) {
+    try {
+      const content = await callLLM(messages, {
+        temperature: attempt === 1 ? 0.7 : 0.4,
+        maxTokens: 4096,
+        timeout: 180000,
+      });
 
-    if (!parsed.name || !parsed.description || !Array.isArray(parsed.features)) {
-      throw new LLMError("Invalid spec: missing required fields");
+      const parsed = robustParseJson<AppSpecOutline>(content);
+
+      if (!parsed.name || !parsed.description || !Array.isArray(parsed.features)) {
+        throw new LLMError("Invalid outline: missing required fields (name, description, features)");
+      }
+      if (!Array.isArray(parsed.pages) || parsed.pages.length === 0) {
+        throw new LLMError("Invalid outline: pages array is missing or empty");
+      }
+
+      return parsed;
+    } catch (e) {
+      lastError = e instanceof Error ? e : new Error(String(e));
+      if (attempt <= MAX_PLAN_RETRIES) {
+        logger.warn(`planSpecOutline attempt ${attempt} failed (${lastError.message}), retrying...`);
+      }
     }
-
-    return parsed;
-  } catch (e) {
-    if (e instanceof LLMError) throw e;
-    throw new LLMError(`Failed to parse spec JSON: ${e instanceof Error ? e.message : String(e)}`);
   }
+
+  throw new LLMError(`planSpecOutline failed after ${MAX_PLAN_RETRIES + 1} attempts: ${lastError?.message}`);
+}
+
+/**
+ * Details half of planSpec: given the outline, produces the detailed
+ * components, schema, and fileStructure. Smaller, focused JSON.
+ */
+export type AppSpecDetails = Pick<AppSpec, "components" | "schema" | "fileStructure">;
+
+export async function planSpecDetails(prompt: string, outline: AppSpecOutline): Promise<AppSpecDetails> {
+  const systemPrompt = `You are "The Architect", the Structural Planning Lead for Sovereign Forge OS (2026). Given a user request and an architecture outline, produce the DETAILED implementation plan: components, database schema, and file structure.
+
+ARCHITECTURE OUTLINE (already decided):
+${JSON.stringify(outline, null, 2)}
+
+Rules:
+- Use shadcn/ui and Tailwind CSS v4 design language.
+- Ensure Row Level Security (RLS) is considered in the schema.
+- Focus on accessibility (a11y) and responsive design.
+- The fileStructure should list every file the Developer agent needs to create (5-12 files).
+- Return ONLY a JSON object with this EXACT structure — no extra fields:
+{
+  "components": [{ "name": "LoginForm", "description": "Auth form with email/password", "props": {} }],
+  "schema": "CREATE TABLE ... ; ALTER TABLE ... ENABLE ROW LEVEL SECURITY; ...",
+  "fileStructure": ["app/layout.tsx", "app/page.tsx", "lib/supabase.ts", "..."]
+}
+- Be concise. Produce valid JSON only — no markdown fences.`;
+
+  const messages: ChatMessage[] = [
+    { role: "system", content: systemPrompt },
+    { role: "user", content: `User request: ${prompt}\n\nGenerate the implementation details:` },
+  ];
+
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= MAX_PLAN_RETRIES + 1; attempt++) {
+    try {
+      const content = await callLLM(messages, {
+        temperature: attempt === 1 ? 0.5 : 0.3,
+        maxTokens: 4096,
+        timeout: 180000,
+      });
+
+      const parsed = robustParseJson<AppSpecDetails>(content);
+
+      if (!Array.isArray(parsed.components) || parsed.components.length === 0) {
+        throw new LLMError("Invalid details: components array is missing or empty");
+      }
+      if (!Array.isArray(parsed.fileStructure) || parsed.fileStructure.length === 0) {
+        throw new LLMError("Invalid details: fileStructure array is missing or empty");
+      }
+
+      return parsed;
+    } catch (e) {
+      lastError = e instanceof Error ? e : new Error(String(e));
+      if (attempt <= MAX_PLAN_RETRIES) {
+        logger.warn(`planSpecDetails attempt ${attempt} failed (${lastError.message}), retrying...`);
+      }
+    }
+  }
+
+  throw new LLMError(`planSpecDetails failed after ${MAX_PLAN_RETRIES + 1} attempts: ${lastError?.message}`);
+}
+
+/**
+ * Combined planSpec: runs outline + details and merges into a full AppSpec.
+ * Kept for backward compatibility with callers that need the full spec in one call.
+ */
+export async function planSpec(prompt: string, context: MemoryContext[] = []): Promise<AppSpec> {
+  const outline = await planSpecOutline(prompt, context);
+  const details = await planSpecDetails(prompt, outline);
+
+  return {
+    ...outline,
+    ...details,
+  };
 }
 
 export async function buildFromSpec(spec: AppSpec): Promise<FileMap> {

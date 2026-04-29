@@ -175,6 +175,8 @@ export function LiveCodePanel({ files, currentStage, spec }: LiveCodePanelProps)
     switch (currentStage) {
       case "queued": return "Queued";
       case "intent": return "Analyzing Intent";
+      case "plan-outline": return "Drafting Architecture";
+      case "plan-details": return "Detailing Components";
       case "generate-plan": return "Planning Architecture";
       case "generate-build": return "Generating Code";
       case "generate": return "Generating Code";
@@ -196,7 +198,7 @@ export function LiveCodePanel({ files, currentStage, spec }: LiveCodePanelProps)
         <p className="text-xs text-white/20 max-w-xs">
           {currentStage === "error"
             ? "Manifestation failed. Check the terminal for details."
-            : currentStage === "queued" || currentStage === "intent" || currentStage === "generate-plan"
+            : currentStage === "queued" || currentStage === "intent" || currentStage === "plan-outline" || currentStage === "plan-details" || currentStage === "generate-plan"
               ? `${stageLabel}... Code will appear here once generation begins.`
               : currentStage === "generate-build" || currentStage === "generate"
                 ? "Generating code... Files will appear here shortly."

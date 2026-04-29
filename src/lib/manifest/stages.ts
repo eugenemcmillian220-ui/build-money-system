@@ -180,8 +180,65 @@ USER REQUEST: "${row.prompt}"
 }
 
 /**
- * generate-plan: runs planSpec to create the app specification.
- * Separated from building so each phase gets its own serverless timeout budget.
+ * plan-outline: runs planSpecOutline to produce the high-level architecture
+ * (name, features, pages, integrations, visuals). Smaller JSON = faster, less
+ * truncation risk. Gets its own 300s serverless budget.
+ */
+export async function runPlanOutlineStage(jobId: string, _baseUrl: string): Promise<void> {
+  const row = await loadManifestation(jobId);
+  if (!row) return;
+
+  try {
+    await setStage(jobId, "plan-outline", { status: "running" }, "Drafting architecture outline...");
+    const state = row.state as StageState;
+    const finalPrompt = state.finalPrompt as string;
+    if (!finalPrompt) throw new Error("Intent stage did not produce finalPrompt.");
+
+    const { planSpecOutline } = await import("@/lib/llm");
+    const outline = await planSpecOutline(finalPrompt, []);
+    await appendLog(jobId, "info", `Outline complete — ${outline.features.length} features, ${outline.pages.length} pages.`);
+
+    const nextState = mergeState(row, { outline, spec: { name: outline.name, featureCount: outline.features.length } });
+    await setStage(jobId, "plan-outline", { state: nextState }, "Outline complete → detailing components...");
+  } catch (err) {
+    await failManifestation(jobId, `Plan-outline stage failed: ${(err as Error).message}`);
+    throw err;
+  }
+}
+
+/**
+ * plan-details: given the outline, runs planSpecDetails to produce
+ * components, schema, and fileStructure. Merges with outline into a full
+ * AppSpec. Gets its own 300s serverless budget.
+ */
+export async function runPlanDetailsStage(jobId: string, _baseUrl: string): Promise<void> {
+  const row = await loadManifestation(jobId);
+  if (!row) return;
+
+  try {
+    await setStage(jobId, "plan-details", { status: "running" }, "Detailing components & schema...");
+    const state = row.state as StageState;
+    const finalPrompt = state.finalPrompt as string;
+    const outline = state.outline as import("@/lib/llm").AppSpecOutline | undefined;
+    if (!finalPrompt) throw new Error("Intent stage did not produce finalPrompt.");
+    if (!outline) throw new Error("Plan-outline stage did not produce outline.");
+
+    const { planSpecDetails } = await import("@/lib/llm");
+    const details = await planSpecDetails(finalPrompt, outline);
+    await appendLog(jobId, "info", `Details complete — ${details.components.length} components, ${details.fileStructure.length} files planned.`);
+
+    const spec = { ...outline, ...details };
+    const nextState = mergeState(row, { spec });
+    await setStage(jobId, "plan-details", { state: nextState }, "Plan complete → queued generate-build.");
+  } catch (err) {
+    await failManifestation(jobId, `Plan-details stage failed: ${(err as Error).message}`);
+    throw err;
+  }
+}
+
+/**
+ * @deprecated Use runPlanOutlineStage + runPlanDetailsStage instead.
+ * Kept for backward compatibility with direct callers.
  */
 export async function runGeneratePlanStage(jobId: string, _baseUrl: string): Promise<void> {
   const row = await loadManifestation(jobId);
@@ -462,10 +519,12 @@ export async function runPersistStage(jobId: string, _baseUrl: string): Promise<
   }
 }
 
-export type StageName = "intent" | "generate" | "generate-plan" | "generate-build" | "polish" | "persist";
+export type StageName = "intent" | "generate" | "generate-plan" | "plan-outline" | "plan-details" | "generate-build" | "polish" | "persist";
 
 export const nextStage: Record<StageName, StageName | null> = {
-  intent: "generate-plan",
+  intent: "plan-outline",
+  "plan-outline": "plan-details",
+  "plan-details": "generate-build",
   "generate-plan": "generate-build",
   "generate-build": "polish",
   generate: "polish",
