@@ -139,23 +139,21 @@ export function LiveCodePanel({ files, currentStage, spec }: LiveCodePanelProps)
   }, [filePaths, selectedFile]);
 
   useEffect(() => {
-    let cancelled = false;
-    async function loadAndHighlight() {
-      // Load languages dynamically in dependency order (tsx depends on typescript)
-      await import("prismjs/components/prism-typescript");
-      await import("prismjs/components/prism-tsx");
-      await import("prismjs/components/prism-jsx");
-      await import("prismjs/components/prism-css");
-      await import("prismjs/components/prism-json");
-      await import("prismjs/components/prism-markdown");
-      await import("prismjs/components/prism-sql");
-      await import("prismjs/components/prism-bash");
-      if (!cancelled && codeRef.current) {
-        Prism.highlightElement(codeRef.current);
-      }
+    // Load languages inside useEffect to guarantee dependency order at runtime.
+    // Static top-level imports break under Turbopack (prism-tsx extends typescript).
+    /* eslint-disable @typescript-eslint/no-require-imports */
+    require("prismjs/components/prism-typescript");
+    require("prismjs/components/prism-tsx");
+    require("prismjs/components/prism-jsx");
+    require("prismjs/components/prism-css");
+    require("prismjs/components/prism-json");
+    require("prismjs/components/prism-markdown");
+    require("prismjs/components/prism-sql");
+    require("prismjs/components/prism-bash");
+    /* eslint-enable @typescript-eslint/no-require-imports */
+    if (codeRef.current) {
+      Prism.highlightElement(codeRef.current);
     }
-    loadAndHighlight();
-    return () => { cancelled = true; };
   }, [selectedFile, files]);
 
   const handleCopy = async () => {
