@@ -7,6 +7,8 @@ export type ManifestStage =
   | "intent"
   | "generate"
   | "generate-plan"
+  | "plan-outline"
+  | "plan-details"
   | "generate-build"
   | "polish"
   | "persist"
