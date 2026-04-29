@@ -198,7 +198,7 @@ export async function runPlanOutlineStage(jobId: string, _baseUrl: string): Prom
     const outline = await planSpecOutline(finalPrompt, []);
     await appendLog(jobId, "info", `Outline complete — ${outline.features.length} features, ${outline.pages.length} pages.`);
 
-    const nextState = mergeState(row, { outline, spec: { name: outline.name, featureCount: outline.features.length } });
+    const nextState = mergeState(row, { outline, spec: { name: outline.name, features: outline.features, featureCount: outline.features.length } });
     await setStage(jobId, "plan-outline", { state: nextState }, "Outline complete → detailing components...");
   } catch (err) {
     await failManifestation(jobId, `Plan-outline stage failed: ${(err as Error).message}`);
