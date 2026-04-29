@@ -52,41 +52,49 @@ export function ManifestWorkspace({ orgId }: ManifestWorkspaceProps) {
       attempts += 1;
       await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
 
+      let data: StatusResponse | null = null;
       try {
         const statusRes = await fetch(`/api/manifest/status?id=${encodeURIComponent(jobId)}`);
         if (!statusRes.ok) {
           if (statusRes.status === 404) break;
           continue;
         }
-
-        const data: StatusResponse = await statusRes.json();
-
-        setCurrentStage(data.current_stage);
-
-        if (data.spec) {
-          setSpec(data.spec);
-        }
-
-        if (data.files && Object.keys(data.files).length > 0) {
-          setFiles(data.files);
-        }
-
-        const newLogs = data.logs.slice(lastLogCount);
-        for (const log of newLogs) {
-          onLog(log.level === "error" ? "error" : "info", log.text);
-        }
-        lastLogCount = data.logs.length;
-
-        if (data.status === "complete" || data.status === "error") {
-          pollingRef.current = false;
-          return;
-        }
+        data = await statusRes.json();
       } catch {
-        // Transient polling error — continue
+        // Transient network error — retry
+        continue;
+      }
+
+      if (!data) continue;
+
+      setCurrentStage(data.current_stage);
+
+      if (data.spec) {
+        setSpec(data.spec);
+      }
+
+      if (data.files && Object.keys(data.files).length > 0) {
+        setFiles(data.files);
+      }
+
+      const newLogs = data.logs.slice(lastLogCount);
+      for (const log of newLogs) {
+        onLog(log.level === "error" ? "error" : "info", log.text);
+      }
+      lastLogCount = data.logs.length;
+
+      if (data.status === "complete") {
+        pollingRef.current = false;
+        return;
+      }
+      if (data.status === "error") {
+        pollingRef.current = false;
+        throw new Error(data.error || "Manifestation failed");
       }
     }
 
     pollingRef.current = false;
+    throw new Error("Manifestation timed out while polling.");
   }, []);
 
   useEffect(() => {

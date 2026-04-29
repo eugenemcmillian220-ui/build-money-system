@@ -138,7 +138,7 @@ export function LiveCodePanel({ files, currentStage, spec }: LiveCodePanelProps)
   const fileTree = useMemo(() => buildFileTree(filePaths), [filePaths]);
 
   useEffect(() => {
-    if (filePaths.length > 0 && !selectedFile) {
+    if (filePaths.length > 0 && (!selectedFile || !filePaths.includes(selectedFile))) {
       const mainFile = filePaths.find((p) => p.includes("page.tsx"))
         ?? filePaths.find((p) => p.includes("layout.tsx"))
         ?? filePaths[0];
