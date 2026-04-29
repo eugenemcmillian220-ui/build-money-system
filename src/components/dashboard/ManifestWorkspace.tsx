@@ -48,57 +48,57 @@ export function ManifestWorkspace({ orgId }: ManifestWorkspaceProps) {
     let lastLogCount = 0;
     let attempts = 0;
 
-    while (pollingRef.current && attempts < MAX_POLL_ATTEMPTS) {
-      attempts += 1;
-      await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+    try {
+      while (pollingRef.current && attempts < MAX_POLL_ATTEMPTS) {
+        attempts += 1;
+        await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
 
-      let data: StatusResponse | null = null;
-      try {
-        const statusRes = await fetch(`/api/manifest/status?id=${encodeURIComponent(jobId)}`);
-        if (!statusRes.ok) {
-          if (statusRes.status === 404) {
-            pollingRef.current = false;
-            throw new Error("Manifestation not found — it may have been deleted.");
+        let data: StatusResponse | null = null;
+        try {
+          const statusRes = await fetch(`/api/manifest/status?id=${encodeURIComponent(jobId)}`);
+          if (!statusRes.ok) {
+            if (statusRes.status === 404) {
+              throw new Error("Manifestation not found — it may have been deleted.");
+            }
+            continue;
           }
+          data = await statusRes.json();
+        } catch (e) {
+          if (e instanceof Error && e.message.includes("not found")) throw e;
+          // Transient network error — retry
           continue;
         }
-        data = await statusRes.json();
-      } catch (e) {
-        if (e instanceof Error && e.message.includes("not found")) throw e;
-        // Transient network error — retry
-        continue;
+
+        if (!data) continue;
+
+        setCurrentStage(data.current_stage);
+
+        if (data.spec) {
+          setSpec(data.spec);
+        }
+
+        if (data.files && Object.keys(data.files).length > 0) {
+          setFiles(data.files);
+        }
+
+        const newLogs = data.logs.slice(lastLogCount);
+        for (const log of newLogs) {
+          onLog(log.level === "error" ? "error" : "info", log.text);
+        }
+        lastLogCount = data.logs.length;
+
+        if (data.status === "complete") {
+          return;
+        }
+        if (data.status === "error") {
+          throw new Error(data.error || "Manifestation failed");
+        }
       }
 
-      if (!data) continue;
-
-      setCurrentStage(data.current_stage);
-
-      if (data.spec) {
-        setSpec(data.spec);
-      }
-
-      if (data.files && Object.keys(data.files).length > 0) {
-        setFiles(data.files);
-      }
-
-      const newLogs = data.logs.slice(lastLogCount);
-      for (const log of newLogs) {
-        onLog(log.level === "error" ? "error" : "info", log.text);
-      }
-      lastLogCount = data.logs.length;
-
-      if (data.status === "complete") {
-        pollingRef.current = false;
-        return;
-      }
-      if (data.status === "error") {
-        pollingRef.current = false;
-        throw new Error(data.error || "Manifestation failed");
-      }
+      throw new Error("Manifestation timed out while polling.");
+    } finally {
+      pollingRef.current = false;
     }
-
-    pollingRef.current = false;
-    throw new Error("Manifestation timed out while polling.");
   }, []);
 
   useEffect(() => {
