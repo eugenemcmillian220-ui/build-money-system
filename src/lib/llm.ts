@@ -222,9 +222,23 @@ Rules:
     { role: "user", content: `App Specification:\n${specJson}\n\nGenerate all files:` },
   ];
 
-  const content = await callLLM(messages, { temperature: 0.7, maxTokens: 16384, timeout: 180000 });
-  const parsed = parseMultiFileJson(content);
-  return parsed.files;
+  const MAX_BUILD_RETRIES = 2;
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= MAX_BUILD_RETRIES + 1; attempt++) {
+    try {
+      const content = await callLLM(messages, { temperature: 0.7, maxTokens: 16384, timeout: 180000 });
+      const parsed = parseMultiFileJson(content);
+      return parsed.files;
+    } catch (e) {
+      lastError = e instanceof Error ? e : new Error(String(e));
+      if (attempt <= MAX_BUILD_RETRIES) {
+        logger.warn(`buildFromSpec attempt ${attempt} failed (${lastError.message}), retrying...`);
+      }
+    }
+  }
+
+  throw new LLMError(`buildFromSpec failed after ${MAX_BUILD_RETRIES + 1} attempts: ${lastError?.message}`);
 }
 
 export async function fixFiles(files: FileMap, error?: string): Promise<FileMap> {

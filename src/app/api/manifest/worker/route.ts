@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   runIntentStage,
   runGenerateStage,
+  runGeneratePlanStage,
+  runGenerateBuildStage,
   runPolishStage,
   runPersistStage,
   nextStage,
@@ -18,6 +20,8 @@ export const maxDuration = 300;
 const RUNNERS: Record<StageName, (id: string, baseUrl: string) => Promise<void>> = {
   intent: runIntentStage,
   generate: runGenerateStage,
+  "generate-plan": runGeneratePlanStage,
+  "generate-build": runGenerateBuildStage,
   polish: runPolishStage,
   persist: runPersistStage,
 };
