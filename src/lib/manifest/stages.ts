@@ -179,21 +179,52 @@ USER REQUEST: "${row.prompt}"
   }
 }
 
-export async function runGenerateStage(jobId: string, _baseUrl: string): Promise<void> {
+/**
+ * generate-plan: runs planSpec to create the app specification.
+ * Separated from building so each phase gets its own serverless timeout budget.
+ */
+export async function runGeneratePlanStage(jobId: string, _baseUrl: string): Promise<void> {
   const row = await loadManifestation(jobId);
   if (!row) return;
 
   try {
-    await setStage(jobId, "generate", { status: "running" }, "Generating code (Developer agent)...");
+    await setStage(jobId, "generate-plan", { status: "running" }, "Planning app specification (planSpec)...");
     const state = row.state as StageState;
     const finalPrompt = state.finalPrompt as string;
     if (!finalPrompt) throw new Error("Intent stage did not produce finalPrompt.");
 
+    const { planSpec } = await import("@/lib/llm");
+    const spec = await planSpec(finalPrompt, []);
+    await appendLog(jobId, "info", `Plan complete — ${spec.features.length} features, ${spec.pages.length} pages.`);
+
+    const nextState = mergeState(row, { spec });
+    await setStage(jobId, "generate-plan", { state: nextState }, "Plan stage complete → queued generate-build.");
+  } catch (err) {
+    await failManifestation(jobId, `Generate-plan stage failed: ${(err as Error).message}`);
+    throw err;
+  }
+}
+
+/**
+ * generate-build: builds code from the precomputed spec, runs fix passes,
+ * and persists the project. Gets its own serverless timeout budget.
+ */
+export async function runGenerateBuildStage(jobId: string, _baseUrl: string): Promise<void> {
+  const row = await loadManifestation(jobId);
+  if (!row) return;
+
+  try {
+    await setStage(jobId, "generate-build", { status: "running" }, "Building code from spec (Developer agent)...");
+    const state = row.state as StageState;
+    const spec = state.spec as import("@/lib/types").AppSpec | undefined;
+    if (!spec) throw new Error("generate-plan stage did not produce spec.");
+
     const agents = await loadAgents();
-    const result = await agents.runDeveloperAgent(finalPrompt, {
+    const result = await agents.runDeveloperAgent(state.finalPrompt as string, {
       mode: (state.mode as "web-app" | "mobile-app") || "web-app",
       multiFile: true,
       orgId: row.org_id ?? undefined,
+      precomputedSpec: spec,
     });
 
     const files = result.files;
@@ -201,8 +232,6 @@ export async function runGenerateStage(jobId: string, _baseUrl: string): Promise
     const projectDesc = result.description || row.prompt;
     const projectId = crypto.randomUUID();
 
-    // Early persistence: Save the project immediately after generation.
-    // This ensures the user gets their code even if polish agents fail.
     const initialProject = await saveProjectDB({
       id: projectId,
       files,
@@ -225,11 +254,20 @@ export async function runGenerateStage(jobId: string, _baseUrl: string): Promise
       projectDesc,
       projectId: initialProject.id,
     });
-    await setStage(jobId, "generate", { state: nextState, project_id: initialProject.id }, `Developer complete — ${Object.keys(files || {}).length} files generated. Project persisted.`);
+    await setStage(jobId, "generate-build", { state: nextState, project_id: initialProject.id }, `Developer complete — ${Object.keys(files || {}).length} files generated. Project persisted.`);
   } catch (err) {
-    await failManifestation(jobId, `Generate stage failed: ${(err as Error).message}`);
+    await failManifestation(jobId, `Generate-build stage failed: ${(err as Error).message}`);
     throw err;
   }
+}
+
+/**
+ * @deprecated Use runGeneratePlanStage + runGenerateBuildStage instead.
+ * Kept for backward compatibility with any direct callers.
+ */
+export async function runGenerateStage(jobId: string, baseUrl: string): Promise<void> {
+  await runGeneratePlanStage(jobId, baseUrl);
+  await runGenerateBuildStage(jobId, baseUrl);
 }
 
 export async function runPolishStage(jobId: string, _baseUrl: string): Promise<void> {
@@ -424,10 +462,12 @@ export async function runPersistStage(jobId: string, _baseUrl: string): Promise<
   }
 }
 
-export type StageName = "intent" | "generate" | "polish" | "persist";
+export type StageName = "intent" | "generate" | "generate-plan" | "generate-build" | "polish" | "persist";
 
 export const nextStage: Record<StageName, StageName | null> = {
-  intent: "generate",
+  intent: "generate-plan",
+  "generate-plan": "generate-build",
+  "generate-build": "polish",
   generate: "polish",
   polish: "persist",
   persist: null,

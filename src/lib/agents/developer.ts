@@ -1,4 +1,4 @@
-import { GenerationResult, Project, validateFilePaths } from "../types";
+import { GenerationResult, Project, validateFilePaths, AppSpec } from "../types";
 import { buildFromSpec, fixFiles, fixBrokenFiles, testFiles, planSpec } from "../llm";
 import { postProcessFiles } from "../processor";
 import { codeSandbox } from "../sandbox";
@@ -38,6 +38,7 @@ export async function runDeveloperAgent(
     generateInfra?: boolean;
     infraProvider?: "aws" | "gcp" | "azure";
     abTestGoal?: string;
+    precomputedSpec?: AppSpec;
   } = {}
 ): Promise<DeveloperResult> {
   const {
@@ -48,7 +49,8 @@ export async function runDeveloperAgent(
     fixPasses = 1,
     generateInfra = false,
     infraProvider = "aws",
-    abTestGoal
+    abTestGoal,
+    precomputedSpec,
   } = options;
 
   console.log(`[Developer] Initiating ${mode} generation for: ${prompt.slice(0, 50)}...`);
@@ -66,9 +68,11 @@ export async function runDeveloperAgent(
     });
   }
 
-  // Planning phase
-  const context = userId ? await memoryStore.recallContext(userId, sanitizedPrompt) : [];
-  const spec = await planSpec(sanitizedPrompt, context);
+  // Planning phase — skip if spec was precomputed in a prior stage
+  const spec = precomputedSpec ?? await (async () => {
+    const context = userId ? await memoryStore.recallContext(userId, sanitizedPrompt) : [];
+    return planSpec(sanitizedPrompt, context);
+  })();
   
   const description = spec.description;
   const integrations = spec.integrations;

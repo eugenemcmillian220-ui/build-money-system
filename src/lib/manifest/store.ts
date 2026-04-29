@@ -6,6 +6,8 @@ export type ManifestStage =
   | "queued"
   | "intent"
   | "generate"
+  | "generate-plan"
+  | "generate-build"
   | "polish"
   | "persist"
   | "complete"

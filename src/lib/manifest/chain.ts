@@ -15,7 +15,7 @@ import { after } from "next/server";
  */
 export function triggerStage(
   baseUrl: string,
-  stage: "intent" | "generate" | "polish" | "persist",
+  stage: "intent" | "generate" | "generate-plan" | "generate-build" | "polish" | "persist",
   jobId: string,
 ): void {
   after(async () => {
