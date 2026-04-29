@@ -4,14 +4,6 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { FileText, FolderOpen, Code2, Copy, Check, ChevronRight, ChevronDown } from "lucide-react";
 import Prism from "prismjs";
 import "prismjs/themes/prism-tomorrow.css";
-import "prismjs/components/prism-typescript";
-import "prismjs/components/prism-tsx";
-import "prismjs/components/prism-jsx";
-import "prismjs/components/prism-css";
-import "prismjs/components/prism-json";
-import "prismjs/components/prism-markdown";
-import "prismjs/components/prism-sql";
-import "prismjs/components/prism-bash";
 
 interface LiveCodePanelProps {
   files: Record<string, string> | null;
@@ -147,9 +139,23 @@ export function LiveCodePanel({ files, currentStage, spec }: LiveCodePanelProps)
   }, [filePaths, selectedFile]);
 
   useEffect(() => {
-    if (codeRef.current) {
-      Prism.highlightElement(codeRef.current);
+    let cancelled = false;
+    async function loadAndHighlight() {
+      // Load languages dynamically in dependency order (tsx depends on typescript)
+      await import("prismjs/components/prism-typescript");
+      await import("prismjs/components/prism-tsx");
+      await import("prismjs/components/prism-jsx");
+      await import("prismjs/components/prism-css");
+      await import("prismjs/components/prism-json");
+      await import("prismjs/components/prism-markdown");
+      await import("prismjs/components/prism-sql");
+      await import("prismjs/components/prism-bash");
+      if (!cancelled && codeRef.current) {
+        Prism.highlightElement(codeRef.current);
+      }
     }
+    loadAndHighlight();
+    return () => { cancelled = true; };
   }, [selectedFile, files]);
 
   const handleCopy = async () => {
