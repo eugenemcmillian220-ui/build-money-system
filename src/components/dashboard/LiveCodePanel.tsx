@@ -194,9 +194,13 @@ export function LiveCodePanel({ files, currentStage, spec }: LiveCodePanelProps)
           Live Code View
         </p>
         <p className="text-xs text-white/20 max-w-xs">
-          {currentStage === "queued" || currentStage === "intent" || currentStage === "generate-plan"
-            ? `${stageLabel}... Code will appear here once generation begins.`
-            : "Waiting for manifestation to start..."}
+          {currentStage === "error"
+            ? "Manifestation failed. Check the terminal for details."
+            : currentStage === "queued" || currentStage === "intent" || currentStage === "generate-plan"
+              ? `${stageLabel}... Code will appear here once generation begins.`
+              : currentStage === "generate-build" || currentStage === "generate"
+                ? "Generating code... Files will appear here shortly."
+                : "Waiting for manifestation to start..."}
         </p>
         {spec?.name && (
           <p className="text-xs text-brand-400/60 mt-4 font-bold italic">
@@ -204,8 +208,8 @@ export function LiveCodePanel({ files, currentStage, spec }: LiveCodePanelProps)
           </p>
         )}
         <div className="mt-6 flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-brand-500 animate-pulse" />
-          <span className="text-[10px] font-black uppercase tracking-widest text-brand-500/60">
+          <div className={`w-2 h-2 rounded-full ${currentStage === "error" ? "bg-red-500" : "bg-brand-500 animate-pulse"}`} />
+          <span className={`text-[10px] font-black uppercase tracking-widest ${currentStage === "error" ? "text-red-500/60" : "text-brand-500/60"}`}>
             {stageLabel}
           </span>
         </div>
