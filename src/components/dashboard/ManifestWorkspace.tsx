@@ -56,11 +56,15 @@ export function ManifestWorkspace({ orgId }: ManifestWorkspaceProps) {
       try {
         const statusRes = await fetch(`/api/manifest/status?id=${encodeURIComponent(jobId)}`);
         if (!statusRes.ok) {
-          if (statusRes.status === 404) break;
+          if (statusRes.status === 404) {
+            pollingRef.current = false;
+            throw new Error("Manifestation not found — it may have been deleted.");
+          }
           continue;
         }
         data = await statusRes.json();
-      } catch {
+      } catch (e) {
+        if (e instanceof Error && e.message.includes("not found")) throw e;
         // Transient network error — retry
         continue;
       }
