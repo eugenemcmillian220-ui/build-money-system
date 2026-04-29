@@ -47,9 +47,11 @@ function validateCsrf(request: NextRequest): NextResponse | null {
   // Only check mutations
   if (SAFE_METHODS.has(request.method)) return null;
 
-  // Skip CSRF for webhook routes (authenticated via signature)
+  // Skip CSRF for webhook routes (authenticated via signature) and
+  // internal worker routes (authenticated via X-Worker-Secret header)
   if (request.nextUrl.pathname.startsWith("/api/webhooks/") ||
-      request.nextUrl.pathname.startsWith("/api/billing/webhook")) {
+      request.nextUrl.pathname.startsWith("/api/billing/webhook") ||
+      request.nextUrl.pathname.startsWith("/api/manifest/worker")) {
     return null;
   }
 
