@@ -30,6 +30,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const state = (row.state ?? {}) as Record<string, unknown>;
+  const files = (state.files ?? null) as Record<string, string> | null;
+  const spec = state.spec as { name?: string; features?: string[] } | undefined;
+
   return NextResponse.json({
     id: row.id,
     status: row.status,
@@ -39,5 +43,7 @@ export async function GET(request: NextRequest) {
     result: row.result,
     error: row.error,
     updated_at: row.updated_at,
+    files: files ?? undefined,
+    spec: spec ? { name: spec.name, featureCount: spec.features?.length } : undefined,
   });
 }
