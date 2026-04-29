@@ -200,7 +200,7 @@ Rules:
         temperature: attempt === 1 ? 0.7 : 0.4,
         maxTokens: 4096,
         timeout: 180000,
-      });
+      }, { cache: false });
 
       const parsed = robustParseJson<AppSpecOutline>(content);
 
@@ -261,7 +261,7 @@ Rules:
         temperature: attempt === 1 ? 0.5 : 0.3,
         maxTokens: 4096,
         timeout: 180000,
-      });
+      }, { cache: false });
 
       const parsed = robustParseJson<AppSpecDetails>(content);
 
