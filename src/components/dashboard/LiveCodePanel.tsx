@@ -2,8 +2,23 @@
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import { FileText, FolderOpen, Code2, Copy, Check, ChevronRight, ChevronDown } from "lucide-react";
-import Prism from "prismjs";
-import "prismjs/themes/prism-tomorrow.css";
+import hljs from "highlight.js/lib/core";
+import typescript from "highlight.js/lib/languages/typescript";
+import xml from "highlight.js/lib/languages/xml";
+import css from "highlight.js/lib/languages/css";
+import json from "highlight.js/lib/languages/json";
+import markdown from "highlight.js/lib/languages/markdown";
+import sql from "highlight.js/lib/languages/sql";
+import bash from "highlight.js/lib/languages/bash";
+import "highlight.js/styles/github-dark.css";
+
+hljs.registerLanguage("typescript", typescript);
+hljs.registerLanguage("xml", xml);
+hljs.registerLanguage("css", css);
+hljs.registerLanguage("json", json);
+hljs.registerLanguage("markdown", markdown);
+hljs.registerLanguage("sql", sql);
+hljs.registerLanguage("bash", bash);
 
 interface LiveCodePanelProps {
   files: Record<string, string> | null;
@@ -47,10 +62,9 @@ function getLanguage(path: string): string {
   switch (ext) {
     case "ts":
     case "tsx":
-      return "tsx";
     case "js":
     case "jsx":
-      return "jsx";
+      return "typescript";
     case "css":
       return "css";
     case "json":
@@ -61,6 +75,8 @@ function getLanguage(path: string): string {
       return "sql";
     case "sh":
       return "bash";
+    case "html":
+      return "xml";
     default:
       return "typescript";
   }
@@ -139,20 +155,9 @@ export function LiveCodePanel({ files, currentStage, spec }: LiveCodePanelProps)
   }, [filePaths, selectedFile]);
 
   useEffect(() => {
-    // Load languages inside useEffect to guarantee dependency order at runtime.
-    // Static top-level imports break under Turbopack (prism-tsx extends typescript).
-    /* eslint-disable @typescript-eslint/no-require-imports */
-    require("prismjs/components/prism-typescript");
-    require("prismjs/components/prism-tsx");
-    require("prismjs/components/prism-jsx");
-    require("prismjs/components/prism-css");
-    require("prismjs/components/prism-json");
-    require("prismjs/components/prism-markdown");
-    require("prismjs/components/prism-sql");
-    require("prismjs/components/prism-bash");
-    /* eslint-enable @typescript-eslint/no-require-imports */
     if (codeRef.current) {
-      Prism.highlightElement(codeRef.current);
+      codeRef.current.removeAttribute("data-highlighted");
+      hljs.highlightElement(codeRef.current);
     }
   }, [selectedFile, files]);
 
@@ -260,7 +265,7 @@ export function LiveCodePanel({ files, currentStage, spec }: LiveCodePanelProps)
           <div className="flex-1 overflow-auto custom-scrollbar p-4">
             {fileContent ? (
               <pre className="text-xs leading-relaxed">
-                <code ref={codeRef} className={`language-${language}`}>
+                <code ref={codeRef} className={`language-${language} hljs`}>
                   {fileContent}
                 </code>
               </pre>
