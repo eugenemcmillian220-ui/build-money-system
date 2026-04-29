@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
+  runIntentClassifyStage,
+  runIntentScoutStage,
+  runIntentArchitectStage,
   runIntentStage,
   runGenerateStage,
   runGeneratePlanStage,
   runPlanOutlineStage,
   runPlanDetailsStage,
+  runGenerateBuildCodeStage,
+  runGenerateBuildFixStage,
   runGenerateBuildStage,
+  runPolishAnalyzeStage,
+  runPolishLaunchStage,
   runPolishStage,
   runPersistStage,
   nextStage,
@@ -20,12 +27,19 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 const RUNNERS: Record<StageName, (id: string, baseUrl: string) => Promise<void>> = {
+  "intent-classify": runIntentClassifyStage,
+  "intent-scout": runIntentScoutStage,
+  "intent-architect": runIntentArchitectStage,
   intent: runIntentStage,
   generate: runGenerateStage,
   "generate-plan": runGeneratePlanStage,
   "plan-outline": runPlanOutlineStage,
   "plan-details": runPlanDetailsStage,
+  "generate-build-code": runGenerateBuildCodeStage,
+  "generate-build-fix": runGenerateBuildFixStage,
   "generate-build": runGenerateBuildStage,
+  "polish-analyze": runPolishAnalyzeStage,
+  "polish-launch": runPolishLaunchStage,
   polish: runPolishStage,
   persist: runPersistStage,
 };

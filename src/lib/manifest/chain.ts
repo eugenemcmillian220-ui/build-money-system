@@ -1,5 +1,6 @@
 import "server-only";
 import { after } from "next/server";
+import type { StageName } from "./stages";
 
 /**
  * Fire-and-forget the next stage using Next.js's `after()` primitive so the
@@ -10,14 +11,61 @@ import { after } from "next/server";
  * runs in its own independent serverless invocation, so we don't need to wait
  * for it to complete.
  *
+ * In development (NODE_ENV !== "production"), the `after()` fetch times out
+ * because the worker route runs in the same process. Instead, we directly
+ * import and call the stage runner function, then chain to the next stage.
+ *
  * `WORKER_SHARED_SECRET` authenticates inter-stage calls so worker endpoints
  * cannot be invoked externally.
  */
 export function triggerStage(
   baseUrl: string,
-  stage: "intent" | "generate" | "generate-plan" | "plan-outline" | "plan-details" | "generate-build" | "polish" | "persist",
+  stage: StageName,
   jobId: string,
 ): void {
+  if (process.env.NODE_ENV !== "production") {
+    after(async () => {
+      try {
+        const stages = await import("./stages");
+        const { nextStage } = stages;
+
+        const RUNNERS: Record<StageName, (id: string, base: string) => Promise<void>> = {
+          "intent-classify": stages.runIntentClassifyStage,
+          "intent-scout": stages.runIntentScoutStage,
+          "intent-architect": stages.runIntentArchitectStage,
+          intent: stages.runIntentStage,
+          generate: stages.runGenerateStage,
+          "generate-plan": stages.runGeneratePlanStage,
+          "plan-outline": stages.runPlanOutlineStage,
+          "plan-details": stages.runPlanDetailsStage,
+          "generate-build-code": stages.runGenerateBuildCodeStage,
+          "generate-build-fix": stages.runGenerateBuildFixStage,
+          "generate-build": stages.runGenerateBuildStage,
+          "polish-analyze": stages.runPolishAnalyzeStage,
+          "polish-launch": stages.runPolishLaunchStage,
+          polish: stages.runPolishStage,
+          persist: stages.runPersistStage,
+        };
+
+        const runner = RUNNERS[stage];
+        if (!runner) {
+          console.warn(`[manifest/chain] unknown stage "${stage}" for job ${jobId}`);
+          return;
+        }
+
+        await runner(jobId, baseUrl);
+
+        const next = nextStage[stage];
+        if (next) {
+          triggerStage(baseUrl, next, jobId);
+        }
+      } catch (err) {
+        console.error(`[manifest/chain] dev runner ${stage} failed for job ${jobId}:`, err);
+      }
+    });
+    return;
+  }
+
   after(async () => {
     try {
       const res = await fetch(`${baseUrl}/api/manifest/worker?stage=${stage}`, {

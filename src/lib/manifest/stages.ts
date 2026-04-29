@@ -60,12 +60,16 @@ function mergeState(row: ManifestationRow, patch: StageState): StageState {
   return { ...(row.state ?? {}), ...patch };
 }
 
-export async function runIntentStage(jobId: string, baseUrl: string): Promise<void> {
+/**
+ * intent-classify: Runs classifier agent + credit reservation. Fast (~10-30s).
+ * Gets its own 300s serverless budget.
+ */
+export async function runIntentClassifyStage(jobId: string, _baseUrl: string): Promise<void> {
   const row = await loadManifestation(jobId);
   if (!row) return;
 
   try {
-    await setStage(jobId, "intent", { status: "running" }, "Decoding intent (Classifier + Scout + Architect)...");
+    await setStage(jobId, "intent-classify", { status: "running" }, "Classifying intent & reserving credits...");
     const agents = await loadAgents();
     const opts = (row.options ?? {}) as { mode?: string; protocol?: string; theme?: string; primaryColor?: string };
 
@@ -83,7 +87,6 @@ export async function runIntentStage(jobId: string, baseUrl: string): Promise<vo
 
     let creditsReserved = false;
     if (row.org_id) {
-      // Check if this org is an admin account — admins bypass credit checks
       const { data: orgData } = await supabaseAdmin
         .from("organizations")
         .select("billing_tier")
@@ -104,9 +107,6 @@ export async function runIntentStage(jobId: string, baseUrl: string): Promise<vo
         }
       }
       creditsReserved = !isAdmin;
-      // Persist reservation BEFORE running subsequent agents. If Scout/Architect
-      // (or anything else below) throws, failManifestation can then read
-      // creditsReserved + dynamicCost from DB state and refund properly.
       await supabaseAdmin
         .from("manifestations")
         .update({
@@ -121,6 +121,34 @@ export async function runIntentStage(jobId: string, baseUrl: string): Promise<vo
       }
     }
 
+    const nextState = mergeState(row, {
+      mode,
+      protocol,
+      dynamicCost,
+      creditsReserved,
+    });
+    await setStage(jobId, "intent-classify", { state: nextState }, "Classification complete → scouting strategy...");
+  } catch (err) {
+    await failManifestation(jobId, `Intent-classify stage failed: ${(err as Error).message}`);
+    throw err;
+  }
+}
+
+/**
+ * intent-scout: Runs Scout agent to draft strategy. Moderate (~30-60s).
+ * Gets its own 300s serverless budget.
+ */
+export async function runIntentScoutStage(jobId: string, _baseUrl: string): Promise<void> {
+  const row = await loadManifestation(jobId);
+  if (!row) return;
+
+  try {
+    await setStage(jobId, "intent-scout", { status: "running" }, "Scouting strategy & market analysis...");
+    const agents = await loadAgents();
+    const state = row.state as StageState;
+    const protocol = state.protocol as string;
+    if (!protocol) throw new Error("Intent-classify stage did not produce protocol.");
+
     const strategy = await traced(
       "agent.scout",
       { "agent.role": "Scout" },
@@ -128,12 +156,41 @@ export async function runIntentStage(jobId: string, baseUrl: string): Promise<vo
     );
     await appendLog(jobId, "info", "Scout complete — strategy drafted.");
 
+    const nextState = mergeState(row, {
+      strategyMarkdown: strategy.strategyMarkdown,
+    });
+    await setStage(jobId, "intent-scout", { state: nextState }, "Strategy drafted → architecting...");
+  } catch (err) {
+    await failManifestation(jobId, `Intent-scout stage failed: ${(err as Error).message}`);
+    throw err;
+  }
+}
+
+/**
+ * intent-architect: Runs Architect agent to produce architecture plan + finalPrompt.
+ * Heaviest sub-stage (~3-5 min). Gets its own 300s serverless budget.
+ */
+export async function runIntentArchitectStage(jobId: string, _baseUrl: string): Promise<void> {
+  const row = await loadManifestation(jobId);
+  if (!row) return;
+
+  try {
+    await setStage(jobId, "intent-architect", { status: "running" }, "Designing architecture plan...");
+    const agents = await loadAgents();
+    const state = row.state as StageState;
+    const mode = state.mode as string;
+    const protocol = state.protocol as string;
+    const strategyMarkdown = state.strategyMarkdown as string;
+    if (!strategyMarkdown) throw new Error("Intent-scout stage did not produce strategyMarkdown.");
+
+    const opts = (row.options ?? {}) as { theme?: string; primaryColor?: string };
+
     const architecture = await traced(
       "agent.architect",
       { "agent.role": "Architect" },
-      () => agents.runArchitectAgent(row.prompt, strategy.strategyMarkdown),
+      () => agents.runArchitectAgent(row.prompt, strategyMarkdown),
     );
-
+    await appendLog(jobId, "info", "Architect complete — structure planned.");
 
     const visualTokens = {
       theme: opts.theme || "dark",
@@ -150,7 +207,7 @@ Protocol: ${protocol.toUpperCase()}
 Visual Theme: ${visualTokens.theme} (Primary: ${visualTokens.primaryColor})
 
 STRATEGY:
-${strategy.strategyMarkdown}
+${strategyMarkdown}
 
 ARCHITECTURE PLAN:
 ${architecture.coreLogicPlan}
@@ -161,22 +218,25 @@ USER REQUEST: "${row.prompt}"
 `;
 
     const nextState = mergeState(row, {
-      mode,
-      protocol,
-      dynamicCost,
-      creditsReserved,
-      strategyMarkdown: strategy.strategyMarkdown,
       architecture,
       visualTokens,
       finalPrompt,
     });
-
-    await setStage(jobId, "intent", { state: nextState }, "Intent stage complete → queued generate.");
-    void (baseUrl);
+    await setStage(jobId, "intent-architect", { state: nextState }, "Architecture complete → planning outline...");
   } catch (err) {
-    await failManifestation(jobId, `Intent stage failed: ${(err as Error).message}`);
+    await failManifestation(jobId, `Intent-architect stage failed: ${(err as Error).message}`);
     throw err;
   }
+}
+
+/**
+ * @deprecated Use runIntentClassifyStage + runIntentScoutStage + runIntentArchitectStage instead.
+ * Kept for backward compatibility with direct callers.
+ */
+export async function runIntentStage(jobId: string, baseUrl: string): Promise<void> {
+  await runIntentClassifyStage(jobId, baseUrl);
+  await runIntentScoutStage(jobId, baseUrl);
+  await runIntentArchitectStage(jobId, baseUrl);
 }
 
 /**
@@ -266,15 +326,19 @@ export async function runGeneratePlanStage(jobId: string, _baseUrl: string): Pro
  * generate-build: builds code from the precomputed spec, runs fix passes,
  * and persists the project. Gets its own serverless timeout budget.
  */
-export async function runGenerateBuildStage(jobId: string, _baseUrl: string): Promise<void> {
+/**
+ * generate-build-code: Runs Developer agent (planSpec is already done, so this
+ * builds code from the precomputed spec). Gets its own 300s serverless budget.
+ */
+export async function runGenerateBuildCodeStage(jobId: string, _baseUrl: string): Promise<void> {
   const row = await loadManifestation(jobId);
   if (!row) return;
 
   try {
-    await setStage(jobId, "generate-build", { status: "running" }, "Building code from spec (Developer agent)...");
+    await setStage(jobId, "generate-build-code", { status: "running" }, "Building code from spec (Developer agent)...");
     const state = row.state as StageState;
     const spec = state.spec as import("@/lib/types").AppSpec | undefined;
-    if (!spec) throw new Error("generate-plan stage did not produce spec.");
+    if (!spec) throw new Error("Plan stage did not produce spec.");
 
     const agents = await loadAgents();
     const result = await agents.runDeveloperAgent(state.finalPrompt as string, {
@@ -287,6 +351,66 @@ export async function runGenerateBuildStage(jobId: string, _baseUrl: string): Pr
     const files = result.files;
     const projectName = (result.description || "Untitled").split("\n")[0].slice(0, 100);
     const projectDesc = result.description || row.prompt;
+    await appendLog(jobId, "info", `Developer complete — ${Object.keys(files || {}).length} files generated.`);
+
+    const nextState = mergeState(row, {
+      genData: result,
+      files,
+      projectName,
+      projectDesc,
+    });
+    await setStage(jobId, "generate-build-code", { state: nextState }, "Code generated → running fix passes...");
+  } catch (err) {
+    await failManifestation(jobId, `Generate-build-code stage failed: ${(err as Error).message}`);
+    throw err;
+  }
+}
+
+/**
+ * generate-build-fix: Runs fix passes + sandbox verification, then persists
+ * the initial project. Gets its own 300s serverless budget.
+ */
+export async function runGenerateBuildFixStage(jobId: string, _baseUrl: string): Promise<void> {
+  const row = await loadManifestation(jobId);
+  if (!row) return;
+
+  try {
+    await setStage(jobId, "generate-build-fix", { status: "running" }, "Running fix passes & sandbox verification...");
+    const state = row.state as StageState;
+    let files = state.files as Record<string, string>;
+    const genData = state.genData as Record<string, unknown>;
+    if (!files) throw new Error("generate-build-code stage did not produce files.");
+
+    const { testFiles, fixFiles, fixBrokenFiles } = await import("@/lib/llm");
+    const { codeSandbox } = await import("@/lib/sandbox");
+
+    for (let pass = 1; pass <= 1; pass++) {
+      const testResult = await testFiles(files);
+      if (testResult.success) break;
+
+      if (testResult.errors) {
+        const errorText = testResult.errors.join("\n");
+        const brokenPaths = testResult.errors
+          .map(e => e.split(":")[0].trim())
+          .filter(p => p.endsWith(".tsx") || p.endsWith(".ts"));
+
+        if (brokenPaths.length > 0) {
+          files = await fixBrokenFiles(files, brokenPaths, testResult.errors);
+        } else {
+          files = await fixFiles(files, errorText);
+        }
+      }
+    }
+
+    const sandboxResult = await codeSandbox.verifyProject(files);
+    if (!sandboxResult.success) {
+      const errors = [...sandboxResult.typeErrors, ...sandboxResult.runtimeErrors];
+      const brokenPaths = errors.map(e => e.split(":")[0].trim()).filter(p => !!p);
+      files = await fixBrokenFiles(files, brokenPaths.length > 0 ? brokenPaths : Object.keys(files), errors);
+    }
+
+    const projectName = state.projectName as string;
+    const projectDesc = state.projectDesc as string || row.prompt;
     const projectId = crypto.randomUUID();
 
     const initialProject = await saveProjectDB({
@@ -304,18 +428,29 @@ export async function runGenerateBuildStage(jobId: string, _baseUrl: string): Pr
       },
     } as Project);
 
+    await appendLog(jobId, "info", `Fix passes complete. Project persisted with ${Object.keys(files).length} files.`);
+
     const nextState = mergeState(row, {
-      genData: result,
+      genData,
       files,
       projectName,
       projectDesc,
       projectId: initialProject.id,
     });
-    await setStage(jobId, "generate-build", { state: nextState, project_id: initialProject.id }, `Developer complete — ${Object.keys(files || {}).length} files generated. Project persisted.`);
+    await setStage(jobId, "generate-build-fix", { state: nextState, project_id: initialProject.id }, "Build complete → polishing...");
   } catch (err) {
-    await failManifestation(jobId, `Generate-build stage failed: ${(err as Error).message}`);
+    await failManifestation(jobId, `Generate-build-fix stage failed: ${(err as Error).message}`);
     throw err;
   }
+}
+
+/**
+ * @deprecated Use runGenerateBuildCodeStage + runGenerateBuildFixStage instead.
+ * Kept for backward compatibility.
+ */
+export async function runGenerateBuildStage(jobId: string, baseUrl: string): Promise<void> {
+  await runGenerateBuildCodeStage(jobId, baseUrl);
+  await runGenerateBuildFixStage(jobId, baseUrl);
 }
 
 /**
@@ -327,12 +462,17 @@ export async function runGenerateStage(jobId: string, baseUrl: string): Promise<
   await runGenerateBuildStage(jobId, baseUrl);
 }
 
-export async function runPolishStage(jobId: string, _baseUrl: string): Promise<void> {
+/**
+ * polish-analyze: Runs the first batch of independent agents in parallel
+ * (Chronicler, Security, Economy, Legal, Sentinel, Phantom, Broker).
+ * Gets its own 300s serverless budget.
+ */
+export async function runPolishAnalyzeStage(jobId: string, _baseUrl: string): Promise<void> {
   const row = await loadManifestation(jobId);
   if (!row) return;
 
   try {
-    await setStage(jobId, "polish", { status: "running" }, "Running post-gen agents (Chronicler + Security + Economy + Legal + Herald)...");
+    await setStage(jobId, "polish-analyze", { status: "running" }, "Running analysis agents (Chronicler + Security + Economy + Legal)...");
     const agents = await loadAgents();
     const state = row.state as StageState;
     const files = state.files as Record<string, string>;
@@ -340,11 +480,8 @@ export async function runPolishStage(jobId: string, _baseUrl: string): Promise<v
     const projectDesc = state.projectDesc as string;
     const protocol = state.protocol as string;
     const mode = state.mode as string;
-    const strategyMarkdown = state.strategyMarkdown as string;
-    const genData = state.genData as Record<string, unknown>;
     const isElite = mode === "elite";
 
-    // Parallelize independent agents
     const [docs, security, economy, legal, sentinel, simulation, broker] = await Promise.all([
       traced("agent.chronicler", { "agent.role": "Chronicler" }, () => agents.runChroniclerAgent(files)),
       traced("agent.security", { "agent.role": "Security" }, () => agents.runSecurityAudit(files)),
@@ -383,14 +520,52 @@ export async function runPolishStage(jobId: string, _baseUrl: string): Promise<v
       })()
     ]);
 
-    // Herald and Overseer depend on Chronicler (docs)
+    await appendLog(jobId, "info", "Analysis agents complete — documented, audited, & analyzed.");
+
+    const nextState = mergeState(row, {
+      docs,
+      security,
+      economy,
+      legal,
+      sentinel,
+      simulation,
+      broker,
+    });
+    await setStage(jobId, "polish-analyze", { state: nextState }, "Analysis complete → launching...");
+  } catch (err) {
+    await failManifestation(jobId, `Polish-analyze stage failed: ${(err as Error).message}`);
+    throw err;
+  }
+}
+
+/**
+ * polish-launch: Runs Herald + Overseer (depend on Chronicler docs from
+ * polish-analyze). Gets its own 300s serverless budget.
+ */
+export async function runPolishLaunchStage(jobId: string, _baseUrl: string): Promise<void> {
+  const row = await loadManifestation(jobId);
+  if (!row) return;
+
+  try {
+    await setStage(jobId, "polish-launch", { status: "running" }, "Generating launch assets (Herald + Overseer)...");
+    const agents = await loadAgents();
+    const state = row.state as StageState;
+    const files = state.files as Record<string, string>;
+    const projectDesc = state.projectDesc as string;
+    const mode = state.mode as string;
+    const protocol = state.protocol as string;
+    const strategyMarkdown = state.strategyMarkdown as string;
+    const docs = state.docs as Record<string, unknown>;
+    const genData = state.genData as Record<string, unknown>;
+    const isElite = mode === "elite";
+
     const [launch, qaResult] = await Promise.all([
       traced("agent.herald", { "agent.role": "Herald" }, () => agents.runHerald({
         description: projectDesc,
         files,
         id: "temp",
         createdAt: new Date().toISOString(),
-        manifest: { strategy: strategyMarkdown, docs: docs as unknown as Record<string, unknown>, mode, protocol },
+        manifest: { strategy: strategyMarkdown, docs, mode, protocol },
       } as unknown as Project)),
       isElite
         ? traced("agent.overseer", { "agent.role": "Overseer" }, () => agents.runOverseerAgent({
@@ -403,22 +578,26 @@ export async function runPolishStage(jobId: string, _baseUrl: string): Promise<v
         : Promise.resolve(null)
     ]);
 
+    await appendLog(jobId, "info", "Launch assets generated.");
+
     const nextState = mergeState(row, {
-      docs,
-      security,
-      economy,
-      legal,
-      sentinel,
-      simulation,
       launch,
-      broker,
       qaResult,
     });
-    await setStage(jobId, "polish", { state: nextState }, "Post-gen polish complete.");
+    await setStage(jobId, "polish-launch", { state: nextState }, "Polish complete → persisting...");
   } catch (err) {
-    await failManifestation(jobId, `Polish stage failed: ${(err as Error).message}`);
+    await failManifestation(jobId, `Polish-launch stage failed: ${(err as Error).message}`);
     throw err;
   }
+}
+
+/**
+ * @deprecated Use runPolishAnalyzeStage + runPolishLaunchStage instead.
+ * Kept for backward compatibility.
+ */
+export async function runPolishStage(jobId: string, baseUrl: string): Promise<void> {
+  await runPolishAnalyzeStage(jobId, baseUrl);
+  await runPolishLaunchStage(jobId, baseUrl);
 }
 
 export async function runPersistStage(jobId: string, _baseUrl: string): Promise<void> {
@@ -519,15 +698,37 @@ export async function runPersistStage(jobId: string, _baseUrl: string): Promise<
   }
 }
 
-export type StageName = "intent" | "generate" | "generate-plan" | "plan-outline" | "plan-details" | "generate-build" | "polish" | "persist";
+export type StageName =
+  | "intent-classify"
+  | "intent-scout"
+  | "intent-architect"
+  | "intent"
+  | "generate"
+  | "generate-plan"
+  | "plan-outline"
+  | "plan-details"
+  | "generate-build-code"
+  | "generate-build-fix"
+  | "generate-build"
+  | "polish-analyze"
+  | "polish-launch"
+  | "polish"
+  | "persist";
 
 export const nextStage: Record<StageName, StageName | null> = {
+  "intent-classify": "intent-scout",
+  "intent-scout": "intent-architect",
+  "intent-architect": "plan-outline",
   intent: "plan-outline",
   "plan-outline": "plan-details",
-  "plan-details": "generate-build",
-  "generate-plan": "generate-build",
-  "generate-build": "polish",
-  generate: "polish",
+  "plan-details": "generate-build-code",
+  "generate-plan": "generate-build-code",
+  "generate-build-code": "generate-build-fix",
+  "generate-build-fix": "polish-analyze",
+  "generate-build": "polish-analyze",
+  generate: "polish-analyze",
+  "polish-analyze": "polish-launch",
+  "polish-launch": "persist",
   polish: "persist",
   persist: null,
 };

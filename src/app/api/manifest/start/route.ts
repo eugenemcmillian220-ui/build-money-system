@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
   });
 
   const baseUrl = new URL(request.url).origin;
-  triggerStage(baseUrl, "intent", row.id);
+  triggerStage(baseUrl, "intent-classify", row.id);
 
   return NextResponse.json({ jobId: row.id, status: row.status });
 }
