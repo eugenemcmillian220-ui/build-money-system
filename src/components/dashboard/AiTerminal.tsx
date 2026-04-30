@@ -2,7 +2,10 @@
 "use client";
 
 // DA-044 FIX: Command allowlist for terminal
-const ALLOWED_COMMANDS = new Set(['help', 'status', 'balance', 'generate', 'deploy', 'agents', 'ls', 'clear']);
+const ALLOWED_COMMANDS = new Set([
+  'help', 'status', 'balance', 'generate', 'deploy', 'agents', 'ls', 'clear',
+  'deals', 'negotiate', 'scout', 'manifest', 'test', 'restart',
+]);
 function sanitizeCommand(cmd: string): string {
   const base = cmd.trim().split(/\s+/)[0].toLowerCase();
   if (!ALLOWED_COMMANDS.has(base)) return 'help'; // Default to safe command
