@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Activity, AlertCircle, BarChart3, Clock, LayoutGrid, Zap } from "lucide-react";
 import { getErrorClusters, resolveCluster } from "@/lib/actions/pulse-actions";
 import type { ErrorCluster } from "@/lib/actions/pulse-actions.types";
-import { platformPulse } from "@/lib/pulse";
+
 
 export function PulseDashboard() {
   const [clusters, setClusters] = useState<ErrorCluster[]>([]);
@@ -131,7 +131,7 @@ export function PulseDashboard() {
               { label: "Design Synthesis", count: 8420, percent: 70 },
               { label: "Schema Forging", count: 5210, percent: 43 },
               { label: "Manifestation", count: 1240, percent: 10 },
-            ].map((step, i) => (
+            ].map((step) => (
               <div key={step.label} className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-zinc-400">{step.label}</span>

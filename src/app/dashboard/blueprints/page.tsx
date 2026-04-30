@@ -3,7 +3,7 @@
 import { BlueprintGallery } from "@/components/dashboard/BlueprintGallery";
 import { Blueprint } from "@/lib/blueprints";
 import { useRouter } from "next/navigation";
-import { Book, Rocket, Info } from "lucide-react";
+import { Book, Info } from "lucide-react";
 
 export default function BlueprintsPage() {
   const router = useRouter();

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { runTrendScout } from "@/lib/agents/trend-hunter";
 import { traced } from "@/lib/telemetry";
 import { requireAuth, isAuthError } from "@/lib/api-auth";

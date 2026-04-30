@@ -13,7 +13,7 @@ import {
   type ManifestationRow,
 } from "./store";
 
-const AGENT_THROTTLE_MS = 100;
+const _AGENT_THROTTLE_MS = 100;
 
 async function loadAgents() {
   const [

@@ -1,3 +1,8 @@
+export const dynamic = "force-dynamic";
+import { NextRequest, NextResponse } from 'next/server';
+import { aiDebugger } from '@/lib/ai-debugger';
+import { security, SecurityError } from '@/lib/security';
+import { requireAuth, isAuthError } from "@/lib/api-auth";
 
 // DA-025 FIX: Sanitize file paths to prevent traversal
 function sanitizeFilePaths(files: Record<string, unknown>): Record<string, unknown> {
@@ -10,12 +15,6 @@ function sanitizeFilePaths(files: Record<string, unknown>): Record<string, unkno
   }
   return sanitized;
 }
-
-export const dynamic = "force-dynamic";
-import { NextRequest, NextResponse } from 'next/server';
-import { aiDebugger } from '@/lib/ai-debugger';
-import { security, SecurityError } from '@/lib/security';
-import { requireAuth, isAuthError } from "@/lib/api-auth";
 
 export async function POST(req: NextRequest) {
   // DA-003 FIX: Block in production
@@ -40,8 +39,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'files object is required' }, { status: 400 });
     }
 
-    // Analyze project for issues
-    const reports = aiDebugger.analyzeProject(files);
+    // Analyze project for issues (DA-025: sanitize paths first)
+    const sanitized = sanitizeFilePaths(files) as Record<string, string>;
+    const reports = aiDebugger.analyzeProject(sanitized);
 
     return NextResponse.json({ success: true, data: { reports } });
   } catch (error) {

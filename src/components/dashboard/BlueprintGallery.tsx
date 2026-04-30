@@ -1,7 +1,7 @@
 "use client";
 
 import { Blueprint, SOVEREIGN_BLUEPRINTS } from "@/lib/blueprints";
-import { Zap, Rocket, Box, ShieldCheck, ChevronRight } from "lucide-react";
+import { Box, ChevronRight } from "lucide-react";
 
 interface BlueprintGalleryProps {
   onSelect: (blueprint: Blueprint) => void;

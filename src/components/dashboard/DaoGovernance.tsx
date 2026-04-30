@@ -10,7 +10,6 @@ import {
   ShieldCheck,
   Users,
   Plus,
-  ChevronRight,
   Vote,
   Clock,
   CheckCircle2,

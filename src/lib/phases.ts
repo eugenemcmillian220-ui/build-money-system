@@ -1,9 +1,9 @@
 import type { LucideIcon } from "lucide-react";
 import { 
   Zap, Database, Rocket, ShieldCheck, TrendingUp, BarChart3, 
-  Activity, Box, Eye, CreditCard, Globe, Lock, Users, 
-  Handshake, Brain, Merge, FileText, Search, Code2, 
-  Cpu, Terminal, Gavel, Network, Sparkles, Link2
+  Activity, Box, Eye, CreditCard, Globe, Lock, 
+  Handshake, Brain, Merge, Search, 
+  Gavel, Network, Sparkles, Link2
 } from "lucide-react";
 
 export interface PhaseTool {

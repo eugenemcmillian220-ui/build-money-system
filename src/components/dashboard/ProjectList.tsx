@@ -6,12 +6,10 @@ import {
 
   Package, 
   ExternalLink, 
-  Code2, 
   Trash2, 
   TrendingUp,
   BarChart3,
-  ShieldCheck,
-  Palette
+  ShieldCheck
 } from "lucide-react";
 
 interface ProjectListProps {

@@ -6,7 +6,7 @@ import { isGitHubAvailable, exportToGitHub } from "@/lib/github";
 import { loadProjectDB, isDatabaseAvailable, updateProjectGitHubRepo } from "@/lib/supabase/db";
 import { loadProject } from "@/lib/memory";
 import { z } from "zod";
-import { requireAuth, isAuthError } from "@/lib/api-auth";
+
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
