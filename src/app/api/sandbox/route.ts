@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { codeSandbox } from "@/lib/sandbox";
 import { z } from "zod";
-import { requireAuth, isAuthError } from "@/lib/api-auth";
+
 
 export const runtime = "nodejs";
 export const maxDuration = 60;

@@ -173,7 +173,7 @@ export class DaoEngine {
 
     // 4. Update proposal vote counts via RPC (handles auto-approve/reject)
     const incrementField = params.vote === "for" ? "votes_for" : "votes_against";
-    const { data: updatedProposal, error: updateError } = await supabaseAdmin.rpc(
+    const { error: updateError } = await supabaseAdmin.rpc(
       "increment_proposal_vote",
       {
         p_proposal_id: params.proposalId,

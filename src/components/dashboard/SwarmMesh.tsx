@@ -6,7 +6,6 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   Globe2,
-  Network,
   ArrowRightLeft,
   Brain,
   Shield,
@@ -19,7 +18,6 @@ import {
   XCircle,
   Loader2,
   Link2,
-  Eye,
   Send,
   Handshake,
   Radio,
@@ -27,7 +25,7 @@ import {
   BookOpen,
   FileCode2,
 } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";

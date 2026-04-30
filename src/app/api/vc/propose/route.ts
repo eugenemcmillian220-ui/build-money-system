@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 import { vcAgent } from "@/lib/vc-agent";
 import { z } from "zod";
-import { requireAuth, isAuthError } from "@/lib/api-auth";
+
 
 export const runtime = "nodejs";
 
@@ -12,11 +12,13 @@ const proposeSchema = z.object({
 // GET: Scout for investment opportunities in an organization
 export async function GET(request: Request): Promise<Response> {
   const { searchParams } = new URL(request.url);
-  const orgId = searchParams.get("orgId");
+  const rawOrgId = searchParams.get("orgId");
 
-  if (!orgId) {
-    return Response.json({ error: "orgId is required" }, { status: 400 });
+  const parsed = proposeSchema.safeParse({ orgId: rawOrgId });
+  if (!parsed.success) {
+    return Response.json({ error: "Valid orgId is required" }, { status: 400 });
   }
+  const orgId = parsed.data.orgId;
 
   try {
     const proposals = await vcAgent.evaluateOrganization(orgId);

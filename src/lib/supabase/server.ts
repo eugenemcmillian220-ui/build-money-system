@@ -6,7 +6,7 @@ export async function createClient() {
   let cookieStore: Awaited<ReturnType<typeof cookies>> | undefined;
   try {
     cookieStore = await cookies();
-  } catch (e) {
+  } catch {
     // Background task or non-request context — cookies() is unavailable
   }
 

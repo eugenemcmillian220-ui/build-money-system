@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
   if (isAuthError(authResult)) return authResult;
 
   try {
-    const { orgId, action, projectId } = await request.json();
+    const { orgId } = await request.json();
 
     if (!orgId) return NextResponse.json({ error: "orgId required" }, { status: 400 });
 

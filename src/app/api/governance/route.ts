@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 import { governance } from "@/lib/governance";
 import { z } from "zod";
-import { requireAuth, isAuthError } from "@/lib/api-auth";
+
 
 export const runtime = "nodejs";
 

@@ -1,11 +1,8 @@
 export const dynamic = "force-dynamic";
-import { marketplace } from "@/lib/marketplace";
 import { createClient } from "@/lib/supabase/server";
 import { z } from "zod";
 
 export const runtime = "nodejs";
-
-import { requireAuth, isAuthError } from "@/lib/api-auth";
 
 const skillSchema = z.object({
   name: z.string().min(1),

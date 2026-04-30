@@ -1,6 +1,6 @@
 "use client";
 
-import { Book, ShieldCheck, Zap, TrendingUp, Users, Lock, Globe } from "lucide-react";
+import { Book, ShieldCheck, Zap, TrendingUp, Users } from "lucide-react";
 
 export default function GuidePage() {
   const sections = [

@@ -78,7 +78,7 @@ export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
     e.preventDefault();
     if (!input.trim() || isProcessing) return;
 
-    const cmd = input.trim();
+    const cmd = sanitizeCommand(input.trim());
     setInput("");
     addLine("input", cmd);
 

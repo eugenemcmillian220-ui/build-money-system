@@ -4,7 +4,7 @@ import { callLLM, cleanJson, generateEmbedding } from "./llm";
 
 
 // DA-010 FIX: Input sanitization for LLM calls
-function sanitizeForLLM(input: string): string {
+function _sanitizeForLLM(input: string): string {
   // Strip common injection patterns
   const patterns = [
     /ignore (?:all )?(?:previous |above )?instructions/gi,
@@ -23,7 +23,7 @@ function sanitizeForLLM(input: string): string {
 }
 
 // DA-010 FIX: Strip PII before sending to LLM
-function stripPII(text: string): string {
+function _stripPII(text: string): string {
   return text
     .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '[EMAIL]')
     .replace(/\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/g, '[PHONE]')

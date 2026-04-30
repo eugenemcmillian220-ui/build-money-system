@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { loadProjectDB, saveProjectDB } from "@/lib/supabase/db";
-import { callLLM, cleanJson, parseMultiFileJson } from "@/lib/llm";
+import { callLLM, parseMultiFileJson } from "@/lib/llm";
 import { traced } from "@/lib/telemetry";
 import { requireAuth, isAuthError } from "@/lib/api-auth";
 
