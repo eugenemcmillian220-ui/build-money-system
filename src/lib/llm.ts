@@ -162,7 +162,7 @@ export async function generateEmbedding(text: string): Promise<number[]> {
  */
 export type AppSpecOutline = Pick<AppSpec, "name" | "description" | "features" | "pages" | "integrations" | "visuals">;
 
-const MAX_PLAN_RETRIES = 2;
+const MAX_PLAN_RETRIES = 1;
 
 export async function planSpecOutline(prompt: string, context: MemoryContext[] = []): Promise<AppSpecOutline> {
   const contextText =
@@ -199,7 +199,7 @@ Rules:
       const content = await callLLM(messages, {
         temperature: attempt === 1 ? 0.7 : 0.4,
         maxTokens: 4096,
-        timeout: 180000,
+        timeout: 90000,
       }, { cache: false });
 
       const parsed = robustParseJson<AppSpecOutline>(content);
@@ -260,7 +260,7 @@ Rules:
       const content = await callLLM(messages, {
         temperature: attempt === 1 ? 0.5 : 0.3,
         maxTokens: 4096,
-        timeout: 180000,
+        timeout: 90000,
       }, { cache: false });
 
       const parsed = robustParseJson<AppSpecDetails>(content);

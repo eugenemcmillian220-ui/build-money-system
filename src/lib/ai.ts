@@ -86,7 +86,7 @@ export async function aiComplete(options: AIOptions): Promise<AIResult> {
     : allModels;
 
   let lastError: Error | null = null;
-  const MAX_TIMEOUT_RETRIES = 2;
+  const MAX_TIMEOUT_RETRIES = 1;
   let timeoutCount = 0;
 
   for (const model of modelsToTry) {
