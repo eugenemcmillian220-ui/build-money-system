@@ -43,7 +43,7 @@ Return ONLY a JSON object:
       { role: "user" as const, content: `Current Project Files:\n${filesSummary}\n\nGoal: ${goal}\n\nGenerate Variant B:` }
     ];
 
-    const response = await callLLM(messages, { temperature: 0.7, maxTokens: 16384, timeout: 180000 });
+    const response = await callLLM(messages, { temperature: 0.7, maxTokens: 16384, timeout: 90000 });
     const result = JSON.parse(cleanJson(response));
 
     return {
