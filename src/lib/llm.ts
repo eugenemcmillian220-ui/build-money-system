@@ -317,12 +317,12 @@ Rules:
     { role: "user", content: `App Specification:\n${specJson}\n\nGenerate all files:` },
   ];
 
-  const MAX_BUILD_RETRIES = 2;
+  const MAX_BUILD_RETRIES = 1;
   let lastError: Error | null = null;
 
   for (let attempt = 1; attempt <= MAX_BUILD_RETRIES + 1; attempt++) {
     try {
-      const content = await callLLM(messages, { temperature: 0.7, maxTokens: 16384, timeout: 180000 });
+      const content = await callLLM(messages, { temperature: 0.7, maxTokens: 16384, timeout: 90000 });
       const parsed = parseMultiFileJson(content);
       return parsed.files;
     } catch (e) {
@@ -367,7 +367,7 @@ Rules:
     { role: "user", content: `Current Files:\n${filesList}${errorContext}\n\nReturn fixed files:` },
   ];
 
-  const content = await callLLM(messages, { temperature: 0.2, maxTokens: 16384, timeout: 180000 });
+  const content = await callLLM(messages, { temperature: 0.2, maxTokens: 16384, timeout: 90000 });
   const parsed = parseMultiFileJson(content);
   return parsed.files;
 }
@@ -439,7 +439,7 @@ Rules:
     },
   ];
 
-  const content = await callLLM(messages, { temperature: 0.1, maxTokens: 8192, timeout: 180000 });
+  const content = await callLLM(messages, { temperature: 0.1, maxTokens: 8192, timeout: 90000 });
   const parsed = parseMultiFileJson(content);
 
   return { ...allFiles, ...parsed.files };

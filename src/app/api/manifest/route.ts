@@ -183,20 +183,36 @@ USER REQUEST: "${prompt}"
       // critical path well under Vercel's 300s function cap.
       const isElite = mode === "elite";
 
+      // Helper to make polish agent failures non-fatal in the monolithic route
+      async function safe<T>(name: string, fallback: T, fn: () => Promise<T>): Promise<T> {
+        try { return await fn(); }
+        catch (err) { console.warn(`[Manifest] ${name} agent failed (non-fatal):`, err); return fallback; }
+      }
+
+      const defaultSecurity = {
+        score: 0,
+        recommendations: ["Security audit skipped due to agent error."],
+        vulnerabilities: [] as { severity: "low" | "medium" | "high" | "critical"; type: string; description: string }[],
+      };
+
       await agentThrottle();
       const [docs, security, economy, legal] = await Promise.all([
-        traced("agent.chronicler", { "agent.role": "Chronicler" }, () => agents.runChroniclerAgent(files)),
-        traced("agent.security", { "agent.role": "Security" }, () => agents.runSecurityAudit(files)),
-        traced("agent.economy", { "agent.role": "Economy" }, () => agents.runEconomyAgent({
-          name: projectName,
-          description: projectDesc,
-          manifest: { protocol }
-        } as unknown as Project)),
-        traced("agent.legal", { "agent.role": "Legal" }, () => agents.runLegalAgent({
-          name: projectName,
-          description: projectDesc,
-          manifest: { protocol }
-        } as unknown as Project)),
+        safe("Chronicler", null, () =>
+          traced("agent.chronicler", { "agent.role": "Chronicler" }, () => agents.runChroniclerAgent(files))),
+        safe("Security", defaultSecurity, () =>
+          traced("agent.security", { "agent.role": "Security" }, () => agents.runSecurityAudit(files))),
+        safe("Economy", undefined, () =>
+          traced("agent.economy", { "agent.role": "Economy" }, () => agents.runEconomyAgent({
+            name: projectName,
+            description: projectDesc,
+            manifest: { protocol }
+          } as unknown as Project))),
+        safe("Legal", undefined, () =>
+          traced("agent.legal", { "agent.role": "Legal" }, () => agents.runLegalAgent({
+            name: projectName,
+            description: projectDesc,
+            manifest: { protocol }
+          } as unknown as Project))),
       ]);
 
       // Sentinel + Phantom: elite-only polish agents. Run in parallel when enabled.
@@ -205,20 +221,23 @@ USER REQUEST: "${prompt}"
       if (isElite) {
         await agentThrottle();
         [sentinel, simulation] = await Promise.all([
-          traced("agent.sentinel", { "agent.role": "Sentinel" }, () => agents.runSentinelAgent(files)),
-          traced("agent.phantom", { "agent.role": "Phantom" }, () => agents.runPhantom({ files, id: "temp", createdAt: new Date().toISOString() } as Project)),
+          safe("Sentinel", undefined, () =>
+            traced("agent.sentinel", { "agent.role": "Sentinel" }, () => agents.runSentinelAgent(files))),
+          safe("Phantom", undefined, () =>
+            traced("agent.phantom", { "agent.role": "Phantom" }, () => agents.runPhantom({ files, id: "temp", createdAt: new Date().toISOString() } as Project))),
         ]);
       }
 
       // Herald depends on docs — run after the fan-out.
       await agentThrottle();
-      const launch = await traced("agent.herald", { "agent.role": "Herald" }, () => agents.runHerald({
-        description: projectDesc,
-        files,
-        id: "temp",
-        createdAt: new Date().toISOString(),
-        manifest: { strategy: strategy.strategyMarkdown, docs: docs as unknown as Record<string, unknown>, mode, protocol }
-      } as unknown as Project));
+      const launch = await safe("Herald", null, () =>
+        traced("agent.herald", { "agent.role": "Herald" }, () => agents.runHerald({
+          description: projectDesc,
+          files,
+          id: "temp",
+          createdAt: new Date().toISOString(),
+          manifest: { strategy: strategy.strategyMarkdown, docs: docs as unknown as Record<string, unknown>, mode, protocol }
+        } as unknown as Project)));
 
       // Broker + Overseer only run in elite mode (heavy + polish-only signals).
       let broker: { mergerPotential: { targetProjectId: string; compatibility: number; strategy: string }[]; negotiationStrategy: string } = {
@@ -235,20 +254,22 @@ USER REQUEST: "${prompt}"
             .eq("org_id", orgId)
             .limit(10);
 
-          broker = await traced("agent.broker", { "agent.role": "Broker" }, () => agents.runBrokerAgent({
-            description: projectDesc,
-            id: "temp"
-          } as unknown as Project, existingProjects || []));
+          broker = await safe("Broker", broker, () =>
+            traced("agent.broker", { "agent.role": "Broker" }, () => agents.runBrokerAgent({
+              description: projectDesc,
+              id: "temp"
+            } as unknown as Project, existingProjects || [])));
         }
 
         await agentThrottle();
-        qaResult = await traced("agent.overseer", { "agent.role": "Overseer" }, () => agents.runOverseerAgent({
-          ...genData,
-          files,
-          id: "temp",
-          createdAt: new Date().toISOString(),
-          manifest: { strategy: strategy.strategyMarkdown, docs, mode, protocol }
-        } as unknown as Project));
+        qaResult = await safe("Overseer", null, () =>
+          traced("agent.overseer", { "agent.role": "Overseer" }, () => agents.runOverseerAgent({
+            ...genData,
+            files,
+            id: "temp",
+            createdAt: new Date().toISOString(),
+            manifest: { strategy: strategy.strategyMarkdown, docs, mode, protocol }
+          } as unknown as Project)));
       }
 
       const projectData: Partial<Project> = {
@@ -262,9 +283,9 @@ USER REQUEST: "${prompt}"
           mode,
           protocol,
           strategy: strategy.strategyMarkdown,
-          docs,
+          docs: docs ?? undefined,
           simulation,
-          launch,
+          launch: launch ?? undefined,
           visuals: visualTokens,
           security: {
             ...(security || {}),

@@ -463,8 +463,22 @@ export async function runGenerateStage(jobId: string, baseUrl: string): Promise<
 }
 
 /**
+ * Wraps an agent call so a single agent failure doesn't break the entire stage.
+ * Returns the fallback value on error and logs a warning.
+ */
+async function safeAgent<T>(name: string, jobId: string, fallback: T, fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    await appendLog(jobId, "warn", `${name} agent failed (non-fatal): ${(err as Error).message}`);
+    return fallback;
+  }
+}
+
+/**
  * polish-analyze: Runs the first batch of independent agents in parallel
  * (Chronicler, Security, Economy, Legal, Sentinel, Phantom, Broker).
+ * Each agent is wrapped in safeAgent so individual failures are non-fatal.
  * Gets its own 300s serverless budget.
  */
 export async function runPolishAnalyzeStage(jobId: string, _baseUrl: string): Promise<void> {
@@ -482,24 +496,46 @@ export async function runPolishAnalyzeStage(jobId: string, _baseUrl: string): Pr
     const mode = state.mode as string;
     const isElite = mode === "elite";
 
+    const defaultSecurity = {
+      score: 0,
+      recommendations: ["Security audit skipped due to agent error."],
+      vulnerabilities: [] as { severity: "low" | "medium" | "high" | "critical"; type: string; description: string; file?: string; fix?: string }[],
+    };
+    const defaultBroker = {
+      mergerPotential: [] as { targetProjectId: string; compatibility: number; strategy: string }[],
+      negotiationStrategy: isElite ? "Audit pending (no organization linked)." : "Audit skipped (non-elite mode).",
+    };
+
     const [docs, security, economy, legal, sentinel, simulation, broker] = await Promise.all([
-      traced("agent.chronicler", { "agent.role": "Chronicler" }, () => agents.runChroniclerAgent(files)),
-      traced("agent.security", { "agent.role": "Security" }, () => agents.runSecurityAudit(files)),
-      traced("agent.economy", { "agent.role": "Economy" }, () => agents.runEconomyAgent({
-        name: projectName,
-        description: projectDesc,
-        manifest: { protocol },
-      } as unknown as Project)),
-      traced("agent.legal", { "agent.role": "Legal" }, () => agents.runLegalAgent({
-        name: projectName,
-        description: projectDesc,
-        manifest: { protocol },
-      } as unknown as Project)),
+      safeAgent("Chronicler", jobId, null, () =>
+        traced("agent.chronicler", { "agent.role": "Chronicler" }, () => agents.runChroniclerAgent(files)),
+      ),
+      safeAgent("Security", jobId, defaultSecurity, () =>
+        traced("agent.security", { "agent.role": "Security" }, () => agents.runSecurityAudit(files)),
+      ),
+      safeAgent("Economy", jobId, undefined, () =>
+        traced("agent.economy", { "agent.role": "Economy" }, () => agents.runEconomyAgent({
+          name: projectName,
+          description: projectDesc,
+          manifest: { protocol },
+        } as unknown as Project)),
+      ),
+      safeAgent("Legal", jobId, undefined, () =>
+        traced("agent.legal", { "agent.role": "Legal" }, () => agents.runLegalAgent({
+          name: projectName,
+          description: projectDesc,
+          manifest: { protocol },
+        } as unknown as Project)),
+      ),
       isElite
-        ? traced("agent.sentinel", { "agent.role": "Sentinel" }, () => agents.runSentinelAgent(files))
+        ? safeAgent("Sentinel", jobId, undefined, () =>
+            traced("agent.sentinel", { "agent.role": "Sentinel" }, () => agents.runSentinelAgent(files)),
+          )
         : Promise.resolve(undefined),
       isElite
-        ? traced("agent.phantom", { "agent.role": "Phantom" }, () => agents.runPhantom({ files, id: "temp", createdAt: new Date().toISOString() } as Project))
+        ? safeAgent("Phantom", jobId, undefined, () =>
+            traced("agent.phantom", { "agent.role": "Phantom" }, () => agents.runPhantom({ files, id: "temp", createdAt: new Date().toISOString() } as Project)),
+          )
         : Promise.resolve(undefined),
       (async () => {
         if (isElite && row.org_id) {
@@ -508,15 +544,14 @@ export async function runPolishAnalyzeStage(jobId: string, _baseUrl: string): Pr
             .select("*")
             .eq("org_id", row.org_id)
             .limit(10);
-          return traced("agent.broker", { "agent.role": "Broker" }, () => agents.runBrokerAgent({
-            description: projectDesc,
-            id: "temp",
-          } as unknown as Project, existingProjects || []));
+          return safeAgent("Broker", jobId, defaultBroker, () =>
+            traced("agent.broker", { "agent.role": "Broker" }, () => agents.runBrokerAgent({
+              description: projectDesc,
+              id: "temp",
+            } as unknown as Project, existingProjects || [])),
+          );
         }
-        return {
-          mergerPotential: [],
-          negotiationStrategy: isElite ? "Audit pending (no organization linked)." : "Audit skipped (non-elite mode).",
-        };
+        return defaultBroker;
       })()
     ]);
 
@@ -560,21 +595,25 @@ export async function runPolishLaunchStage(jobId: string, _baseUrl: string): Pro
     const isElite = mode === "elite";
 
     const [launch, qaResult] = await Promise.all([
-      traced("agent.herald", { "agent.role": "Herald" }, () => agents.runHerald({
-        description: projectDesc,
-        files,
-        id: "temp",
-        createdAt: new Date().toISOString(),
-        manifest: { strategy: strategyMarkdown, docs, mode, protocol },
-      } as unknown as Project)),
-      isElite
-        ? traced("agent.overseer", { "agent.role": "Overseer" }, () => agents.runOverseerAgent({
-          ...genData,
+      safeAgent("Herald", jobId, null, () =>
+        traced("agent.herald", { "agent.role": "Herald" }, () => agents.runHerald({
+          description: projectDesc,
           files,
           id: "temp",
           createdAt: new Date().toISOString(),
           manifest: { strategy: strategyMarkdown, docs, mode, protocol },
-        } as unknown as Project))
+        } as unknown as Project)),
+      ),
+      isElite
+        ? safeAgent("Overseer", jobId, null, () =>
+            traced("agent.overseer", { "agent.role": "Overseer" }, () => agents.runOverseerAgent({
+              ...genData,
+              files,
+              id: "temp",
+              createdAt: new Date().toISOString(),
+              manifest: { strategy: strategyMarkdown, docs, mode, protocol },
+            } as unknown as Project)),
+          )
         : Promise.resolve(null)
     ]);
 
