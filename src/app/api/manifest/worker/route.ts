@@ -14,6 +14,7 @@ import {
   runPolishAnalyzeStage,
   runPolishLaunchStage,
   runPolishStage,
+  runPolishParallelStage,
   runPersistStage,
   nextStage,
   type StageName,
@@ -41,13 +42,19 @@ const RUNNERS: Record<StageName, (id: string, baseUrl: string) => Promise<void>>
   "polish-analyze": runPolishAnalyzeStage,
   "polish-launch": runPolishLaunchStage,
   polish: runPolishStage,
+  // New: single-stage parallel polish — replaces the 2-hop analyze→launch chain.
+  "polish-parallel": runPolishParallelStage,
   persist: runPersistStage,
 };
 
 export async function POST(request: NextRequest) {
   const secret = request.headers.get("x-worker-secret");
   const expected = process.env.WORKER_SHARED_SECRET;
-  if (!expected || secret !== expected) {
+  if (!expected) {
+    console.error("[manifest/worker] WORKER_SHARED_SECRET env var is not set — all worker calls will be rejected.");
+    return NextResponse.json({ error: "Worker misconfigured" }, { status: 503 });
+  }
+  if (secret !== expected) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
