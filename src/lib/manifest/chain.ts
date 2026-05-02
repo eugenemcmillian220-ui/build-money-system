@@ -44,6 +44,7 @@ export function triggerStage(
           "polish-analyze": stages.runPolishAnalyzeStage,
           "polish-launch": stages.runPolishLaunchStage,
           polish: stages.runPolishStage,
+          "polish-parallel": stages.runPolishParallelStage,
           persist: stages.runPersistStage,
         };
 
@@ -68,6 +69,11 @@ export function triggerStage(
 
   after(async () => {
     try {
+      const workerSecret = process.env.WORKER_SHARED_SECRET;
+      if (!workerSecret) {
+        console.error(`[manifest/chain] WORKER_SHARED_SECRET is not set — stage "${stage}" for job ${jobId} will not run in production!`);
+        return;
+      }
       const res = await fetch(`${baseUrl}/api/manifest/worker?stage=${stage}`, {
         method: "POST",
         headers: {
