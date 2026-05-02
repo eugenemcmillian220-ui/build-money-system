@@ -18,6 +18,7 @@ export type ManifestStage =
   | "polish-analyze"
   | "polish-launch"
   | "polish"
+  | "polish-parallel"
   | "persist"
   | "complete"
   | "error";
