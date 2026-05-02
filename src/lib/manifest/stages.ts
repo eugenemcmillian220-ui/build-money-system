@@ -639,6 +639,143 @@ export async function runPolishStage(jobId: string, baseUrl: string): Promise<vo
   await runPolishLaunchStage(jobId, baseUrl);
 }
 
+
+/**
+ * polish-parallel: Runs ALL polish agents in one serverless invocation using
+ * optimal fan-out. Independent agents (Security, Economy, Legal, Sentinel,
+ * Phantom, Broker) plus Chronicler run concurrently first. Herald + Overseer
+ * run immediately after Chronicler resolves (they need its docs).
+ *
+ * Replaces the 2-hop polish-analyze → polish-launch chain with a single 300s
+ * budget, cutting end-to-end latency significantly.
+ *
+ * All agents are wrapped in safeAgent — individual failures are non-fatal.
+ */
+export async function runPolishParallelStage(jobId: string, _baseUrl: string): Promise<void> {
+  const row = await loadManifestation(jobId);
+  if (!row) return;
+
+  try {
+    await setStage(jobId, "polish-parallel", { status: "running" }, "Running all polish agents in parallel...");
+    const agents = await loadAgents();
+    const state = row.state as StageState;
+    const files = state.files as Record<string, string>;
+    const projectName = state.projectName as string;
+    const projectDesc = state.projectDesc as string;
+    const protocol = state.protocol as string;
+    const mode = state.mode as string;
+    const strategyMarkdown = state.strategyMarkdown as string;
+    const genData = state.genData as Record<string, unknown>;
+    const isElite = mode === "elite";
+
+    const defaultSecurity = {
+      score: 0,
+      recommendations: ["Security audit skipped due to agent error."],
+      vulnerabilities: [] as { severity: "low" | "medium" | "high" | "critical"; type: string; description: string; file?: string; fix?: string }[],
+    };
+    const defaultBroker = {
+      mergerPotential: [] as { targetProjectId: string; compatibility: number; strategy: string }[],
+      negotiationStrategy: isElite ? "Audit pending (no organization linked)." : "Audit skipped (non-elite mode).",
+    };
+
+    // Phase 1: Run Chronicler + all independent agents in parallel.
+    // Chronicler is critical for Herald/Overseer, but all others have no deps.
+    const [docs, security, economy, legal, sentinel, simulation, broker] = await Promise.all([
+      // Chronicler: needed by Herald — runs in parallel with the others
+      safeAgent("Chronicler", jobId, null, () =>
+        traced("agent.chronicler", { "agent.role": "Chronicler" }, () => agents.runChroniclerAgent(files)),
+      ),
+      safeAgent("Security", jobId, defaultSecurity, () =>
+        traced("agent.security", { "agent.role": "Security" }, () => agents.runSecurityAudit(files)),
+      ),
+      safeAgent("Economy", jobId, undefined, () =>
+        traced("agent.economy", { "agent.role": "Economy" }, () => agents.runEconomyAgent({
+          name: projectName,
+          description: projectDesc,
+          manifest: { protocol },
+        } as unknown as Project)),
+      ),
+      safeAgent("Legal", jobId, undefined, () =>
+        traced("agent.legal", { "agent.role": "Legal" }, () => agents.runLegalAgent({
+          name: projectName,
+          description: projectDesc,
+          manifest: { protocol },
+        } as unknown as Project)),
+      ),
+      isElite
+        ? safeAgent("Sentinel", jobId, undefined, () =>
+            traced("agent.sentinel", { "agent.role": "Sentinel" }, () => agents.runSentinelAgent(files)),
+          )
+        : Promise.resolve(undefined),
+      isElite
+        ? safeAgent("Phantom", jobId, undefined, () =>
+            traced("agent.phantom", { "agent.role": "Phantom" }, () => agents.runPhantom({ files, id: "temp", createdAt: new Date().toISOString() } as Project)),
+          )
+        : Promise.resolve(undefined),
+      (async () => {
+        if (isElite && row.org_id) {
+          const { data: existingProjects } = await supabaseAdmin
+            .from("projects")
+            .select("*")
+            .eq("org_id", row.org_id)
+            .limit(10);
+          return safeAgent("Broker", jobId, defaultBroker, () =>
+            traced("agent.broker", { "agent.role": "Broker" }, () => agents.runBrokerAgent({
+              description: projectDesc,
+              id: "temp",
+            } as unknown as Project, existingProjects || [])),
+          );
+        }
+        return defaultBroker;
+      })(),
+    ]);
+
+    await appendLog(jobId, "info", "Phase 1 complete (Chronicler + Security + Economy + Legal + extras).");
+
+    // Phase 2: Herald + Overseer — depend on Chronicler docs from Phase 1.
+    const [launch, qaResult] = await Promise.all([
+      safeAgent("Herald", jobId, null, () =>
+        traced("agent.herald", { "agent.role": "Herald" }, () => agents.runHerald({
+          description: projectDesc,
+          files,
+          id: "temp",
+          createdAt: new Date().toISOString(),
+          manifest: { strategy: strategyMarkdown, docs, mode, protocol },
+        } as unknown as Project)),
+      ),
+      isElite
+        ? safeAgent("Overseer", jobId, null, () =>
+            traced("agent.overseer", { "agent.role": "Overseer" }, () => agents.runOverseerAgent({
+              ...genData,
+              files,
+              id: "temp",
+              createdAt: new Date().toISOString(),
+              manifest: { strategy: strategyMarkdown, docs, mode, protocol },
+            } as unknown as Project)),
+          )
+        : Promise.resolve(null),
+    ]);
+
+    await appendLog(jobId, "info", "All polish agents complete → persisting empire...");
+
+    const nextState = mergeState(row, {
+      docs,
+      security,
+      economy,
+      legal,
+      sentinel,
+      simulation,
+      broker,
+      launch,
+      qaResult,
+    });
+    await setStage(jobId, "polish-parallel", { state: nextState }, "Polish complete → persisting...");
+  } catch (err) {
+    await failManifestation(jobId, `Polish-parallel stage failed: ${(err as Error).message}`);
+    throw err;
+  }
+}
+
 export async function runPersistStage(jobId: string, _baseUrl: string): Promise<void> {
   const row = await loadManifestation(jobId);
   if (!row) return;
@@ -752,7 +889,8 @@ export type StageName =
   | "polish-analyze"
   | "polish-launch"
   | "polish"
-  | "persist";
+  | "persist"
+  | "polish-parallel";
 
 export const nextStage: Record<StageName, StageName | null> = {
   "intent-classify": "intent-scout",
@@ -763,11 +901,12 @@ export const nextStage: Record<StageName, StageName | null> = {
   "plan-details": "generate-build-code",
   "generate-plan": "generate-build-code",
   "generate-build-code": "generate-build-fix",
-  "generate-build-fix": "polish-analyze",
-  "generate-build": "polish-analyze",
-  generate: "polish-analyze",
+  "generate-build-fix": "polish-parallel",
+  "generate-build": "polish-parallel",
+  generate: "polish-parallel",
   "polish-analyze": "polish-launch",
   "polish-launch": "persist",
   polish: "persist",
+  "polish-parallel": "persist",
   persist: null,
 };
