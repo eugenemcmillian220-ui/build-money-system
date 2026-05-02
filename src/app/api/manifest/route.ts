@@ -1,346 +1,77 @@
-// DA-058 FIX: TODO: Replace dynamic imports with static imports for bundling optimization
+// Backward-compat route: POST /api/manifest now delegates to the stage-based
+// pipeline introduced in PR #92/#93. Each stage runs in its own 300s
+// serverless invocation, so this entry-point only needs a short budget.
+//
+// Clients that need the full result synchronously should poll:
+//   GET /api/manifest/status?jobId=<id>
 import { NextRequest, NextResponse } from "next/server";
-import { traced } from "@/lib/telemetry";
-import { Project } from "@/lib/types";
-import { saveProjectDB } from "@/lib/supabase/db";
-import { supabaseAdmin } from "@/lib/supabase/admin";
-import { rateLimit } from "@/lib/rate-limit";
-import { monetizationEngine } from "@/lib/monetization";
 import { requireAuth, isAuthError } from "@/lib/api-auth";
-import { ADMIN_FREE_TIER } from "@/lib/admin-emails";
+import { rateLimit } from "@/lib/rate-limit";
+import { createManifestation } from "@/lib/manifest/store";
+import { triggerStage } from "@/lib/manifest/chain";
+import { userCanAccessOrg } from "@/lib/manifest/org-access";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 300;
-
-
-/** Throttle between agent calls to avoid rate limits on free-tier LLM providers */
-const AGENT_THROTTLE_MS = 500;
-function agentThrottle(): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, AGENT_THROTTLE_MS));
-}
-
-/**
- * Lazy-load heavy agent modules to reduce webpack memory during build.
- * Each agent is only imported when the route is actually invoked.
- */
-async function loadAgents() {
-  const [
-    { classifyIntent },
-    { runScoutAgent },
-    { runArchitectAgent },
-    { runChroniclerAgent },
-    { runPhantom },
-    { runHerald },
-    { runOverseerAgent },
-    { PHASE_19_SYSTEM_PROMPT },
-    { runSecurityAudit },
-    { runSentinelAgent },
-    { runEconomyAgent },
-    { runBrokerAgent },
-    { runLegalAgent },
-  ] = await Promise.all([
-    import("@/lib/agents/classifier"),
-    import("@/lib/agents/scout"),
-    import("@/lib/agents/architect"),
-    import("@/lib/agents/chronicler"),
-    import("@/lib/agents/phantom"),
-    import("@/lib/agents/herald"),
-    import("@/lib/agents/overseer"),
-    import("@/lib/prompts/phase-19"),
-    import("@/lib/agents/security"),
-    import("@/lib/agents/sentinel"),
-    import("@/lib/agents/economy"),
-    import("@/lib/agents/broker"),
-    import("@/lib/agents/legal"),
-  ]);
-
-  return {
-    classifyIntent, runScoutAgent, runArchitectAgent, runChroniclerAgent,
-    runPhantom, runHerald, runOverseerAgent, PHASE_19_SYSTEM_PROMPT,
-    runSecurityAudit, runSentinelAgent, runEconomyAgent, runBrokerAgent, runLegalAgent,
-  };
-}
+// Only enqueues work — heavy lifting is in the worker chain.
+export const maxDuration = 30;
 
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth();
   if (isAuthError(authResult)) return authResult;
 
-  // Rate Limit
   const ip = request.headers.get("x-forwarded-for") || "unknown";
   const { success, limit, remaining, reset } = await rateLimit(ip, 5, 60000);
-
   if (!success) {
     return NextResponse.json(
       { error: "Too many requests. Neural bridge cooling down." },
-      { 
+      {
         status: 429,
         headers: {
           "X-RateLimit-Limit": limit.toString(),
           "X-RateLimit-Remaining": remaining.toString(),
           "X-RateLimit-Reset": reset.toString(),
-        }
-      }
+        },
+      },
     );
   }
 
-  return traced("manifestationPipeline", {}, async (span) => {
-    try {
-      const agents = await loadAgents();
+  const body = await request.json().catch(() => ({}));
+  const { prompt, orgId, options } = body as {
+    prompt?: string;
+    orgId?: string;
+    options?: Record<string, unknown>;
+  };
+  if (!prompt) return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
 
-      const body = await request.json().catch(() => ({}));
-      const { prompt, orgId, options } = body;
+  const userId = (authResult as { user?: { id?: string } }).user?.id ?? null;
 
-      if (!prompt) {
-        return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
-      }
-
-      span.attributes["project.prompt"] = prompt;
-      span.attributes["project.org_id"] = orgId;
-
-      const classification = await traced("agent.classifier", { "agent.role": "Classifier" }, () => agents.classifyIntent(prompt));
-      const mode = options?.mode || classification.mode;
-      const protocol = options?.protocol || classification.protocol;
-
-      span.attributes["project.mode"] = mode;
-      span.attributes["project.protocol"] = protocol;
-
-      const baseManifestationCost = mode === "elite" ? 100 : 50;
-      const dynamicCost = monetizationEngine.calculateManifestationCost(baseManifestationCost);
-
-      if (orgId) {
-        const { data: org, error: orgError } = await supabaseAdmin
-          .from("organizations")
-          .select("credit_balance, billing_tier")
-          .eq("id", orgId)
-          .single();
-
-        if (orgError || !org) {
-          return NextResponse.json({ error: "Organization not found" }, { status: 404 });
-        }
-
-        // Admin accounts bypass credit checks entirely
-        if (org.billing_tier !== ADMIN_FREE_TIER && Number(org.credit_balance) < dynamicCost) {
-          return NextResponse.json({ 
-            error: `Insufficient credits. Current cost (with ${monetizationEngine.getSurgeMultiplier()}x surge) is ${dynamicCost} neural units.` 
-          }, { status: 402 });
-        }
-      }
-
-      await agentThrottle();
-      const strategy = await traced("agent.scout", { "agent.role": "Scout" }, () => agents.runScoutAgent(prompt, protocol));
-      await agentThrottle();
-      const architecture = await traced("agent.architect", { "agent.role": "Architect" }, () => agents.runArchitectAgent(prompt, strategy.strategyMarkdown));
-
-      const visualTokens = {
-        theme: options?.theme || "dark",
-        primaryColor: options?.primaryColor || "#f59e0b",
-        fontFamily: "Inter, sans-serif"
-      };
-
-      const finalPrompt = `
-${agents.PHASE_19_SYSTEM_PROMPT}
-
-BUILD CONTEXT:
-Mode: ${mode.toUpperCase()}
-Protocol: ${protocol.toUpperCase()}
-Visual Theme: ${visualTokens.theme} (Primary: ${visualTokens.primaryColor})
-
-STRATEGY:
-${strategy.strategyMarkdown}
-
-ARCHITECTURE PLAN:
-${architecture.coreLogicPlan}
-FILE STRUCTURE: ${architecture.fileStructure.join(", ")}
-DATABASE REQS: ${architecture.databaseRequirements.join(", ")}
-
-USER REQUEST: "${prompt}"
-      `;
-
-      await agentThrottle();
-      const res = await traced("agent.developer", { "agent.role": "Developer" }, async () => {
-        const fetchRes = await fetch(`${request.nextUrl.origin}/api/generate`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": request.headers.get("authorization") || `Internal ${process.env.E2E_TEST_SECRET || "server-call"}`,
-            ...(request.headers.get("cookie") ? { "Cookie": request.headers.get("cookie")! } : {}),
-          },
-          body: JSON.stringify({ prompt: finalPrompt, multiFile: true, orgId }),
-        });
-        if (!fetchRes.ok) { const errBody = await fetchRes.text().catch(() => "no body"); console.error(`[Manifest] /api/generate returned ${fetchRes.status}:`, errBody); throw new Error(`Generation failed at Developer layer (${fetchRes.status}): ${errBody}`); }
-        return fetchRes.json();
-      });
-
-      const genData = res;
-      const files = genData.files;
-      const projectName = (genData.description || "Untitled").split("\n")[0].slice(0, 100);
-      const projectDesc = genData.description || prompt;
-
-      // Fan out all agents whose inputs are ready after /api/generate.
-      // Sentinel, Phantom, Broker, Overseer are polish agents that are only
-      // required in elite mode; skipping them in non-elite mode keeps the
-      // critical path well under Vercel's 300s function cap.
-      const isElite = mode === "elite";
-
-      // Helper to make polish agent failures non-fatal in the monolithic route
-      async function safe<T>(name: string, fallback: T, fn: () => Promise<T>): Promise<T> {
-        try { return await fn(); }
-        catch (err) { console.warn(`[Manifest] ${name} agent failed (non-fatal):`, err); return fallback; }
-      }
-
-      const defaultSecurity = {
-        score: 0,
-        recommendations: ["Security audit skipped due to agent error."],
-        vulnerabilities: [] as { severity: "low" | "medium" | "high" | "critical"; type: string; description: string }[],
-      };
-
-      await agentThrottle();
-      const [docs, security, economy, legal] = await Promise.all([
-        safe("Chronicler", null, () =>
-          traced("agent.chronicler", { "agent.role": "Chronicler" }, () => agents.runChroniclerAgent(files))),
-        safe("Security", defaultSecurity, () =>
-          traced("agent.security", { "agent.role": "Security" }, () => agents.runSecurityAudit(files))),
-        safe("Economy", undefined, () =>
-          traced("agent.economy", { "agent.role": "Economy" }, () => agents.runEconomyAgent({
-            name: projectName,
-            description: projectDesc,
-            manifest: { protocol }
-          } as unknown as Project))),
-        safe("Legal", undefined, () =>
-          traced("agent.legal", { "agent.role": "Legal" }, () => agents.runLegalAgent({
-            name: projectName,
-            description: projectDesc,
-            manifest: { protocol }
-          } as unknown as Project))),
-      ]);
-
-      // Sentinel + Phantom: elite-only polish agents. Run in parallel when enabled.
-      let sentinel: Awaited<ReturnType<typeof agents.runSentinelAgent>> | undefined;
-      let simulation: Awaited<ReturnType<typeof agents.runPhantom>> | undefined;
-      if (isElite) {
-        await agentThrottle();
-        [sentinel, simulation] = await Promise.all([
-          safe("Sentinel", undefined, () =>
-            traced("agent.sentinel", { "agent.role": "Sentinel" }, () => agents.runSentinelAgent(files))),
-          safe("Phantom", undefined, () =>
-            traced("agent.phantom", { "agent.role": "Phantom" }, () => agents.runPhantom({ files, id: "temp", createdAt: new Date().toISOString() } as Project))),
-        ]);
-      }
-
-      // Herald depends on docs — run after the fan-out.
-      await agentThrottle();
-      const launch = await safe("Herald", null, () =>
-        traced("agent.herald", { "agent.role": "Herald" }, () => agents.runHerald({
-          description: projectDesc,
-          files,
-          id: "temp",
-          createdAt: new Date().toISOString(),
-          manifest: { strategy: strategy.strategyMarkdown, docs: docs as unknown as Record<string, unknown>, mode, protocol }
-        } as unknown as Project)));
-
-      // Broker + Overseer only run in elite mode (heavy + polish-only signals).
-      let broker: { mergerPotential: { targetProjectId: string; compatibility: number; strategy: string }[]; negotiationStrategy: string } = {
-        mergerPotential: [],
-        negotiationStrategy: isElite ? "Audit pending (no organization linked)." : "Audit skipped (non-elite mode).",
-      };
-      let qaResult: { status?: string; testSteps?: { result?: string; error?: string; step?: string }[] } | null = null;
-      if (isElite) {
-        if (orgId) {
-          await agentThrottle();
-          const { data: existingProjects } = await supabaseAdmin
-            .from("projects")
-            .select("*")
-            .eq("org_id", orgId)
-            .limit(10);
-
-          broker = await safe("Broker", broker, () =>
-            traced("agent.broker", { "agent.role": "Broker" }, () => agents.runBrokerAgent({
-              description: projectDesc,
-              id: "temp"
-            } as unknown as Project, existingProjects || [])));
-        }
-
-        await agentThrottle();
-        qaResult = await safe("Overseer", null, () =>
-          traced("agent.overseer", { "agent.role": "Overseer" }, () => agents.runOverseerAgent({
-            ...genData,
-            files,
-            id: "temp",
-            createdAt: new Date().toISOString(),
-            manifest: { strategy: strategy.strategyMarkdown, docs, mode, protocol }
-          } as unknown as Project)));
-      }
-
-      const projectData: Partial<Project> = {
-        id: crypto.randomUUID(),
-        files,
-        description: genData.description || prompt,
-        prompt,
-        orgId,
-        createdAt: new Date().toISOString(),
-        manifest: {
-          mode,
-          protocol,
-          strategy: strategy.strategyMarkdown,
-          docs: docs ?? undefined,
-          simulation,
-          launch: launch ?? undefined,
-          visuals: visualTokens,
-          security: {
-            ...(security || {}),
-            auditLog: (security?.vulnerabilities || []).map((v: { severity?: string; type?: string; description?: string }) => `${v.severity?.toUpperCase?.() || 'UNKNOWN'}: ${v.type || 'unknown'} - ${v.description || 'No description'}`),
-            lastScanAt: new Date().toISOString()
-          },
-          sentinel,
-          economy,
-          broker,
-          legal,
-          // Only include the qa block when Overseer actually ran (elite mode).
-          // Otherwise the dashboard would render a misleading red "QA: fail" badge.
-          ...(qaResult
-            ? {
-                qa: {
-                  status: qaResult.status === "pass" ? "pass" : "fail",
-                  lastRunAt: new Date().toISOString(),
-                  errors: (qaResult.testSteps || [])
-                    .filter((s: { result?: string }) => s.result === "failure")
-                    .map((s: { error?: string; step?: string }) => s.error || s.step || "unknown"),
-                  reportUrl: "/dashboard/qa/" + crypto.randomUUID(),
-                },
-              }
-            : {}),
-          monetization: {
-            affiliateCut: 0.20,
-            revenueShareActive: true
-          }
-        },
-      };
-
-      const savedProject = await saveProjectDB(projectData as Project);
-
-      if (orgId) {
-        // Skip credit deduction for admin accounts
-        const { data: orgTier } = await supabaseAdmin
-          .from("organizations")
-          .select("billing_tier")
-          .eq("id", orgId)
-          .single();
-
-        if (orgTier?.billing_tier !== ADMIN_FREE_TIER) {
-          await supabaseAdmin.rpc("decrement_org_balance", {
-            org_id: orgId,
-            amount: dynamicCost
-          });
-        }
-      }
-
-      return NextResponse.json({ success: true, project: savedProject });
-
-    } catch (error) {
-      console.error("[Manifestation] Build Failed:", error);
-      span.end(error as Error);
-      return NextResponse.json({ error: (error as Error).message }, { status: 500 });
+  if (orgId) {
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const allowed = await userCanAccessOrg(userId, orgId);
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "You do not have access to this organization." },
+        { status: 403 },
+      );
     }
+  }
+
+  const row = await createManifestation({
+    orgId: orgId ?? null,
+    userId,
+    prompt,
+    options: options ?? {},
+  });
+
+  const baseUrl = new URL(request.url).origin;
+  // Fire-and-forget: first stage runs in its own serverless invocation.
+  triggerStage(baseUrl, "intent-classify", row.id);
+
+  return NextResponse.json({
+    jobId: row.id,
+    status: row.status,
+    // Clients poll this URL until status === "complete" | "failed"
+    statusUrl: `${baseUrl}/api/manifest/status?jobId=${row.id}`,
   });
 }
