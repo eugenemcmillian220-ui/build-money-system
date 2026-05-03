@@ -27,6 +27,12 @@ export function cleanJson(text: string): string {
   // Remove JS-style single-line comments
   cleaned = cleaned.replace(/\/\/[^\n]*/g, "");
 
+  // Sanitize control characters inside JSON string values.
+  // LLMs sometimes emit raw newlines/tabs inside strings which are
+  // invalid JSON. Walk through the string tracking whether we are
+  // inside a quoted value and escape any bare control chars found.
+  cleaned = sanitizeControlCharsInStrings(cleaned);
+
   // Normalize leading/trailing whitespace around braces
   cleaned = cleaned
     .replace(/^\s*{\s*/, "{")
@@ -34,6 +40,52 @@ export function cleanJson(text: string): string {
     .trim();
 
   return cleaned;
+}
+
+function sanitizeControlCharsInStrings(json: string): string {
+  let result = "";
+  let inString = false;
+  let escaped = false;
+
+  for (let i = 0; i < json.length; i++) {
+    const ch = json[i];
+
+    if (escaped) {
+      result += ch;
+      escaped = false;
+      continue;
+    }
+
+    if (ch === "\\") {
+      escaped = true;
+      result += ch;
+      continue;
+    }
+
+    if (ch === '"') {
+      inString = !inString;
+      result += ch;
+      continue;
+    }
+
+    if (inString) {
+      const code = ch.charCodeAt(0);
+      if (code < 0x20) {
+        // Replace control characters with their JSON escape sequences
+        switch (ch) {
+          case "\n": result += "\\n"; break;
+          case "\r": result += "\\r"; break;
+          case "\t": result += "\\t"; break;
+          default: result += "\\u" + code.toString(16).padStart(4, "0"); break;
+        }
+        continue;
+      }
+    }
+
+    result += ch;
+  }
+
+  return result;
 }
 
 /**
