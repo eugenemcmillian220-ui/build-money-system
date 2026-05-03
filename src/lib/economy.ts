@@ -43,6 +43,20 @@ const MODEL_COST_TABLE: Record<string, number> = {
   "minimax-m2.7": 0.00004,
   "qwen3.6-plus": 0.00004,
   "deepseek-v4-pro": 0.00005,
+  // === GitHub Models Free-Tier ===
+  "gpt-4o-mini": 0,
+  "DeepSeek-V3-0324": 0,
+  "Llama-4-Scout-17B-16E-Instruct": 0,
+  "Mistral-Small-24B-Instruct-2501": 0,
+  "Phi-4": 0,
+  "AI21-Jamba-1.5-Mini": 0,
+  // === Hugging Face Free-Tier ===
+  "deepseek-ai/DeepSeek-V3-0324": 0,
+  "Qwen/Qwen2.5-72B-Instruct": 0,
+  "mistralai/Mistral-Small-24B-Instruct-2501": 0,
+  "meta-llama/Llama-3.3-70B-Instruct": 0,
+  "microsoft/Phi-4-mini-instruct": 0,
+  "NousResearch/Hermes-3-Llama-3.1-8B": 0,
 };
 
 /** Default rate when a model isn't in the table */

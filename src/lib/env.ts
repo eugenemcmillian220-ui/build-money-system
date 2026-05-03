@@ -29,11 +29,21 @@ const serverEnvSchema = z.object({
   // Admin
   ADMIN_API_KEYS: z.string().optional(),
 
-  // AI providers — OpenCode Zen exclusively
+  // AI providers — OpenCode Zen (primary)
   OPENCODE_ZEN_API_KEY: z.string().optional(),
   OPENCODE_ZEN_API_KEYS: z.string().optional(),
   OPENCODE_ZEN_API_URL: z.string().optional(),
   OPENCODE_ZEN_EMBED_URL: z.string().optional(),
+
+  // AI providers — GitHub Models (free tier)
+  GITHUB_MODELS_TOKEN: z.string().optional(),
+  GITHUB_MODELS_API_KEYS: z.string().optional(),
+  GITHUB_MODELS_API_URL: z.string().optional(),
+
+  // AI providers — Hugging Face (free tier via router.huggingface.co)
+  HF_TOKEN: z.string().optional(),
+  HF_API_KEYS: z.string().optional(),
+  HF_API_URL: z.string().optional(),
 
   // Stripe
   STRIPE_SECRET_KEY: z.string().optional(),
@@ -207,9 +217,12 @@ export function validateCriticalEnv(): { valid: boolean; missing: string[]; warn
     warnings.push(`Billing disabled: missing ${missingBilling.join(", ")}`);
   }
 
-  const hasAiKey = !!process.env.OPENCODE_ZEN_API_KEY || !!process.env.OPENCODE_ZEN_API_KEYS;
+  const hasAiKey =
+    !!process.env.OPENCODE_ZEN_API_KEY || !!process.env.OPENCODE_ZEN_API_KEYS ||
+    !!process.env.GITHUB_MODELS_TOKEN || !!process.env.GITHUB_MODELS_API_KEYS ||
+    !!process.env.HF_TOKEN || !!process.env.HF_API_KEYS;
   if (!hasAiKey) {
-    warnings.push("OpenCode Zen API key not configured — AI features will not function");
+    warnings.push("No AI provider keys configured — set OPENCODE_ZEN_API_KEY, GITHUB_MODELS_TOKEN, or HF_TOKEN");
   }
 
   return { valid: missing.length === 0, missing: [...missing], warnings };

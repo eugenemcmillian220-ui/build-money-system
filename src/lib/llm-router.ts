@@ -1,6 +1,6 @@
 import { ChatMessage, AgentConfig } from "./types";
 import { keyManager, ProviderName } from "./key-manager";
-import { aiComplete, ZEN_FREE_MODELS, ZEN_PAID_MODELS } from "./ai";
+import { aiComplete, ZEN_FREE_MODELS, ZEN_PAID_MODELS, GITHUB_FREE_MODELS, HF_FREE_MODELS } from "./ai";
 
 export type LLMProvider = ProviderName;
 
@@ -13,6 +13,8 @@ export interface ProviderRequest {
 
 export const FREE_MODELS: Record<LLMProvider, string[]> = {
   opencodezen: [...ZEN_FREE_MODELS, ...ZEN_PAID_MODELS],
+  github: GITHUB_FREE_MODELS,
+  huggingface: HF_FREE_MODELS,
 };
 
 export class LLMRouter {
@@ -31,7 +33,7 @@ export class LLMRouter {
       });
 
       return {
-        provider: "opencodezen",
+        provider: result.provider || "opencodezen",
         model: result.model,
         content: result.content,
         cached: false,
@@ -42,11 +44,17 @@ export class LLMRouter {
   }
 
   getFetchParams(req: { provider: string; model: string; messages: ChatMessage[]; config?: Partial<AgentConfig> }) {
-    const apiKey = keyManager.getKey("opencodezen") ?? "";
-    const url = process.env.OPENCODE_ZEN_API_URL || "https://opencode.ai/zen/go/v1/chat/completions";
+    const provider = (req.provider as ProviderName) || "opencodezen";
+    const apiKey = keyManager.getKey(provider) ?? "";
+
+    const urlMap: Record<ProviderName, string> = {
+      opencodezen: process.env.OPENCODE_ZEN_API_URL || "https://opencode.ai/zen/go/v1/chat/completions",
+      github: process.env.GITHUB_MODELS_API_URL || "https://models.inference.ai.azure.com/chat/completions",
+      huggingface: process.env.HF_API_URL || "https://router.huggingface.co/v1/chat/completions",
+    };
 
     return {
-      url,
+      url: urlMap[provider],
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${apiKey}`,
