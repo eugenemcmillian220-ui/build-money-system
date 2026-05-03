@@ -39,6 +39,8 @@ export async function runDeveloperAgent(
     infraProvider?: "aws" | "gcp" | "azure";
     abTestGoal?: string;
     precomputedSpec?: AppSpec;
+    /** Skip prompt injection detection (for internal pipeline calls with system-generated prompts) */
+    skipInjectionCheck?: boolean;
   } = {}
 ): Promise<DeveloperResult> {
   const {
@@ -51,13 +53,14 @@ export async function runDeveloperAgent(
     infraProvider = "aws",
     abTestGoal,
     precomputedSpec,
+    skipInjectionCheck = false,
   } = options;
 
   console.log(`[Developer] Initiating ${mode} generation for: ${prompt.slice(0, 50)}...`);
 
-  // Sanitize and check PII
-  const sanitizedPrompt = security.sanitizeInput(prompt);
-  security.checkPII(sanitizedPrompt);
+  // Sanitize and check PII (skip injection detection for internal pipeline prompts)
+  const sanitizedPrompt = skipInjectionCheck ? prompt.trim() : security.sanitizeInput(prompt);
+  if (!skipInjectionCheck) security.checkPII(sanitizedPrompt);
 
   if (imageUrl) {
     const visionResult = await processVisualContext(imageUrl, sanitizedPrompt);

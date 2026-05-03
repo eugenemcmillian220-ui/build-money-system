@@ -346,6 +346,7 @@ export async function runGenerateBuildCodeStage(jobId: string, _baseUrl: string)
       multiFile: true,
       orgId: row.org_id ?? undefined,
       precomputedSpec: spec,
+      skipInjectionCheck: true,
     });
 
     const files = result.files;
