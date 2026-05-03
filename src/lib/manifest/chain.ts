@@ -71,14 +71,49 @@ export function triggerStage(
     try {
       const workerSecret = process.env.WORKER_SHARED_SECRET;
       if (!workerSecret) {
-        console.error(`[manifest/chain] WORKER_SHARED_SECRET is not set — stage "${stage}" for job ${jobId} will not run in production!`);
+        console.warn(`[manifest/chain] WORKER_SHARED_SECRET is not set — falling back to direct execution for stage "${stage}" job ${jobId}`);
+        // Fall back to direct execution like dev mode
+        const stages = await import("./stages");
+        const { nextStage } = stages;
+
+        const RUNNERS: Record<StageName, (id: string, base: string) => Promise<void>> = {
+          "intent-classify": stages.runIntentClassifyStage,
+          "intent-scout": stages.runIntentScoutStage,
+          "intent-architect": stages.runIntentArchitectStage,
+          intent: stages.runIntentStage,
+          generate: stages.runGenerateStage,
+          "generate-plan": stages.runGeneratePlanStage,
+          "plan-outline": stages.runPlanOutlineStage,
+          "plan-details": stages.runPlanDetailsStage,
+          "generate-build-code": stages.runGenerateBuildCodeStage,
+          "generate-build-fix": stages.runGenerateBuildFixStage,
+          "generate-build": stages.runGenerateBuildStage,
+          "polish-analyze": stages.runPolishAnalyzeStage,
+          "polish-launch": stages.runPolishLaunchStage,
+          polish: stages.runPolishStage,
+          "polish-parallel": stages.runPolishParallelStage,
+          persist: stages.runPersistStage,
+        };
+
+        const runner = RUNNERS[stage];
+        if (!runner) {
+          console.warn(`[manifest/chain] unknown stage "${stage}" for job ${jobId}`);
+          return;
+        }
+
+        await runner(jobId, baseUrl);
+
+        const next = nextStage[stage];
+        if (next) {
+          triggerStage(baseUrl, next, jobId);
+        }
         return;
       }
       const res = await fetch(`${baseUrl}/api/manifest/worker?stage=${stage}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-Worker-Secret": process.env.WORKER_SHARED_SECRET ?? "",
+          "X-Worker-Secret": workerSecret,
         },
         body: JSON.stringify({ jobId }),
       });

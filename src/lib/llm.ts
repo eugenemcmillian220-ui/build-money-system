@@ -16,12 +16,24 @@ export class LLMError extends Error {
 }
 
 export function cleanJson(text: string): string {
-  return text
+  let cleaned = text
     .replace(/^```[a-zA-Z]*\s*/g, "")
     .replace(/```$/g, "")
+    .trim();
+
+  // Remove trailing commas before } or ] (common LLM mistake)
+  cleaned = cleaned.replace(/,\s*([\]}])/g, "$1");
+
+  // Remove JS-style single-line comments
+  cleaned = cleaned.replace(/\/\/[^\n]*/g, "");
+
+  // Normalize leading/trailing whitespace around braces
+  cleaned = cleaned
     .replace(/^\s*{\s*/, "{")
     .replace(/\s*}\s*$/, "}")
     .trim();
+
+  return cleaned;
 }
 
 /**
@@ -37,7 +49,7 @@ export function robustParseJson<T>(text: string): T {
     const lastClose = text.lastIndexOf("}");
 
     if (firstOpen !== -1 && lastClose !== -1 && lastClose > firstOpen) {
-      const candidate = text.slice(firstOpen, lastClose + 1);
+      const candidate = cleanJson(text.slice(firstOpen, lastClose + 1));
       try {
         const parsed = JSON.parse(candidate) as T;
         logger.warn("Robust JSON parser recovered data from noisy response", {
