@@ -170,22 +170,14 @@ export async function planSpecOutline(prompt: string, context: MemoryContext[] =
       ? `\n\nRelevant context from previous projects:\n${JSON.stringify(context, null, 2)}`
       : "";
 
-  const systemPrompt = `You are "The Architect", the Structural Planning Lead for Sovereign Forge OS (2026). Given a user request, create the HIGH-LEVEL architecture outline for a Next.js 15 application.${contextText}
+  const systemPrompt = `You are "The Architect" for Sovereign Forge OS. Create a HIGH-LEVEL outline for a Next.js 15 app.${contextText}
 
 Rules:
-- Include Supabase Auth by default (login/signup pages) unless explicitly told not to.
-- Use shadcn/ui and Tailwind CSS v4 design language.
-- Keep the app focused and achievable (5-12 files max).
-- Return ONLY a JSON object with this EXACT structure — no extra fields:
-{
-  "name": "App Name",
-  "description": "Brief description",
-  "features": ["auth", "dashboard", "..."],
-  "pages": [{ "route": "/login", "description": "Login page", "components": ["LoginForm"] }],
-  "integrations": ["supabase", "stripe", "..."],
-  "visuals": { "theme": "dark", "primaryColor": "#f59e0b" }
-}
-- Keep descriptions concise. Do NOT include component details, schema, or file paths — those come in a follow-up step.`;
+- Include Supabase Auth by default unless told not to.
+- shadcn/ui + Tailwind CSS v4. Keep app focused: 5-12 files max.
+- Keep ALL descriptions under 15 words. No component details, schema, or file paths.
+- Return ONLY valid JSON — no markdown fences, no extra fields:
+{"name":"App Name","description":"Brief desc","features":["auth","dashboard"],"pages":[{"route":"/login","description":"Login","components":["LoginForm"]}],"integrations":["supabase"],"visuals":{"theme":"dark","primaryColor":"#f59e0b"}}`;
 
   const messages: ChatMessage[] = [
     { role: "system", content: systemPrompt },
@@ -198,8 +190,8 @@ Rules:
     try {
       const content = await callLLM(messages, {
         temperature: attempt === 1 ? 0.7 : 0.4,
-        maxTokens: 4096,
-        timeout: 90000,
+        maxTokens: 2048,
+        timeout: 45000,
       }, { cache: false });
 
       const parsed = robustParseJson<AppSpecOutline>(content);
@@ -230,23 +222,15 @@ Rules:
 export type AppSpecDetails = Pick<AppSpec, "components" | "schema" | "fileStructure">;
 
 export async function planSpecDetails(prompt: string, outline: AppSpecOutline): Promise<AppSpecDetails> {
-  const systemPrompt = `You are "The Architect", the Structural Planning Lead for Sovereign Forge OS (2026). Given a user request and an architecture outline, produce the DETAILED implementation plan: components, database schema, and file structure.
+  const systemPrompt = `You are "The Architect" for Sovereign Forge OS. Given an outline, produce implementation details.
 
-ARCHITECTURE OUTLINE (already decided):
-${JSON.stringify(outline, null, 2)}
+OUTLINE: ${JSON.stringify(outline)}
 
 Rules:
-- Use shadcn/ui and Tailwind CSS v4 design language.
-- Ensure Row Level Security (RLS) is considered in the schema.
-- Focus on accessibility (a11y) and responsive design.
-- The fileStructure should list every file the Developer agent needs to create (5-12 files).
-- Return ONLY a JSON object with this EXACT structure — no extra fields:
-{
-  "components": [{ "name": "LoginForm", "description": "Auth form with email/password", "props": {} }],
-  "schema": "CREATE TABLE ... ; ALTER TABLE ... ENABLE ROW LEVEL SECURITY; ...",
-  "fileStructure": ["app/layout.tsx", "app/page.tsx", "lib/supabase.ts", "..."]
-}
-- Be concise. Produce valid JSON only — no markdown fences.`;
+- shadcn/ui + Tailwind CSS v4. Include RLS in schema. 5-12 files max.
+- Keep component descriptions under 10 words. Schema as concise CREATE TABLE statements.
+- Return ONLY valid JSON — no markdown fences, no extra fields:
+{"components":[{"name":"LoginForm","description":"Auth form","props":{}}],"schema":"CREATE TABLE users(id uuid PRIMARY KEY);...","fileStructure":["app/layout.tsx","app/page.tsx"]}`;
 
   const messages: ChatMessage[] = [
     { role: "system", content: systemPrompt },
@@ -259,8 +243,8 @@ Rules:
     try {
       const content = await callLLM(messages, {
         temperature: attempt === 1 ? 0.5 : 0.3,
-        maxTokens: 4096,
-        timeout: 90000,
+        maxTokens: 3072,
+        timeout: 45000,
       }, { cache: false });
 
       const parsed = robustParseJson<AppSpecDetails>(content);

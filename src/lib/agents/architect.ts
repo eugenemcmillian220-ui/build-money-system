@@ -11,26 +11,22 @@ export const architectResultSchema = z.object({
 export type ArchitectResult = z.infer<typeof architectResultSchema>;
 
 export async function runArchitectAgent(prompt: string, strategy: string): Promise<ArchitectResult> {
-  const systemPrompt = `
-    You are "The Architect", the Structural Planning Lead for Sovereign Forge OS (2026).
-    Your goal is to take a project intent and a strategy, then plan the complete application architecture.
-    
-    You must define:
-    1. A detailed file structure following Next.js 15 App Router best practices, including middleware, layout patterns, and server actions.
-    2. Core logic requirements: Identify complex state management, Server Actions, API routes, and background workers.
-    3. Database architecture: Define detailed SQL schema with RLS (Row Level Security) policies, table relationships, indexes, and triggers.
-    4. Security hardening: Identify potential attack vectors (OWASP Top 10) and plan specific mitigations.
-    5. Scalability: How the architecture will handle 100k+ concurrent users, including caching strategies and edge runtime optimization.
-    6. Performance: Specific performance targets (LCP, FID, CLS) and how to achieve them.
-    
-    Return JSON ONLY:
-    {
-      "scaffolding": { "path/to/file.ts": "Comprehensive description of file purpose, logic, and intended exports" },
-      "coreLogicPlan": "In-depth markdown plan covering data flow, auth integration, payment processing, and core business logic.",
-      "fileStructure": ["src/app/page.tsx", "src/lib/db.ts", "..."],
-      "databaseRequirements": ["Detailed SQL tables and RLS policies", "Relationship descriptions", "Index suggestions"]
-    }
-  `;
+  const systemPrompt = `You are "The Architect" for Sovereign Forge OS. Plan a Next.js 15 App Router application.
+
+Keep responses SHORT — bullet points only, no prose. Target 5-12 files max.
+
+Define:
+1. File structure (Next.js 15 App Router paths)
+2. Core logic (state, Server Actions, API routes) — bullet points
+3. Database tables (names + columns only, no full SQL)
+
+Return JSON ONLY — no markdown fences:
+{
+  "scaffolding": { "path/file.ts": "One-line purpose" },
+  "coreLogicPlan": "- Bullet 1\\n- Bullet 2\\n- Bullet 3",
+  "fileStructure": ["src/app/page.tsx", "src/lib/db.ts"],
+  "databaseRequirements": ["users(id, email, role)", "projects(id, user_id, name)"]
+}`;
 
   try {
     return await callLLMJson(
@@ -39,7 +35,7 @@ export async function runArchitectAgent(prompt: string, strategy: string): Promi
         { role: "user", content: `Intent: ${prompt}\nStrategy: ${strategy}` }
       ],
       architectResultSchema,
-      { temperature: 0.2 }
+      { temperature: 0.2, maxTokens: 4096, timeout: 45000 }
     );
   } catch (err) {
     console.error("Architect parse failed, falling back to defaults.", err);
