@@ -126,9 +126,9 @@ export async function callLLM(
     return result.content;
   } catch (e) {
     const detail = e instanceof Error ? e.message : String(e);
-    logger.error("OpenCode Zen AI call failed", { error: detail });
+    logger.error("AI call failed", { error: detail });
     throw new LLMError(
-      `OpenCode Zen AI is currently unavailable. Error: ${detail}`,
+      `AI is currently unavailable. Error: ${detail}`,
       503
     );
   }

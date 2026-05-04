@@ -1,16 +1,16 @@
 /**
- * Multi-Key Rotation Manager — OpenCode Zen Exclusive
+ * Multi-Provider Key Rotation Manager
  *
- * Supports round-robin rotation across multiple API keys for the
- * OpenCode Zen provider. Keys are read from environment variables
- * on first access. Keys that hit error thresholds are temporarily
- * placed on cooldown.
+ * Supports round-robin rotation across multiple API keys for:
+ *   - OpenCode Zen (primary)
+ *   - GitHub Models (free tier via GitHub PAT)
+ *   - Hugging Face Inference (free tier via HF token)
  *
- * Rate limiting applies only to the free tier. Paid plans (Go, Pro)
- * have no rate limits on the paid model pool.
+ * Keys are read from environment variables on first access.
+ * Keys that hit error thresholds are temporarily placed on cooldown.
  */
 
-export type ProviderName = "opencodezen";
+export type ProviderName = "opencodezen" | "github" | "huggingface";
 
 interface KeyEntry {
   key: string;
@@ -87,36 +87,75 @@ function parseKeys(envValue: string | undefined): string[] {
     .filter(Boolean);
 }
 
+const PROVIDER_ENV_MAP: Record<ProviderName, { multi: string[]; single: string[] }> = {
+  opencodezen: {
+    multi: ["OPENCODE_ZEN_API_KEYS"],
+    single: ["OPENCODE_ZEN_API_KEY"],
+  },
+  github: {
+    multi: ["GITHUB_MODELS_TOKENS"],
+    single: ["GITHUB_TOKEN", "GITHUB_ACCESS_TOKEN"],
+  },
+  huggingface: {
+    multi: ["HF_API_KEYS"],
+    single: ["HF_TOKEN", "HUGGINGFACE_TOKEN", "HF_API_KEY"],
+  },
+};
+
 class KeyManager {
-  private pool: ProviderKeyPool | null = null;
+  private pools = new Map<ProviderName, ProviderKeyPool>();
 
-  private getPool(): ProviderKeyPool {
-    if (!this.pool) {
-      const multiKeys = parseKeys(process.env.OPENCODE_ZEN_API_KEYS);
-      const singleKey = parseKeys(process.env.OPENCODE_ZEN_API_KEY);
-      this.pool = new ProviderKeyPool(multiKeys.length > 0 ? multiKeys : singleKey);
+  private getPool(provider: ProviderName): ProviderKeyPool {
+    let pool = this.pools.get(provider);
+    if (!pool) {
+      const envConfig = PROVIDER_ENV_MAP[provider];
+      let keys: string[] = [];
+
+      for (const envName of envConfig.multi) {
+        keys = parseKeys(process.env[envName]);
+        if (keys.length > 0) break;
+      }
+
+      if (keys.length === 0) {
+        for (const envName of envConfig.single) {
+          keys = parseKeys(process.env[envName]);
+          if (keys.length > 0) break;
+        }
+      }
+
+      pool = new ProviderKeyPool(keys);
+      this.pools.set(provider, pool);
     }
-    return this.pool;
+    return pool;
   }
 
-  resetPool(_provider?: ProviderName): void {
-    this.pool = null;
+  resetPool(provider?: ProviderName): void {
+    if (provider) {
+      this.pools.delete(provider);
+    } else {
+      this.pools.clear();
+    }
   }
 
-  getKey(_provider?: ProviderName): string | null {
-    return this.getPool().getNext();
+  getKey(provider: ProviderName = "opencodezen"): string | null {
+    return this.getPool(provider).getNext();
   }
 
-  isConfigured(_provider?: ProviderName): boolean {
-    return this.getPool().size > 0;
+  isConfigured(provider: ProviderName = "opencodezen"): boolean {
+    return this.getPool(provider).size > 0;
   }
 
-  reportError(_provider: ProviderName, key: string): void {
-    this.getPool().reportError(key);
+  reportError(provider: ProviderName, key: string): void {
+    this.getPool(provider).reportError(key);
   }
 
-  reportSuccess(_provider: ProviderName, key: string): void {
-    this.getPool().reportSuccess(key);
+  reportSuccess(provider: ProviderName, key: string): void {
+    this.getPool(provider).reportSuccess(key);
+  }
+
+  getConfiguredProviders(): ProviderName[] {
+    const providers: ProviderName[] = ["opencodezen", "github", "huggingface"];
+    return providers.filter((p) => this.isConfigured(p));
   }
 }
 
