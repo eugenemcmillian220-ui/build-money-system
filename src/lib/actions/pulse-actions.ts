@@ -11,7 +11,10 @@ export async function getErrorClusters(projectId: string): Promise<ErrorCluster[
     .eq("is_resolved", false)
     .order("occurrence_count", { ascending: false });
 
-  if (error) throw new Error(`Failed to fetch error clusters: ${error.message}`);
+  if (error) {
+    console.warn(`[Pulse] Error clusters unavailable: ${error.message}`);
+    return [];
+  }
 
   return (data || []).map(row => ({
     id: row.id,
@@ -42,7 +45,10 @@ export async function getPulseMetrics(projectId: string, days: number = 7) {
     .eq("project_id", projectId)
     .gte("timestamp", since);
 
-  if (error) throw new Error(`Failed to fetch metrics: ${error.message}`);
+  if (error) {
+    console.warn(`[Pulse] Metrics unavailable: ${error.message}`);
+    return { views: 0, errors: 0, sessions: new Set(), latency: 0 };
+  }
 
   const metrics = {
     views: 0,

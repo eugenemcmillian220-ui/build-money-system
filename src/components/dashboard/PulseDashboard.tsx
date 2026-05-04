@@ -12,14 +12,9 @@ export function PulseDashboard() {
 
   useEffect(() => {
     async function loadData() {
-      try {
-        const data = await getErrorClusters("00000000-0000-0000-0000-000000000000");
-        setClusters(data);
-      } catch (err) {
-        console.error("Failed to load Pulse data:", err);
-      } finally {
-        setLoading(false);
-      }
+      const data = await getErrorClusters("00000000-0000-0000-0000-000000000000");
+      setClusters(data);
+      setLoading(false);
     }
     loadData();
   }, []);
