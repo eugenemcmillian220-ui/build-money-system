@@ -274,16 +274,16 @@ async function callProvider(
 export async function aiComplete(options: AIOptions): Promise<AIResult> {
   const temperature = options.temperature ?? 0.7;
   const maxTokens = options.maxTokens ?? 4096;
-  const timeoutMs = options.timeout ?? 60_000;
+  const timeoutMs = options.timeout ?? 25_000;
 
   const order = buildProviderOrder(options.provider);
 
   let lastError: Error | null = null;
   let totalAttempts = 0;
   const MAX_TOTAL_ATTEMPTS = 6;
-  // Hard budget so retries can't exceed the Vercel 300s function limit.
-  // Leave 30s headroom for stage bookkeeping / DB writes.
-  const TOTAL_BUDGET_MS = 240_000;
+  // Hard budget so retries can't exceed the Vercel Hobby 60s function limit.
+  // Leave 10s headroom for stage bookkeeping / DB writes.
+  const TOTAL_BUDGET_MS = 50_000;
   const budgetStart = Date.now();
 
   for (const { provider, models } of order) {

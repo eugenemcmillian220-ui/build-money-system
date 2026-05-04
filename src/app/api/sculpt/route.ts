@@ -41,7 +41,7 @@ Maintain the existing architecture and style. Update only what is necessary.`;
       const response = await callLLM([
         { role: "system", content: systemPrompt },
         { role: "user", content: "Apply the refinement to the codebase." }
-      ], { temperature: 0.2, timeout: 90000 });
+      ], { temperature: 0.2, timeout: 25000 });
 
       const { files: updatedFiles } = parseMultiFileJson(response);
 
