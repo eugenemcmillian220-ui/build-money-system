@@ -2,19 +2,23 @@
 "use client";
 
 // DA-044 FIX: Command allowlist for terminal
-const ALLOWED_COMMANDS = new Set([
+const KNOWN_COMMANDS = new Set([
   'help', 'status', 'balance', 'generate', 'deploy', 'agents', 'ls', 'clear',
   'deals', 'negotiate', 'scout', 'manifest', 'test', 'restart',
 ]);
 function sanitizeCommand(cmd: string): string {
-  const base = cmd.trim().split(/\s+/)[0].toLowerCase();
-  if (!ALLOWED_COMMANDS.has(base)) return 'help'; // Default to safe command
-  // Strip shell metacharacters
+  // Strip shell metacharacters for safety
   return cmd.replace(/[;&|`$(){}\[\]<>!]/g, '');
+}
+function isKnownCommand(cmd: string): boolean {
+  const base = cmd.trim().split(/\s+/)[0].toLowerCase();
+  return KNOWN_COMMANDS.has(base);
 }
 
 // DA-012 FIX: orgId resolved server-side from auth session, not client request
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+
+const TERMINAL_HISTORY_KEY = "sovereign_terminal_history";
 import { Terminal as TerminalIcon, Send, Loader2 } from "lucide-react";
 import { ManifestOptions } from "@/lib/types";
 
@@ -37,20 +41,40 @@ async function repairOrganization(): Promise<{ success: boolean; error?: string 
   }
 }
 
+const DEFAULT_HISTORY: { type: "input" | "output" | "error"; text: string }[] = [
+  { type: "output", text: "Sovereign Forge OS v2.7.1 (Phase 21 Active)" },
+  { type: "output", text: "Type 'help' for commands, or describe what you want to build in plain English." },
+];
+
+function loadPersistedHistory(): { type: "input" | "output" | "error"; text: string }[] {
+  try {
+    const saved = sessionStorage.getItem(TERMINAL_HISTORY_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch { /* ignore */ }
+  return DEFAULT_HISTORY;
+}
+
 export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
   const [input, setInput] = useState("");
-  const [history, setHistory] = useState<{ type: "input" | "output" | "error"; text: string }[]>([
-    { type: "output", text: "Sovereign Forge OS v2.7.1 (Phase 21 Active)" },
-    { type: "output", text: "Type 'help' for available commands." },
-  ]);
+  const [history, setHistory] = useState<{ type: "input" | "output" | "error"; text: string }[]>(DEFAULT_HISTORY);
   const [isProcessing, setIsProcessing] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const initializedRef = useRef(false);
 
   const [mode, setMode] = useState<"elite" | "universal" | "nano">("universal");
   const [protocol, setProtocol] = useState("Sovereign-Forge-v1");
   const [builderType, setBuilderType] = useState<"automated" | "granular">("automated");
 
+  // Restore persisted terminal history on mount
   useEffect(() => {
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+    const restored = loadPersistedHistory();
+    setHistory(restored);
+
     // Handle blueprint pre-fill
     const prefill = sessionStorage.getItem("sovereign_manifest_prefill");
     if (prefill) {
@@ -60,12 +84,20 @@ export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
         if (options.mode) setMode(options.mode);
         if (options.protocol) setProtocol(options.protocol);
         sessionStorage.removeItem("sovereign_manifest_prefill");
-        addLine("output", `Blueprint loaded: ${options.protocol}. Tactical parameters adjusted.`);
+        setHistory(prev => [...prev, { type: "output", text: `Blueprint loaded: ${options.protocol}. Tactical parameters adjusted.` }]);
       } catch (e) {
         console.error("Prefill error:", e);
       }
     }
   }, []);
+
+  // Persist history to sessionStorage whenever it changes
+  useEffect(() => {
+    try {
+      const toSave = history.slice(-200);
+      sessionStorage.setItem(TERMINAL_HISTORY_KEY, JSON.stringify(toSave));
+    } catch { /* storage full or unavailable */ }
+  }, [history]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -73,15 +105,17 @@ export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
     }
   }, [history]);
 
-  const addLine = (type: "input" | "output" | "error", text: string) => {
+  const addLine = useCallback((type: "input" | "output" | "error", text: string) => {
     setHistory(prev => [...prev, { type, text }]);
-  };
+  }, []);
 
   const handleCommand = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isProcessing) return;
 
-    const cmd = sanitizeCommand(input.trim());
+    const rawInput = input.trim();
+    const cmd = sanitizeCommand(rawInput);
+    const knownCmd = isKnownCommand(cmd);
     setInput("");
     addLine("input", cmd);
 
@@ -93,6 +127,8 @@ export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
       addLine("output", "  scout            - Research emerging tech trends (Phase 18)");
       addLine("output", "  status           - Check platform health");
       addLine("output", "  clear            - Clear terminal");
+      addLine("output", "");
+      addLine("output", "You can also type in plain English (e.g. 'build me a todo app') to start a manifestation.");
       return;
     }
 
@@ -161,11 +197,13 @@ export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
     }
 
     if (cmd.toLowerCase() === "clear") {
-      setHistory([]);
+      setHistory(DEFAULT_HISTORY);
+      try { sessionStorage.removeItem(TERMINAL_HISTORY_KEY); } catch { /* ignore */ }
       return;
     }
 
-    if (cmd.toLowerCase().startsWith("manifest") || (!cmd.includes(" ") && !["help", "deals", "negotiate", "scout", "clear", "status", "test", "restart"].includes(cmd.toLowerCase())) || (cmd.includes(" ") && !cmd.toLowerCase().startsWith("help") && !cmd.toLowerCase().startsWith("deals") && !cmd.toLowerCase().startsWith("negotiate") && !cmd.toLowerCase().startsWith("scout") && !cmd.toLowerCase().startsWith("clear") && !cmd.toLowerCase().startsWith("status") && !cmd.toLowerCase().startsWith("test") && !cmd.toLowerCase().startsWith("restart"))) {
+    // Route unrecognized input (plain English) to manifestation
+    if (cmd.toLowerCase().startsWith("manifest") || !knownCmd) {
       setIsProcessing(true);
       const manifestPrompt = cmd.toLowerCase().startsWith("manifest") ? cmd.slice(9).trim() : cmd;
       
@@ -267,7 +305,7 @@ export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
       return;
     }
 
-    addLine("error", `Command not found: ${cmd.split(" ")[0]}`);
+    addLine("error", `Unknown command: ${cmd.split(" ")[0]}. Type 'help' for commands or describe what you want to build.`);
   };
 
   return (
