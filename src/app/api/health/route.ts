@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { validateCriticalEnv } from "@/lib/env";
+import { getProviderHealth } from "@/lib/ai";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -57,6 +58,20 @@ export async function GET() {
       ok: false,
       message: `Error: ${(err as Error).message}`,
     };
+  }
+
+  // 4. AI provider health
+  try {
+    const aiHealth = getProviderHealth();
+    const activeProviders = (aiHealth.activeProviders as number) || 0;
+    checks["ai_providers"] = {
+      ok: activeProviders > 0,
+      message: activeProviders > 0
+        ? `${activeProviders} provider(s) active`
+        : "No AI providers configured",
+    };
+  } catch {
+    checks["ai_providers"] = { ok: false, message: "Failed to check AI providers" };
   }
 
   // Overall status

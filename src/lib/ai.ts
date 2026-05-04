@@ -1,11 +1,11 @@
 import { ChatMessage } from "./types";
 import { logger } from "./logger";
-import { keyManager } from "./key-manager";
+import { keyManager, ProviderName } from "./key-manager";
 
-/**
- * OpenCode Zen — Free-tier models (primary, used first).
- * Rate-limited on free plan; unlimited on Go/Pro plans.
- */
+// ---------------------------------------------------------------------------
+// Model catalogues per provider
+// ---------------------------------------------------------------------------
+
 export const ZEN_FREE_MODELS = [
   "deepseek-v4-flash",
   "glm-5",
@@ -15,11 +15,6 @@ export const ZEN_FREE_MODELS = [
   "minimax-m2.5",
 ];
 
-/**
- * OpenCode Zen — Paid-tier models (fallback).
- * Available on Go ($5/$10/mo) and Pro plans.
- * No rate limits on paid plans.
- */
 export const ZEN_PAID_MODELS = [
   "kimi-k2.6",
   "glm-5.1",
@@ -31,17 +26,94 @@ export const ZEN_PAID_MODELS = [
   "deepseek-v4-pro",
 ];
 
+export const GITHUB_FREE_MODELS = [
+  "openai/gpt-4.1-mini",
+  "openai/gpt-4.1-nano",
+  "openai/gpt-4o-mini",
+  "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+  "meta-llama/Meta-Llama-3.1-8B-Instruct",
+  "meta-llama/Meta-Llama-3.1-70B-Instruct",
+  "mistralai/Mistral-Small-24B-Instruct-2501",
+  "deepseek/DeepSeek-V3-0324",
+  "microsoft/Phi-4",
+  "Cohere/cohere-command-a",
+];
+
+export const HF_FREE_MODELS = [
+  "deepseek-ai/DeepSeek-V3-0324",
+  "meta-llama/Llama-3.1-8B-Instruct",
+  "Qwen/Qwen2.5-72B-Instruct",
+  "mistralai/Mistral-Small-24B-Instruct-2501",
+  "microsoft/Phi-3.5-mini-instruct",
+  "google/gemma-2-2b-it",
+  "NousResearch/Hermes-3-Llama-3.1-8B",
+  "HuggingFaceH4/zephyr-7b-beta",
+];
+
+export const ALL_FREE_MODELS: Record<ProviderName, string[]> = {
+  opencodezen: ZEN_FREE_MODELS,
+  github: GITHUB_FREE_MODELS,
+  huggingface: HF_FREE_MODELS,
+};
+
+// ---------------------------------------------------------------------------
+// Provider endpoint config
+// ---------------------------------------------------------------------------
+
+interface ProviderConfig {
+  getUrl: () => string;
+  getHeaders: (apiKey: string) => Record<string, string>;
+  supportsStream: boolean;
+}
+
+const PROVIDER_CONFIGS: Record<ProviderName, ProviderConfig> = {
+  opencodezen: {
+    getUrl: () =>
+      process.env.OPENCODE_ZEN_API_URL || "https://opencode.ai/zen/go/v1/chat/completions",
+    getHeaders: (apiKey) => ({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    }),
+    supportsStream: true,
+  },
+  github: {
+    getUrl: () =>
+      process.env.GITHUB_MODELS_API_URL || "https://models.github.ai/inference/chat/completions",
+    getHeaders: (apiKey) => ({
+      "Content-Type": "application/json",
+      Accept: "application/vnd.github+json",
+      Authorization: `Bearer ${apiKey}`,
+    }),
+    supportsStream: true,
+  },
+  huggingface: {
+    getUrl: () =>
+      process.env.HF_API_URL || "https://router.huggingface.co/v1/chat/completions",
+    getHeaders: (apiKey) => ({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    }),
+    supportsStream: true,
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
 export interface AIOptions {
   messages: ChatMessage[];
   model?: string;
   temperature?: number;
   maxTokens?: number;
   timeout?: number;
+  provider?: ProviderName;
 }
 
 export interface AIResult {
   content: string;
   model: string;
+  provider: ProviderName;
   usage: {
     promptTokens: number;
     completionTokens: number;
@@ -52,150 +124,210 @@ export interface AIResult {
 }
 
 const MODEL_COSTS: Record<string, number> = {
-  // Free-tier models (no cost)
-  "deepseek-v4-flash": 0,
-  "glm-5": 0,
-  "mimo-v2.5": 0,
-  "qwen3.5-plus": 0,
-  "kimi-k2.5": 0,
-  "minimax-m2.5": 0,
-  // Paid-tier models
-  "kimi-k2.6": 0.00003,
-  "glm-5.1": 0.00003,
-  "mimo-v2-pro": 0.00004,
-  "mimo-v2-omni": 0.00004,
-  "mimo-v2.5-pro": 0.00005,
-  "minimax-m2.7": 0.00004,
-  "qwen3.6-plus": 0.00004,
-  "deepseek-v4-pro": 0.00005,
+  "deepseek-v4-flash": 0, "glm-5": 0, "mimo-v2.5": 0,
+  "qwen3.5-plus": 0, "kimi-k2.5": 0, "minimax-m2.5": 0,
+  "kimi-k2.6": 0.00003, "glm-5.1": 0.00003,
+  "mimo-v2-pro": 0.00004, "mimo-v2-omni": 0.00004,
+  "mimo-v2.5-pro": 0.00005, "minimax-m2.7": 0.00004,
+  "qwen3.6-plus": 0.00004, "deepseek-v4-pro": 0.00005,
 };
-
-function getApiUrl(): string {
-  return process.env.OPENCODE_ZEN_API_URL || "https://opencode.ai/zen/go/v1/chat/completions";
-}
 
 function getEmbedUrl(): string {
   return process.env.OPENCODE_ZEN_EMBED_URL || "https://opencode.ai/zen/go/v1/embeddings";
 }
 
-export async function aiComplete(options: AIOptions): Promise<AIResult> {
-  const allModels = [...ZEN_FREE_MODELS, ...ZEN_PAID_MODELS];
+// ---------------------------------------------------------------------------
+// Smart provider rotation
+// ---------------------------------------------------------------------------
 
-  const modelsToTry = options.model
-    ? [options.model, ...allModels].filter((m, i, self) => self.indexOf(m) === i)
-    : allModels;
-
-  let lastError: Error | null = null;
-  const MAX_TIMEOUT_RETRIES = 1;
-  let timeoutCount = 0;
-
-  for (const model of modelsToTry) {
-    const apiKey = keyManager.getKey("opencodezen");
-    if (!apiKey) {
-      throw new Error("No OpenCode Zen API keys available — set OPENCODE_ZEN_API_KEY or OPENCODE_ZEN_API_KEYS");
-    }
-
-    try {
-      const controller = new AbortController();
-      const timeoutMs = options.timeout ?? 120000;
-      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-      const response = await fetch(getApiUrl(), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model,
-          messages: options.messages.map(m => ({
-            role: m.role,
-            content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
-          })),
-          temperature: options.temperature ?? 0.7,
-          max_tokens: options.maxTokens ?? 4096,
-        }),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        if (response.status === 429) {
-          keyManager.reportError("opencodezen", apiKey);
-        }
-        throw new Error(`OpenCode Zen API error (${response.status}): ${errorText}`);
-      }
-
-      keyManager.reportSuccess("opencodezen", apiKey);
-      const data = await response.json();
-      const content = data.choices?.[0]?.message?.content;
-
-      if (!content) {
-        throw new Error(`Empty response from OpenCode Zen model ${model}`);
-      }
-
-      const usage = data.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
-      const promptTokens = usage.prompt_tokens || 0;
-      const completionTokens = usage.completion_tokens || 0;
-      const totalTokens = usage.total_tokens || promptTokens + completionTokens;
-
-      const costRate = MODEL_COSTS[model] || 0.00003;
-      const cost = totalTokens * costRate;
-
-      return {
-        content,
-        model,
-        usage: {
-          promptTokens,
-          completionTokens,
-          totalTokens,
-        },
-        cost,
-      };
-    } catch (error: unknown) {
-      if (error instanceof Error && error.name === "AbortError") {
-        timeoutCount++;
-        lastError = new Error(`Model ${model} timed out`);
-        if (timeoutCount >= MAX_TIMEOUT_RETRIES) {
-          logger.error(`AI call timed out for ${timeoutCount} models, stopping retries`);
-          break;
-        }
-        logger.warn(`AI call timed out after ${options.timeout ?? 120000}ms for model ${model}, trying next model (${timeoutCount}/${MAX_TIMEOUT_RETRIES})`);
-        continue;
-      }
-      logger.warn(`Failed to call OpenCode Zen model ${model}:`, { error });
-      lastError = error instanceof Error ? error : new Error(String(error));
-      continue;
-    }
-  }
-
-  throw lastError || new Error("All OpenCode Zen models failed");
+interface ProviderPerf {
+  successCount: number;
+  failCount: number;
+  totalLatencyMs: number;
+  lastFailAt: number;
 }
 
-export async function* aiStream(options: AIOptions): AsyncIterable<string> {
-  const model = options.model || ZEN_FREE_MODELS[0];
-  const apiKey = keyManager.getKey("opencodezen");
+const providerStats = new Map<ProviderName, ProviderPerf>();
 
-  if (!apiKey) {
-    throw new Error("No OpenCode Zen API keys available");
+function getStats(provider: ProviderName): ProviderPerf {
+  let s = providerStats.get(provider);
+  if (!s) {
+    s = { successCount: 0, failCount: 0, totalLatencyMs: 0, lastFailAt: 0 };
+    providerStats.set(provider, s);
+  }
+  return s;
+}
+
+function recordSuccess(provider: ProviderName, latencyMs: number): void {
+  const s = getStats(provider);
+  s.successCount++;
+  s.totalLatencyMs += latencyMs;
+}
+
+function recordFailure(provider: ProviderName): void {
+  const s = getStats(provider);
+  s.failCount++;
+  s.lastFailAt = Date.now();
+}
+
+function buildProviderOrder(preferred?: ProviderName): Array<{ provider: ProviderName; models: string[] }> {
+  const configured = keyManager.getConfiguredProviders();
+  if (configured.length === 0) {
+    throw new Error(
+      "No AI providers configured. Set at least one of: OPENCODE_ZEN_API_KEY, GITHUB_TOKEN, or HF_TOKEN"
+    );
   }
 
+  const scored = configured.map((p) => {
+    const s = getStats(p);
+    const avgLatency = s.successCount > 0 ? s.totalLatencyMs / s.successCount : 5000;
+    const failPenalty = s.lastFailAt > Date.now() - 120_000 ? 10000 : 0;
+    const preferBonus = p === preferred ? -50000 : 0;
+    return { provider: p, score: avgLatency + failPenalty + preferBonus };
+  });
+
+  scored.sort((a, b) => a.score - b.score);
+
+  return scored.map(({ provider }) => ({
+    provider,
+    models: ALL_FREE_MODELS[provider] ?? [],
+  }));
+}
+
+// ---------------------------------------------------------------------------
+// Core AI call with smart multi-provider failover
+// ---------------------------------------------------------------------------
+
+async function callProvider(
+  provider: ProviderName,
+  model: string,
+  messages: ChatMessage[],
+  temperature: number,
+  maxTokens: number,
+  timeoutMs: number,
+): Promise<AIResult> {
+  const apiKey = keyManager.getKey(provider);
+  if (!apiKey) throw new Error(`No API key for provider ${provider}`);
+
+  const cfg = PROVIDER_CONFIGS[provider];
   const controller = new AbortController();
-  const timeoutMs = options.timeout ?? 120000;
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const start = Date.now();
 
   try {
-    const response = await fetch(getApiUrl(), {
+    const response = await fetch(cfg.getUrl(), {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
-      },
+      headers: cfg.getHeaders(apiKey),
       body: JSON.stringify({
         model,
-        messages: options.messages.map(m => ({
+        messages: messages.map((m) => ({
+          role: m.role,
+          content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
+        })),
+        temperature,
+        max_tokens: maxTokens,
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timer);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      if (response.status === 429) {
+        keyManager.reportError(provider, apiKey);
+      }
+      throw new Error(`${provider} API error (${response.status}): ${errorText}`);
+    }
+
+    keyManager.reportSuccess(provider, apiKey);
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+
+    if (!content) throw new Error(`Empty response from ${provider} model ${model}`);
+
+    const latency = Date.now() - start;
+    recordSuccess(provider, latency);
+
+    const usage = data.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
+    const promptTokens = usage.prompt_tokens || 0;
+    const completionTokens = usage.completion_tokens || 0;
+    const totalTokens = usage.total_tokens || promptTokens + completionTokens;
+    const costRate = MODEL_COSTS[model] || 0;
+
+    return {
+      content,
+      model,
+      provider,
+      usage: { promptTokens, completionTokens, totalTokens },
+      cost: totalTokens * costRate,
+    };
+  } catch (error: unknown) {
+    clearTimeout(timer);
+    recordFailure(provider);
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error(`${provider} model ${model} timed out after ${timeoutMs}ms`);
+    }
+    throw error;
+  }
+}
+
+export async function aiComplete(options: AIOptions): Promise<AIResult> {
+  const temperature = options.temperature ?? 0.7;
+  const maxTokens = options.maxTokens ?? 4096;
+  const timeoutMs = options.timeout ?? 60_000;
+
+  const order = buildProviderOrder(options.provider);
+
+  let lastError: Error | null = null;
+  let totalAttempts = 0;
+  const MAX_TOTAL_ATTEMPTS = 6;
+
+  for (const { provider, models } of order) {
+    const modelsToTry = options.model
+      ? [options.model, ...models].filter((m, i, a) => a.indexOf(m) === i)
+      : models;
+
+    for (const model of modelsToTry) {
+      if (totalAttempts >= MAX_TOTAL_ATTEMPTS) break;
+      totalAttempts++;
+
+      try {
+        return await callProvider(provider, model, options.messages, temperature, maxTokens, timeoutMs);
+      } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : String(error);
+        logger.warn(`AI call failed [${provider}/${model}]: ${msg}`);
+        lastError = error instanceof Error ? error : new Error(msg);
+      }
+    }
+  }
+
+  throw lastError || new Error("All AI providers and models failed");
+}
+
+// ---------------------------------------------------------------------------
+// Streaming
+// ---------------------------------------------------------------------------
+
+export async function* aiStream(options: AIOptions): AsyncIterable<string> {
+  const provider = options.provider ?? buildProviderOrder()[0]?.provider ?? "opencodezen";
+  const model = options.model || (ALL_FREE_MODELS[provider]?.[0] ?? ZEN_FREE_MODELS[0]);
+  const apiKey = keyManager.getKey(provider);
+
+  if (!apiKey) throw new Error(`No API key for streaming (${provider})`);
+
+  const cfg = PROVIDER_CONFIGS[provider];
+  const controller = new AbortController();
+  const timeoutMs = options.timeout ?? 120_000;
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(cfg.getUrl(), {
+      method: "POST",
+      headers: cfg.getHeaders(apiKey),
+      body: JSON.stringify({
+        model,
+        messages: options.messages.map((m) => ({
           role: m.role,
           content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
         })),
@@ -206,11 +338,11 @@ export async function* aiStream(options: AIOptions): AsyncIterable<string> {
       signal: controller.signal,
     });
 
-    clearTimeout(timeoutId);
+    clearTimeout(timer);
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`OpenCode Zen API error (${response.status}): ${errorText}`);
+      throw new Error(`${provider} stream error (${response.status}): ${errorText}`);
     }
 
     const reader = response.body?.getReader();
@@ -248,15 +380,20 @@ export async function* aiStream(options: AIOptions): AsyncIterable<string> {
     }
     throw error;
   } finally {
-    clearTimeout(timeoutId);
+    clearTimeout(timer);
   }
 }
+
+// ---------------------------------------------------------------------------
+// Embeddings (OpenCode Zen only for now)
+// ---------------------------------------------------------------------------
 
 export async function aiEmbed(text: string): Promise<number[]> {
   const apiKey = keyManager.getKey("opencodezen");
 
   if (!apiKey) {
-    throw new Error("No OpenCode Zen API keys available for embeddings");
+    logger.warn("No OpenCode Zen key for embeddings, returning zero vector");
+    return new Array(1536).fill(0);
   }
 
   try {
@@ -264,7 +401,7 @@ export async function aiEmbed(text: string): Promise<number[]> {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         input: text,
@@ -283,4 +420,26 @@ export async function aiEmbed(text: string): Promise<number[]> {
     logger.error("Embedding generation failed", { error });
     return new Array(1536).fill(0);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Provider health info (for diagnostics endpoints)
+// ---------------------------------------------------------------------------
+
+export function getProviderHealth(): Record<string, unknown> {
+  const configured = keyManager.getConfiguredProviders();
+  const health: Record<string, unknown> = {};
+
+  for (const p of configured) {
+    const s = getStats(p);
+    health[p] = {
+      configured: true,
+      models: ALL_FREE_MODELS[p]?.length ?? 0,
+      successCount: s.successCount,
+      failCount: s.failCount,
+      avgLatencyMs: s.successCount > 0 ? Math.round(s.totalLatencyMs / s.successCount) : null,
+    };
+  }
+
+  return { providers: health, activeProviders: configured.length };
 }

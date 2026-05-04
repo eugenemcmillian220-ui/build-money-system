@@ -92,6 +92,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       content: result.content,
       model: result.model,
+      provider: result.provider,
       usage: result.usage,
       cost: result.cost,
     });
