@@ -5,6 +5,9 @@ import { saveProjectDB } from "@/lib/supabase/db";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { monetizationEngine } from "@/lib/monetization";
 import { ADMIN_FREE_TIER } from "@/lib/admin-emails";
+import { logger } from "@/lib/logger";
+import { withTimeout, StageTimeoutError } from "@/lib/pipeline-timeout";
+import { fallbackOutline, fallbackDetails, fallbackFileMap } from "@/lib/template-fallback";
 import {
   appendLog,
   failManifestation,
@@ -14,6 +17,13 @@ import {
 } from "./store";
 
 const _AGENT_THROTTLE_MS = 100;
+
+/** Default stage budget — leaves 20s headroom in a 300s serverless invocation. */
+const STAGE_BUDGET_MS = 280_000;
+/** Per-agent call timeout inside a stage. */
+const AGENT_CALL_TIMEOUT_MS = 120_000;
+/** Max fix-pass iterations to prevent infinite loops. */
+const MAX_FIX_ITERATIONS = 3;
 
 async function loadAgents() {
   const [
@@ -254,11 +264,39 @@ export async function runPlanOutlineStage(jobId: string, _baseUrl: string): Prom
     const finalPrompt = state.finalPrompt as string;
     if (!finalPrompt) throw new Error("Intent stage did not produce finalPrompt.");
 
-    const { planSpecOutline } = await import("@/lib/llm");
-    const outline = await planSpecOutline(finalPrompt, []);
-    await appendLog(jobId, "info", `Outline complete — ${outline.features.length} features, ${outline.pages.length} pages.`);
+    const stageStart = Date.now();
+    let outline;
+    let usedFallback = false;
 
-    const nextState = mergeState(row, { outline, spec: { name: outline.name, features: outline.features, featureCount: outline.features.length } });
+    try {
+      const { planSpecOutline } = await import("@/lib/llm");
+      outline = await withTimeout(
+        planSpecOutline(finalPrompt, []),
+        AGENT_CALL_TIMEOUT_MS,
+        "planSpecOutline",
+      );
+    } catch (llmErr) {
+      logger.warn("planSpecOutline LLM failed, using template fallback", {
+        jobId,
+        error: (llmErr as Error).message,
+        elapsedMs: Date.now() - stageStart,
+      });
+      await appendLog(jobId, "warn", `Outline LLM failed (${(llmErr as Error).message}), using template fallback.`);
+      outline = fallbackOutline(finalPrompt);
+      usedFallback = true;
+    }
+
+    await appendLog(
+      jobId,
+      "info",
+      `Outline complete — ${outline.features.length} features, ${outline.pages.length} pages${usedFallback ? " (fallback)" : ""}.`,
+    );
+
+    const nextState = mergeState(row, {
+      outline,
+      spec: { name: outline.name, features: outline.features, featureCount: outline.features.length },
+      usedFallback,
+    });
     await setStage(jobId, "plan-outline", { state: nextState }, "Outline complete → detailing components...");
   } catch (err) {
     await failManifestation(jobId, `Plan-outline stage failed: ${(err as Error).message}`);
@@ -283,12 +321,36 @@ export async function runPlanDetailsStage(jobId: string, _baseUrl: string): Prom
     if (!finalPrompt) throw new Error("Intent stage did not produce finalPrompt.");
     if (!outline) throw new Error("Plan-outline stage did not produce outline.");
 
-    const { planSpecDetails } = await import("@/lib/llm");
-    const details = await planSpecDetails(finalPrompt, outline);
-    await appendLog(jobId, "info", `Details complete — ${details.components.length} components, ${details.fileStructure.length} files planned.`);
+    const stageStart = Date.now();
+    let details;
+    let usedFallback = state.usedFallback as boolean | undefined;
+
+    try {
+      const { planSpecDetails } = await import("@/lib/llm");
+      details = await withTimeout(
+        planSpecDetails(finalPrompt, outline),
+        AGENT_CALL_TIMEOUT_MS,
+        "planSpecDetails",
+      );
+    } catch (llmErr) {
+      logger.warn("planSpecDetails LLM failed, using template fallback", {
+        jobId,
+        error: (llmErr as Error).message,
+        elapsedMs: Date.now() - stageStart,
+      });
+      await appendLog(jobId, "warn", `Details LLM failed (${(llmErr as Error).message}), using template fallback.`);
+      details = fallbackDetails(outline);
+      usedFallback = true;
+    }
+
+    await appendLog(
+      jobId,
+      "info",
+      `Details complete — ${details.components.length} components, ${details.fileStructure.length} files planned${usedFallback ? " (fallback)" : ""}.`,
+    );
 
     const spec = { ...outline, ...details };
-    const nextState = mergeState(row, { spec });
+    const nextState = mergeState(row, { spec, usedFallback });
     await setStage(jobId, "plan-details", { state: nextState }, "Plan complete → queued generate-build.");
   } catch (err) {
     await failManifestation(jobId, `Plan-details stage failed: ${(err as Error).message}`);
@@ -340,24 +402,56 @@ export async function runGenerateBuildCodeStage(jobId: string, _baseUrl: string)
     const spec = state.spec as import("@/lib/types").AppSpec | undefined;
     if (!spec) throw new Error("Plan stage did not produce spec.");
 
-    const agents = await loadAgents();
-    const result = await agents.runDeveloperAgent(state.finalPrompt as string, {
-      mode: (state.mode as "web-app" | "mobile-app") || "web-app",
-      multiFile: true,
-      orgId: row.org_id ?? undefined,
-      precomputedSpec: spec,
-    });
+    const stageStart = Date.now();
+    let files: Record<string, string>;
+    let projectName: string;
+    let projectDesc: string;
+    let genData: Record<string, unknown>;
+    let usedFallback = state.usedFallback as boolean | undefined;
 
-    const files = result.files;
-    const projectName = (result.description || "Untitled").split("\n")[0].slice(0, 100);
-    const projectDesc = result.description || row.prompt;
-    await appendLog(jobId, "info", `Developer complete — ${Object.keys(files || {}).length} files generated.`);
+    try {
+      const agents = await loadAgents();
+      const result = await withTimeout(
+        agents.runDeveloperAgent(state.finalPrompt as string, {
+          mode: (state.mode as "web-app" | "mobile-app") || "web-app",
+          multiFile: true,
+          orgId: row.org_id ?? undefined,
+          precomputedSpec: spec,
+        }),
+        STAGE_BUDGET_MS - 20_000,
+        "runDeveloperAgent",
+      );
+
+      files = result.files;
+      projectName = (result.description || "Untitled").split("\n")[0].slice(0, 100);
+      projectDesc = result.description || row.prompt;
+      genData = result as unknown as Record<string, unknown>;
+    } catch (devErr) {
+      logger.warn("Developer agent failed, using template fallback files", {
+        jobId,
+        error: (devErr as Error).message,
+        elapsedMs: Date.now() - stageStart,
+      });
+      await appendLog(jobId, "warn", `Developer agent failed (${(devErr as Error).message}), using template fallback files.`);
+      files = fallbackFileMap(spec);
+      projectName = spec.name || "Untitled";
+      projectDesc = spec.description || row.prompt;
+      genData = { description: projectDesc, files } as Record<string, unknown>;
+      usedFallback = true;
+    }
+
+    await appendLog(
+      jobId,
+      "info",
+      `Developer complete — ${Object.keys(files).length} files generated${usedFallback ? " (fallback)" : ""}.`,
+    );
 
     const nextState = mergeState(row, {
-      genData: result,
+      genData,
       files,
       projectName,
       projectDesc,
+      usedFallback,
     });
     await setStage(jobId, "generate-build-code", { state: nextState }, "Code generated → running fix passes...");
   } catch (err) {
@@ -384,20 +478,57 @@ export async function runGenerateBuildFixStage(jobId: string, _baseUrl: string):
     const { testFiles, fixFiles, fixBrokenFiles } = await import("@/lib/llm");
     const { codeSandbox } = await import("@/lib/sandbox");
 
-    for (let pass = 1; pass <= 1; pass++) {
+    const stageStart = Date.now();
+    for (let pass = 1; pass <= MAX_FIX_ITERATIONS; pass++) {
+      const elapsed = Date.now() - stageStart;
+      if (elapsed > STAGE_BUDGET_MS - 30_000) {
+        logger.warn("Fix-pass budget exhausted, skipping remaining passes", {
+          jobId, pass, elapsedMs: elapsed,
+        });
+        await appendLog(jobId, "warn", `Fix-pass budget exhausted after ${pass - 1} passes (${elapsed}ms).`);
+        break;
+      }
+
       const testResult = await testFiles(files);
-      if (testResult.success) break;
+      if (testResult.success) {
+        logger.info("All tests passed", { jobId, pass });
+        await appendLog(jobId, "info", `All tests passed on pass ${pass}.`);
+        break;
+      }
 
       if (testResult.errors) {
+        logger.info("Fix pass running", {
+          jobId,
+          pass,
+          errorCount: testResult.errors.length,
+        });
+        await appendLog(jobId, "info", `Fix pass ${pass}/${MAX_FIX_ITERATIONS}: ${testResult.errors.length} errors found.`);
+
         const errorText = testResult.errors.join("\n");
         const brokenPaths = testResult.errors
           .map(e => e.split(":")[0].trim())
           .filter(p => p.endsWith(".tsx") || p.endsWith(".ts"));
 
-        if (brokenPaths.length > 0) {
-          files = await fixBrokenFiles(files, brokenPaths, testResult.errors);
-        } else {
-          files = await fixFiles(files, errorText);
+        try {
+          if (brokenPaths.length > 0) {
+            files = await withTimeout(
+              fixBrokenFiles(files, brokenPaths, testResult.errors),
+              AGENT_CALL_TIMEOUT_MS,
+              `fixBrokenFiles(pass=${pass})`,
+            );
+          } else {
+            files = await withTimeout(
+              fixFiles(files, errorText),
+              AGENT_CALL_TIMEOUT_MS,
+              `fixFiles(pass=${pass})`,
+            );
+          }
+        } catch (fixErr) {
+          logger.warn("Fix pass failed, continuing with current files", {
+            jobId, pass, error: (fixErr as Error).message,
+          });
+          await appendLog(jobId, "warn", `Fix pass ${pass} failed: ${(fixErr as Error).message}. Continuing with current files.`);
+          break;
         }
       }
     }
@@ -406,7 +537,18 @@ export async function runGenerateBuildFixStage(jobId: string, _baseUrl: string):
     if (!sandboxResult.success) {
       const errors = [...sandboxResult.typeErrors, ...sandboxResult.runtimeErrors];
       const brokenPaths = errors.map(e => e.split(":")[0].trim()).filter(p => !!p);
-      files = await fixBrokenFiles(files, brokenPaths.length > 0 ? brokenPaths : Object.keys(files), errors);
+      try {
+        files = await withTimeout(
+          fixBrokenFiles(files, brokenPaths.length > 0 ? brokenPaths : Object.keys(files), errors),
+          AGENT_CALL_TIMEOUT_MS,
+          "fixBrokenFiles(sandbox)",
+        );
+      } catch (sbErr) {
+        logger.warn("Sandbox fix failed, continuing with current files", {
+          jobId, error: (sbErr as Error).message,
+        });
+        await appendLog(jobId, "warn", `Sandbox fix failed: ${(sbErr as Error).message}. Continuing with current files.`);
+      }
     }
 
     const projectName = state.projectName as string;
@@ -467,10 +609,22 @@ export async function runGenerateStage(jobId: string, baseUrl: string): Promise<
  * Returns the fallback value on error and logs a warning.
  */
 async function safeAgent<T>(name: string, jobId: string, fallback: T, fn: () => Promise<T>): Promise<T> {
+  const start = Date.now();
   try {
-    return await fn();
+    const result = await withTimeout(fn(), AGENT_CALL_TIMEOUT_MS, `${name} agent`);
+    logger.debug("Agent completed", { agent: name, jobId, durationMs: Date.now() - start });
+    return result;
   } catch (err) {
-    await appendLog(jobId, "warn", `${name} agent failed (non-fatal): ${(err as Error).message}`);
+    const elapsed = Date.now() - start;
+    const isTimeout = err instanceof StageTimeoutError || (err instanceof Error && err.message.includes("timed out"));
+    logger.warn("Agent failed (non-fatal)", {
+      agent: name,
+      jobId,
+      error: (err as Error).message,
+      durationMs: elapsed,
+      isTimeout,
+    });
+    await appendLog(jobId, "warn", `${name} agent failed (non-fatal, ${elapsed}ms): ${(err as Error).message}`);
     return fallback;
   }
 }
