@@ -45,7 +45,6 @@ export const HF_FREE_MODELS = [
   "Qwen/Qwen2.5-72B-Instruct",
   "mistralai/Mistral-Small-24B-Instruct-2501",
   "microsoft/Phi-3.5-mini-instruct",
-  "google/gemma-2-2b-it",
   "NousResearch/Hermes-3-Llama-3.1-8B",
   "HuggingFaceH4/zephyr-7b-beta",
 ];
@@ -282,6 +281,10 @@ export async function aiComplete(options: AIOptions): Promise<AIResult> {
   let lastError: Error | null = null;
   let totalAttempts = 0;
   const MAX_TOTAL_ATTEMPTS = 6;
+  // Hard budget so retries can't exceed the Vercel 300s function limit.
+  // Leave 30s headroom for stage bookkeeping / DB writes.
+  const TOTAL_BUDGET_MS = 240_000;
+  const budgetStart = Date.now();
 
   for (const { provider, models } of order) {
     const modelsToTry = options.model
@@ -290,10 +293,20 @@ export async function aiComplete(options: AIOptions): Promise<AIResult> {
 
     for (const model of modelsToTry) {
       if (totalAttempts >= MAX_TOTAL_ATTEMPTS) break;
+
+      const elapsed = Date.now() - budgetStart;
+      if (elapsed >= TOTAL_BUDGET_MS) {
+        logger.warn(`AI total budget exhausted after ${elapsed}ms and ${totalAttempts} attempts`);
+        break;
+      }
       totalAttempts++;
 
+      // Clamp per-call timeout to remaining budget so we don't overshoot.
+      const remaining = TOTAL_BUDGET_MS - elapsed;
+      const effectiveTimeout = Math.min(timeoutMs, remaining);
+
       try {
-        return await callProvider(provider, model, options.messages, temperature, maxTokens, timeoutMs);
+        return await callProvider(provider, model, options.messages, temperature, maxTokens, effectiveTimeout);
       } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : String(error);
         logger.warn(`AI call failed [${provider}/${model}]: ${msg}`);
