@@ -162,7 +162,10 @@ export async function generateEmbedding(text: string): Promise<number[]> {
  */
 export type AppSpecOutline = Pick<AppSpec, "name" | "description" | "features" | "pages" | "integrations" | "visuals">;
 
-const MAX_PLAN_RETRIES = 1;
+// No outer retries — aiComplete already retries across providers/models.
+// Retrying here doubled the wall-clock time (2 × 50s budget = 100s)
+// which exceeded the Vercel Hobby 60s function limit.
+const MAX_PLAN_RETRIES = 0;
 
 export async function planSpecOutline(prompt: string, context: MemoryContext[] = []): Promise<AppSpecOutline> {
   const contextText =
@@ -302,7 +305,7 @@ Rules:
     { role: "user", content: `App Specification:\n${specJson}\n\nGenerate all files:` },
   ];
 
-  const MAX_BUILD_RETRIES = 1;
+  const MAX_BUILD_RETRIES = 0;
   let lastError: Error | null = null;
 
   for (let attempt = 1; attempt <= MAX_BUILD_RETRIES + 1; attempt++) {
