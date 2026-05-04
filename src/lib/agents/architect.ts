@@ -35,7 +35,7 @@ Return JSON ONLY — no markdown fences:
         { role: "user", content: `Intent: ${prompt}\nStrategy: ${strategy}` }
       ],
       architectResultSchema,
-      { temperature: 0.2, maxTokens: 4096, timeout: 45000 }
+      { temperature: 0.2, maxTokens: 2048, timeout: 25000 }
     );
   } catch (err) {
     console.error("Architect parse failed, falling back to defaults.", err);

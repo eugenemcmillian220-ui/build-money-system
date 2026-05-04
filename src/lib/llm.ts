@@ -191,7 +191,7 @@ Rules:
       const content = await callLLM(messages, {
         temperature: attempt === 1 ? 0.7 : 0.4,
         maxTokens: 2048,
-        timeout: 45000,
+        timeout: 25000,
       }, { cache: false });
 
       const parsed = robustParseJson<AppSpecOutline>(content);
@@ -222,15 +222,16 @@ Rules:
 export type AppSpecDetails = Pick<AppSpec, "components" | "schema" | "fileStructure">;
 
 export async function planSpecDetails(prompt: string, outline: AppSpecOutline): Promise<AppSpecDetails> {
+  const outlineSummary = `${outline.name}: ${outline.features.join(", ")}. Pages: ${outline.pages.map(p => p.route).join(", ")}`;
   const systemPrompt = `You are "The Architect" for Sovereign Forge OS. Given an outline, produce implementation details.
 
-OUTLINE: ${JSON.stringify(outline)}
+OUTLINE: ${outlineSummary}
 
 Rules:
 - shadcn/ui + Tailwind CSS v4. Include RLS in schema. 5-12 files max.
-- Keep component descriptions under 10 words. Schema as concise CREATE TABLE statements.
-- Return ONLY valid JSON — no markdown fences, no extra fields:
-{"components":[{"name":"LoginForm","description":"Auth form","props":{}}],"schema":"CREATE TABLE users(id uuid PRIMARY KEY);...","fileStructure":["app/layout.tsx","app/page.tsx"]}`;
+- Keep component descriptions under 10 words. Schema as column names only, no full SQL.
+- Return ONLY valid JSON — no markdown fences:
+{"components":[{"name":"LoginForm","description":"Auth form","props":{}}],"schema":"users(id,email,role); projects(id,name)","fileStructure":["app/layout.tsx","app/page.tsx"]}`;
 
   const messages: ChatMessage[] = [
     { role: "system", content: systemPrompt },
@@ -243,8 +244,8 @@ Rules:
     try {
       const content = await callLLM(messages, {
         temperature: attempt === 1 ? 0.5 : 0.3,
-        maxTokens: 3072,
-        timeout: 45000,
+        maxTokens: 2048,
+        timeout: 25000,
       }, { cache: false });
 
       const parsed = robustParseJson<AppSpecDetails>(content);
@@ -306,7 +307,7 @@ Rules:
 
   for (let attempt = 1; attempt <= MAX_BUILD_RETRIES + 1; attempt++) {
     try {
-      const content = await callLLM(messages, { temperature: 0.7, maxTokens: 16384, timeout: 90000 });
+      const content = await callLLM(messages, { temperature: 0.7, maxTokens: 8192, timeout: 25000 });
       const parsed = parseMultiFileJson(content);
       return parsed.files;
     } catch (e) {
@@ -351,7 +352,7 @@ Rules:
     { role: "user", content: `Current Files:\n${filesList}${errorContext}\n\nReturn fixed files:` },
   ];
 
-  const content = await callLLM(messages, { temperature: 0.2, maxTokens: 16384, timeout: 90000 });
+  const content = await callLLM(messages, { temperature: 0.2, maxTokens: 8192, timeout: 25000 });
   const parsed = parseMultiFileJson(content);
   return parsed.files;
 }
@@ -423,7 +424,7 @@ Rules:
     },
   ];
 
-  const content = await callLLM(messages, { temperature: 0.1, maxTokens: 8192, timeout: 90000 });
+  const content = await callLLM(messages, { temperature: 0.1, maxTokens: 8192, timeout: 25000 });
   const parsed = parseMultiFileJson(content);
 
   return { ...allFiles, ...parsed.files };
