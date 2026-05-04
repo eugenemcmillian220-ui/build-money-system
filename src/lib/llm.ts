@@ -188,9 +188,14 @@ Rules:
   ];
 
   let lastError: Error | null = null;
+  const planStart = Date.now();
 
   for (let attempt = 1; attempt <= MAX_PLAN_RETRIES + 1; attempt++) {
     try {
+      logger.debug("planSpecOutline attempt starting", {
+        attempt,
+        promptLength: prompt.length,
+      });
       const content = await callLLM(messages, {
         temperature: attempt === 1 ? 0.7 : 0.4,
         maxTokens: 2048,
@@ -206,12 +211,20 @@ Rules:
         throw new LLMError("Invalid outline: pages array is missing or empty");
       }
 
+      logger.info("planSpecOutline succeeded", {
+        attempt,
+        features: parsed.features.length,
+        pages: parsed.pages.length,
+        durationMs: Date.now() - planStart,
+      });
       return parsed;
     } catch (e) {
       lastError = e instanceof Error ? e : new Error(String(e));
-      if (attempt <= MAX_PLAN_RETRIES) {
-        logger.warn(`planSpecOutline attempt ${attempt} failed (${lastError.message}), retrying...`);
-      }
+      logger.warn("planSpecOutline attempt failed", {
+        attempt,
+        error: lastError.message,
+        durationMs: Date.now() - planStart,
+      });
     }
   }
 
@@ -242,9 +255,14 @@ Rules:
   ];
 
   let lastError: Error | null = null;
+  const detailStart = Date.now();
 
   for (let attempt = 1; attempt <= MAX_PLAN_RETRIES + 1; attempt++) {
     try {
+      logger.debug("planSpecDetails attempt starting", {
+        attempt,
+        outlineName: outline.name,
+      });
       const content = await callLLM(messages, {
         temperature: attempt === 1 ? 0.5 : 0.3,
         maxTokens: 2048,
@@ -260,12 +278,20 @@ Rules:
         throw new LLMError("Invalid details: fileStructure array is missing or empty");
       }
 
+      logger.info("planSpecDetails succeeded", {
+        attempt,
+        components: parsed.components.length,
+        files: parsed.fileStructure.length,
+        durationMs: Date.now() - detailStart,
+      });
       return parsed;
     } catch (e) {
       lastError = e instanceof Error ? e : new Error(String(e));
-      if (attempt <= MAX_PLAN_RETRIES) {
-        logger.warn(`planSpecDetails attempt ${attempt} failed (${lastError.message}), retrying...`);
-      }
+      logger.warn("planSpecDetails attempt failed", {
+        attempt,
+        error: lastError.message,
+        durationMs: Date.now() - detailStart,
+      });
     }
   }
 
@@ -305,23 +331,48 @@ Rules:
     { role: "user", content: `App Specification:\n${specJson}\n\nGenerate all files:` },
   ];
 
-  const MAX_BUILD_RETRIES = 0;
+  const MAX_BUILD_RETRIES = 1;
   let lastError: Error | null = null;
+  const buildStart = Date.now();
 
   for (let attempt = 1; attempt <= MAX_BUILD_RETRIES + 1; attempt++) {
     try {
-      const content = await callLLM(messages, { temperature: 0.7, maxTokens: 8192, timeout: 25000 });
+      logger.debug("buildFromSpec attempt starting", {
+        attempt,
+        maxRetries: MAX_BUILD_RETRIES,
+        specName: spec.name,
+        featureCount: spec.features.length,
+      });
+      const content = await callLLM(messages, {
+        temperature: attempt === 1 ? 0.7 : 0.5,
+        maxTokens: 8192,
+        timeout: 25000,
+      });
       const parsed = parseMultiFileJson(content);
+      logger.info("buildFromSpec succeeded", {
+        attempt,
+        fileCount: Object.keys(parsed.files).length,
+        durationMs: Date.now() - buildStart,
+      });
       return parsed.files;
     } catch (e) {
       lastError = e instanceof Error ? e : new Error(String(e));
-      if (attempt <= MAX_BUILD_RETRIES) {
-        logger.warn(`buildFromSpec attempt ${attempt} failed (${lastError.message}), retrying...`);
-      }
+      logger.warn("buildFromSpec attempt failed", {
+        attempt,
+        error: lastError.message,
+        durationMs: Date.now() - buildStart,
+      });
     }
   }
 
-  throw new LLMError(`buildFromSpec failed after ${MAX_BUILD_RETRIES + 1} attempts: ${lastError?.message}`);
+  logger.error("buildFromSpec exhausted all retries, falling back to template", {
+    attempts: MAX_BUILD_RETRIES + 1,
+    totalMs: Date.now() - buildStart,
+    lastError: lastError?.message,
+  });
+
+  const { fallbackFileMap } = await import("./template-fallback");
+  return fallbackFileMap(spec);
 }
 
 export async function fixFiles(files: FileMap, error?: string): Promise<FileMap> {
