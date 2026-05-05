@@ -13,7 +13,7 @@ export interface ScoutStrategy {
  */
 async function fetchGithubTrends(query: string): Promise<string> {
   try {
-    const res = await axios.get(`https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&sort=stars&order=desc&per_page=5`);
+    const res = await axios.get(`https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&sort=stars&order=desc&per_page=5`, { timeout: 5000 });
     return (res.data as { items: Array<{ full_name: string; description: string; stargazers_count: number }> }).items.map((repo) => `- ${repo.full_name}: ${repo.description} (${repo.stargazers_count} stars)`).join("\n");
   } catch {
     return "No GitHub trends found.";
@@ -25,7 +25,7 @@ async function fetchGithubTrends(query: string): Promise<string> {
  */
 async function fetchArxivPapers(query: string): Promise<string> {
   try {
-    const res = await axios.get(`http://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=3`);
+    const res = await axios.get(`http://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=3`, { timeout: 5000 });
     // ArXiv returns XML, but for a lightweight scout, we just want to know if we hit it.
     // In a real empire, we'd parse this. For now, we note the research attempt.
     return res.status === 200 ? "Recent arXiv research successfully indexed." : "No papers found.";
