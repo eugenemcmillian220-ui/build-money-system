@@ -30,8 +30,6 @@ export function cleanJson(text: string): string {
   // Normalize outer braces
   s = s.replace(/^\s*{\s*/, "{").replace(/\s*}\s*$/, "}");
   return s.trim();
-}\s*$/, "}")
-    .trim();
 }
 
 /**

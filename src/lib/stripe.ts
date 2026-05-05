@@ -11,7 +11,7 @@ function getStripe(): Stripe {
   if (!key) {
     throw new Error("STRIPE_SECRET_KEY is not configured");
   }
-  _stripe = new Stripe(key, { apiVersion: "2024-06-20" });
+  _stripe = new Stripe(key, { apiVersion: "2026-04-22.dahlia" });
   return _stripe;
 }
 const stripe: Stripe = new Proxy({} as Stripe, {

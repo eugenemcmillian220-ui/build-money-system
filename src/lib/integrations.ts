@@ -8,7 +8,7 @@ export function applyIntegrations(files: Record<string, string>, integrations: s
 const stripeKey = process.env.STRIPE_SECRET_KEY || "";
 
 export const stripe = new Stripe(stripeKey, {
-  apiVersion: "2025-01-27.acacia" as any,
+  apiVersion: "2026-04-22.dahlia" as any,
 });
 `;
     }
