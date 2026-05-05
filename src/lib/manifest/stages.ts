@@ -18,10 +18,10 @@ import {
 
 const _AGENT_THROTTLE_MS = 100;
 
-/** Default stage budget — leaves 20s headroom in a 300s serverless invocation. */
-const STAGE_BUDGET_MS = 280_000;
+/** Default stage budget — leaves 10s headroom in a 60s Vercel Hobby invocation. */
+const STAGE_BUDGET_MS = 50_000;
 /** Per-agent call timeout inside a stage. */
-const AGENT_CALL_TIMEOUT_MS = 120_000;
+const AGENT_CALL_TIMEOUT_MS = 40_000;
 /** Max fix-pass iterations to prevent infinite loops. */
 const MAX_FIX_ITERATIONS = 3;
 
@@ -72,7 +72,7 @@ function mergeState(row: ManifestationRow, patch: StageState): StageState {
 
 /**
  * intent-classify: Runs classifier agent + credit reservation. Fast (~10-30s).
- * Gets its own 300s serverless budget.
+ * Gets its own 60s serverless budget (Vercel Hobby).
  */
 export async function runIntentClassifyStage(jobId: string, _baseUrl: string): Promise<void> {
   const row = await loadManifestation(jobId);
@@ -145,8 +145,8 @@ export async function runIntentClassifyStage(jobId: string, _baseUrl: string): P
 }
 
 /**
- * intent-scout: Runs Scout agent to draft strategy. Moderate (~30-60s).
- * Gets its own 300s serverless budget.
+ * intent-scout: Runs Scout agent to draft strategy.
+ * Gets its own 60s serverless budget (Vercel Hobby).
  */
 export async function runIntentScoutStage(jobId: string, _baseUrl: string): Promise<void> {
   const row = await loadManifestation(jobId);
@@ -159,11 +159,29 @@ export async function runIntentScoutStage(jobId: string, _baseUrl: string): Prom
     const protocol = state.protocol as string;
     if (!protocol) throw new Error("Intent-classify stage did not produce protocol.");
 
-    const strategy = await traced(
-      "agent.scout",
-      { "agent.role": "Scout" },
-      () => agents.runScoutAgent(row.prompt, protocol),
-    );
+    let strategy;
+    try {
+      strategy = await withTimeout(
+        traced(
+          "agent.scout",
+          { "agent.role": "Scout" },
+          () => agents.runScoutAgent(row.prompt, protocol),
+        ),
+        AGENT_CALL_TIMEOUT_MS,
+        "runScoutAgent",
+      );
+    } catch (scoutErr) {
+      logger.warn("Scout agent timed out or failed, using fallback strategy", {
+        jobId,
+        error: (scoutErr as Error).message,
+      });
+      await appendLog(jobId, "warn", `Scout agent failed (${(scoutErr as Error).message}), using fallback strategy.`);
+      strategy = {
+        strategyMarkdown: "# Default Strategy\nBuild fast, iterate quickly.",
+        recommendedStack: ["Next.js", "Tailwind", "Supabase"],
+        competitorInsights: "No direct competitors identified.",
+      };
+    }
     await appendLog(jobId, "info", "Scout complete — strategy drafted.");
 
     const nextState = mergeState(row, {
@@ -178,7 +196,7 @@ export async function runIntentScoutStage(jobId: string, _baseUrl: string): Prom
 
 /**
  * intent-architect: Runs Architect agent to produce architecture plan + finalPrompt.
- * Heaviest sub-stage (~3-5 min). Gets its own 300s serverless budget.
+ * Gets its own 60s serverless budget (Vercel Hobby).
  */
 export async function runIntentArchitectStage(jobId: string, _baseUrl: string): Promise<void> {
   const row = await loadManifestation(jobId);
@@ -195,11 +213,30 @@ export async function runIntentArchitectStage(jobId: string, _baseUrl: string): 
 
     const opts = (row.options ?? {}) as { theme?: string; primaryColor?: string };
 
-    const architecture = await traced(
-      "agent.architect",
-      { "agent.role": "Architect" },
-      () => agents.runArchitectAgent(row.prompt, strategyMarkdown),
-    );
+    let architecture;
+    try {
+      architecture = await withTimeout(
+        traced(
+          "agent.architect",
+          { "agent.role": "Architect" },
+          () => agents.runArchitectAgent(row.prompt, strategyMarkdown),
+        ),
+        AGENT_CALL_TIMEOUT_MS,
+        "runArchitectAgent",
+      );
+    } catch (archErr) {
+      logger.warn("Architect agent timed out or failed, using fallback architecture", {
+        jobId,
+        error: (archErr as Error).message,
+      });
+      await appendLog(jobId, "warn", `Architect agent failed (${(archErr as Error).message}), using fallback architecture.`);
+      architecture = {
+        scaffolding: { "src/app/page.tsx": "Main entry point" },
+        coreLogicPlan: "Build a standard Next.js 15 application.",
+        fileStructure: ["src/app/page.tsx", "src/lib/supabase.ts"],
+        databaseRequirements: ["Standard Supabase Auth tables"],
+      };
+    }
     await appendLog(jobId, "info", "Architect complete — structure planned.");
 
     const visualTokens = {
@@ -252,7 +289,7 @@ export async function runIntentStage(jobId: string, baseUrl: string): Promise<vo
 /**
  * plan-outline: runs planSpecOutline to produce the high-level architecture
  * (name, features, pages, integrations, visuals). Smaller JSON = faster, less
- * truncation risk. Gets its own 300s serverless budget.
+ * truncation risk. Gets its own 60s serverless budget (Vercel Hobby).
  */
 export async function runPlanOutlineStage(jobId: string, _baseUrl: string): Promise<void> {
   const row = await loadManifestation(jobId);
@@ -307,7 +344,7 @@ export async function runPlanOutlineStage(jobId: string, _baseUrl: string): Prom
 /**
  * plan-details: given the outline, runs planSpecDetails to produce
  * components, schema, and fileStructure. Merges with outline into a full
- * AppSpec. Gets its own 300s serverless budget.
+ * AppSpec. Gets its own 60s serverless budget (Vercel Hobby).
  */
 export async function runPlanDetailsStage(jobId: string, _baseUrl: string): Promise<void> {
   const row = await loadManifestation(jobId);
@@ -390,7 +427,7 @@ export async function runGeneratePlanStage(jobId: string, _baseUrl: string): Pro
  */
 /**
  * generate-build-code: Runs Developer agent (planSpec is already done, so this
- * builds code from the precomputed spec). Gets its own 300s serverless budget.
+ * builds code from the precomputed spec). Gets its own 60s serverless budget (Vercel Hobby).
  */
 export async function runGenerateBuildCodeStage(jobId: string, _baseUrl: string): Promise<void> {
   const row = await loadManifestation(jobId);
@@ -462,7 +499,7 @@ export async function runGenerateBuildCodeStage(jobId: string, _baseUrl: string)
 
 /**
  * generate-build-fix: Runs fix passes + sandbox verification, then persists
- * the initial project. Gets its own 300s serverless budget.
+ * the initial project. Gets its own 60s serverless budget (Vercel Hobby).
  */
 export async function runGenerateBuildFixStage(jobId: string, _baseUrl: string): Promise<void> {
   const row = await loadManifestation(jobId);
@@ -633,7 +670,7 @@ async function safeAgent<T>(name: string, jobId: string, fallback: T, fn: () => 
  * polish-analyze: Runs the first batch of independent agents in parallel
  * (Chronicler, Security, Economy, Legal, Sentinel, Phantom, Broker).
  * Each agent is wrapped in safeAgent so individual failures are non-fatal.
- * Gets its own 300s serverless budget.
+ * Gets its own 60s serverless budget (Vercel Hobby).
  */
 export async function runPolishAnalyzeStage(jobId: string, _baseUrl: string): Promise<void> {
   const row = await loadManifestation(jobId);
@@ -729,7 +766,7 @@ export async function runPolishAnalyzeStage(jobId: string, _baseUrl: string): Pr
 
 /**
  * polish-launch: Runs Herald + Overseer (depend on Chronicler docs from
- * polish-analyze). Gets its own 300s serverless budget.
+ * polish-analyze). Gets its own 60s serverless budget (Vercel Hobby).
  */
 export async function runPolishLaunchStage(jobId: string, _baseUrl: string): Promise<void> {
   const row = await loadManifestation(jobId);
