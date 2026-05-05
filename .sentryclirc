@@ -1,0 +1,7 @@
+[auth]
+token=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
+
+[defaults]
+org=build-money-system-iq
+project=httpsbuild-money-system-omd8vercelapp
+url=https://sentry.io/
