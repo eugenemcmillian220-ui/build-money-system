@@ -16,11 +16,21 @@ export class LLMError extends Error {
 }
 
 export function cleanJson(text: string): string {
-  return text
-    .replace(/^```[a-zA-Z]*\s*/g, "")
-    .replace(/```$/g, "")
-    .replace(/^\s*{\s*/, "{")
-    .replace(/\s*}\s*$/, "}")
+  let s = text;
+  // Strip markdown code fences
+  s = s.replace(/^```[a-zA-Z]*\s*/g, "").replace(/```$/g, "");
+  // Strip JS-style block and line comments (LLMs sometimes emit these)
+  s = s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+  // Strip trailing commas before ] or } — repeat for nested structures
+  for (let i = 0; i < 5; i++) {
+    const before = s;
+    s = s.replace(/,([\s\n\r]*[}\]])/g, "$1");
+    if (s === before) break;
+  }
+  // Normalize outer braces
+  s = s.replace(/^\s*{\s*/, "{").replace(/\s*}\s*$/, "}");
+  return s.trim();
+}\s*$/, "}")
     .trim();
 }
 

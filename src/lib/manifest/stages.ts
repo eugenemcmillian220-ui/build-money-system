@@ -18,12 +18,12 @@ import {
 
 const _AGENT_THROTTLE_MS = 100;
 
-/** Default stage budget — leaves 20s headroom in a 300s serverless invocation. */
-const STAGE_BUDGET_MS = 280_000;
-/** Per-agent call timeout inside a stage. */
-const AGENT_CALL_TIMEOUT_MS = 120_000;
-/** Max fix-pass iterations to prevent infinite loops. */
-const MAX_FIX_ITERATIONS = 3;
+/** Stage budget — leaves 10s headroom in Vercel Hobby's hard 60s function cap. */
+const STAGE_BUDGET_MS = 50_000;
+/** Per-agent call timeout — matches ai.ts 25s per-call budget. */
+const AGENT_CALL_TIMEOUT_MS = 25_000;
+/** Max fix-pass iterations — Vercel Hobby 60s cap allows at most 1 LLM fix pass. */
+const MAX_FIX_ITERATIONS = 1;
 
 async function loadAgents() {
   const [
