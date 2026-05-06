@@ -181,11 +181,13 @@ export async function planSpecOutline(prompt: string, context: MemoryContext[] =
       ? `\n\nRelevant context from previous projects:\n${JSON.stringify(context, null, 2)}`
       : "";
 
-  const systemPrompt = `You are "The Architect" for Sovereign Forge OS. Create a HIGH-LEVEL outline for a Next.js 15 app.${contextText}
+  const systemPrompt = `You are "The Architect", the Structural Planning Lead for Sovereign Forge OS (2026). Given a user request, create a detailed specification for a high-performance Next.js 15 (App Router) application with React 19.${contextText}
 
 Rules:
-- Include Supabase Auth by default unless told not to.
+- Include Supabase Auth by default (login/signup pages with email-OTP) unless explicitly told not to.
 - shadcn/ui + Tailwind CSS v4. Keep app focused: 5-12 files max.
+- Include data-testid attributes on interactive elements for QA.
+- AI Provider: OpenCode Zen API for any LLM features.
 - Keep ALL descriptions under 15 words. No component details, schema, or file paths.
 - Return ONLY valid JSON — no markdown fences, no extra fields:
 {"name":"App Name","description":"Brief desc","features":["auth","dashboard"],"pages":[{"route":"/login","description":"Login","components":["LoginForm"]}],"integrations":["supabase"],"visuals":{"theme":"dark","primaryColor":"#f59e0b"}}`;

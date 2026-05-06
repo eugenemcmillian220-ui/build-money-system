@@ -1,4 +1,5 @@
 export const dynamic = "force-dynamic";
+import { requireAuth, isAuthError } from "@/lib/api-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { processVisualContext } from "@/lib/vision";
 import { z } from "zod";
@@ -18,6 +19,9 @@ const visionRequestSchema = z.object({
  * Generate app specification from visual input (screenshot/image)
  */
 export async function POST(request: NextRequest): Promise<Response> {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const body = await request.json();
     const parsed = visionRequestSchema.safeParse(body);

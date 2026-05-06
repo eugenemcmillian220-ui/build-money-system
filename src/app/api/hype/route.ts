@@ -1,4 +1,5 @@
 export const dynamic = "force-dynamic";
+import { requireAuth, isAuthError } from "@/lib/api-auth";
 import { hypeAgent } from "@/lib/hype-agent";
 import { seoLoop } from "@/lib/seo-loop";
 import { mediaAgent } from "@/lib/media-agent";
@@ -22,6 +23,9 @@ const requestSchema = z.object({
 });
 
 export async function POST(request: Request): Promise<Response> {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const body = await request.json();
     const { 

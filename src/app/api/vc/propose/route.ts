@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 import { vcAgent } from "@/lib/vc-agent";
 import { z } from "zod";
-
+import { requireAuth, isAuthError } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 
@@ -9,8 +9,15 @@ const proposeSchema = z.object({
   orgId: z.string().uuid(),
 });
 
+const offerSchema = z.object({
+  proposal: z.record(z.unknown()),
+});
+
 // GET: Scout for investment opportunities in an organization
 export async function GET(request: Request): Promise<Response> {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   const { searchParams } = new URL(request.url);
   const rawOrgId = searchParams.get("orgId");
 
@@ -30,15 +37,18 @@ export async function GET(request: Request): Promise<Response> {
 
 // POST: Issue a formal offer
 export async function POST(request: Request): Promise<Response> {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const body = await request.json();
-    const proposal = body.proposal; // Expecting full InvestmentProposal object
-
-    if (!proposal) {
-      return Response.json({ error: "Proposal data is required" }, { status: 400 });
+    const parsed = offerSchema.safeParse(body);
+    if (!parsed.success) {
+      return Response.json({ error: "Proposal data is required", issues: parsed.error.flatten().fieldErrors }, { status: 400 });
     }
+    const proposal = parsed.data.proposal;
 
-    const offerId = await vcAgent.issueOffer(proposal);
+    const offerId = await vcAgent.issueOffer(proposal as unknown as Parameters<typeof vcAgent.issueOffer>[0]);
     return Response.json({ success: true, offerId });
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : "Offer issuance failed" }, { status: 500 });

@@ -1,5 +1,6 @@
 // DA-066 FIX: TODO: Replace global mutable state with DB-backed store
 export const dynamic = "force-dynamic";
+import { requireAuth, isAuthError } from "@/lib/api-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { isDatabaseAvailable } from "@/lib/supabase/db";
 import { getAllProjects, saveProject, getAllProjects as getAllMemProjects } from "@/lib/memory";
@@ -14,6 +15,9 @@ export const runtime = "nodejs";
  * Get all memory data (projects, learning data)
  */
 export async function GET(): Promise<Response> {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     let projects: Project[];
     

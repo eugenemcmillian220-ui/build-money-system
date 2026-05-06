@@ -1,4 +1,5 @@
 export const dynamic = "force-dynamic";
+import { requireAuth, isAuthError } from "@/lib/api-auth";
 import { NextRequest } from "next/server";
 import { AppBuildAgent, AgentError } from "@/lib/agent";
 import { z } from "zod";
@@ -19,6 +20,9 @@ const requestSchema = z.object({
  */
 export async function POST(request: NextRequest): Promise<Response> {
   let body: unknown;
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     body = await request.json();
   } catch {

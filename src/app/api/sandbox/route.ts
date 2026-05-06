@@ -1,4 +1,5 @@
 export const dynamic = "force-dynamic";
+import { requireAuth, isAuthError } from "@/lib/api-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { codeSandbox } from "@/lib/sandbox";
 import { z } from "zod";
@@ -16,6 +17,9 @@ const sandboxRequestSchema = z.object({
  * Verify generated code in isolated sandbox environment
  */
 export async function POST(request: NextRequest): Promise<Response> {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const body = await request.json();
     const parsed = sandboxRequestSchema.safeParse(body);

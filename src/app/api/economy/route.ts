@@ -1,5 +1,6 @@
 // DA-062 FIX: TODO: Add Zod schema validation for request bodies
 export const dynamic = "force-dynamic";
+import { requireAuth, isAuthError } from "@/lib/api-auth";
 import { NextRequest, NextResponse } from "next/server";
 
 
@@ -10,6 +11,9 @@ export const runtime = "nodejs";
  * Get multi-agent economy data (agent marketplace, transactions)
  */
 export async function GET(): Promise<Response> {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     return NextResponse.json({
       success: true,

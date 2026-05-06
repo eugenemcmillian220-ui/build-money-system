@@ -1,6 +1,7 @@
 // DA-060 FIX: TODO: Use Promise.all for parallel DB + memory lookups
 // DA-061 FIX: TODO: Consolidate data source (DB-only or memory-only, not both)
 export const dynamic = "force-dynamic";
+import { requireAuth, isAuthError } from "@/lib/api-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { loadProjectDB, saveProjectDB, deleteProjectDB, isDatabaseAvailable } from "@/lib/supabase/db";
 import { loadProject, saveProject } from "@/lib/memory";
@@ -59,6 +60,9 @@ export async function PUT(
   request: NextRequest,
   { params }: RouteParams
 ): Promise<Response> {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const { id } = await params;
     const body = await request.json();
@@ -116,6 +120,9 @@ export async function DELETE(
   request: NextRequest,
   { params }: RouteParams
 ): Promise<Response> {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const { id } = await params;
     

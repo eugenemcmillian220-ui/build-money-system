@@ -1,4 +1,5 @@
 export const dynamic = "force-dynamic";
+import { requireAuth, isAuthError } from "@/lib/api-auth";
 import { governance } from "@/lib/governance";
 import { z } from "zod";
 
@@ -12,6 +13,9 @@ const resolveSchema = z.object({
 });
 
 export async function POST(request: Request): Promise<Response> {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const body = await request.json();
     const { actionId, status, reason } = resolveSchema.parse(body);
