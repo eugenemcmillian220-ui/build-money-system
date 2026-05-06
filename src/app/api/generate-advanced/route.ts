@@ -5,7 +5,7 @@ import { z } from "zod";
 
 
 export const runtime = "nodejs";
-export const maxDuration = 60; // Vercel Hobby hard cap — use manifest pipeline for longer jobs
+export const maxDuration = 280; // Vercel Hobby 300s cap — safe buffer
 
 const requestSchema = z.object({
   prompt: z.string().min(1, "Prompt is required").max(2000, "Prompt is too long"),

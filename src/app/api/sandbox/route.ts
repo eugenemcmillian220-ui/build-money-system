@@ -5,7 +5,7 @@ import { z } from "zod";
 
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 280;
 
 const sandboxRequestSchema = z.object({
   files: z.record(z.string()),

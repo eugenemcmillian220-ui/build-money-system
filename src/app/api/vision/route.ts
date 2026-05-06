@@ -5,7 +5,7 @@ import { z } from "zod";
 
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 280;
 
 const visionRequestSchema = z.object({
   imageUrl: z.string().url("Invalid image URL").optional(),

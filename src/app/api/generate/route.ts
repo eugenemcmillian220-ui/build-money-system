@@ -11,7 +11,7 @@ export const runtime = "nodejs";
 // Vercel Hobby hard cap: 60s. We leave 10s headroom for DB writes.
 // The manifest pipeline (chained stages) handles longer jobs — this route
 // is only for quick single-component generation.
-export const maxDuration = 60;
+export const maxDuration = 280;
 
 const requestSchema = z.object({
   prompt: z.string().min(1, "Prompt is required").max(100000, "Prompt is too long").optional(),

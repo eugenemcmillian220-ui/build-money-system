@@ -5,7 +5,7 @@ import { z } from "zod";
 
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 280;
 
 const fullStackConfigSchema = z.object({
   prompt: z.string().min(1, "Prompt is required").max(5000, "Prompt too long"),

@@ -13,8 +13,8 @@ import { userCanAccessOrg } from "@/lib/manifest/org-access";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-// Only enqueues work — heavy lifting is in the worker chain.
-export const maxDuration = 30;
+// Safe Hobby buffer — 280 s under the 300 s hard cap.
+export const maxDuration = 280;
 
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth();

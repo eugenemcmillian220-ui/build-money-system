@@ -24,8 +24,8 @@ import { triggerStage } from "@/lib/manifest/chain";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 // Each stage gets its own fresh serverless invocation budget.
-// Vercel Hobby hard cap is 60s; each AI call uses 25s timeout so we fit ≥2 attempts.
-export const maxDuration = 60;
+// Vercel Hobby 300 s cap — 280 s safe budget leaves headroom for DB writes.
+export const maxDuration = 280;
 
 const RUNNERS: Record<StageName, (id: string, baseUrl: string) => Promise<void>> = {
   "intent-classify": runIntentClassifyStage,

@@ -8,7 +8,7 @@ import { z } from "zod";
 import { requireAuth, isAuthError } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 280;
 
 const deployRequestSchema = z.object({
   projectId: z.string().uuid("Invalid project ID"),

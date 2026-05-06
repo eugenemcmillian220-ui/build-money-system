@@ -229,6 +229,16 @@ Use this checklist to ensure your AI App Builder is production-ready.
 - [ ] Team trained
 - [ ] Support channels ready
 
-## 🚀 Ready for Production!
+## Vercel Hobby Optimization (May 2026)
+
+- [ ] `manifest_jobs` table created in Supabase + RLS
+- [ ] `src/lib/jobs.ts` implemented
+- [ ] `maxDuration = 280` on all heavy routes
+- [ ] Resumable pipeline with `withTimeout` (240s buffer)
+- [ ] Frontend polls job status or uses Supabase Realtime
+- [ ] LLM tiering: fast models for early stages
+- [ ] Tested full simple manifest on Hobby deployment
+
+## Ready for Production!
 
 If all items above are checked, your AI App Builder is production-ready!

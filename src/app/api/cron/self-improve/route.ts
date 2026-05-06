@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { selfImprovementEngine } from "@/lib/self-improve";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 280;
 
 /**
  * Cron: /api/cron/self-improve — runs daily at 2 AM
