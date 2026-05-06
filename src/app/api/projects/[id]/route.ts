@@ -59,6 +59,9 @@ export async function PUT(
   request: NextRequest,
   { params }: RouteParams
 ): Promise<Response> {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const { id } = await params;
     const body = await request.json();
@@ -116,6 +119,9 @@ export async function DELETE(
   request: NextRequest,
   { params }: RouteParams
 ): Promise<Response> {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const { id } = await params;
     

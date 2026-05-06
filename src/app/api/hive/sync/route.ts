@@ -18,6 +18,9 @@ const contributionSchema = z.object({
  * Contributes an anonymized build pattern to the Hive Mind
  */
 export async function POST(request: Request): Promise<Response> {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const body = await request.json();
     const { orgId, type, problem, solution } = contributionSchema.parse(body);

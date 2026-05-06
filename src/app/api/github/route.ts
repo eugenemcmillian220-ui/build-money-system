@@ -24,6 +24,9 @@ const githubExportSchema = z.object({
  * Export a project to GitHub
  */
 export async function POST(request: NextRequest): Promise<Response> {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const body = await request.json();
     const parsed = githubExportSchema.safeParse(body);

@@ -23,6 +23,9 @@ const executeScheduleSchema = z.object({
  * Schedule a new task or execute a schedule
  */
 export async function POST(request: NextRequest): Promise<Response> {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const body = await request.json();
     const { action } = body;

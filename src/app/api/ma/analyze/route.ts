@@ -14,6 +14,9 @@ const requestSchema = z.object({
  * Scans for synergies and proposes mergers within an organization
  */
 export async function POST(request: Request): Promise<Response> {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const body = await request.json();
     const { orgId } = requestSchema.parse(body);

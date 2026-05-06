@@ -14,6 +14,9 @@ const negotiateSchema = z.object({
 
 // POST: Trigger a specific negotiation
 export async function POST(request: Request): Promise<Response> {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const body = await request.json();
     const incident = negotiateSchema.parse(body);

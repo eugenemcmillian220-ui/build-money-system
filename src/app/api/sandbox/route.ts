@@ -16,6 +16,9 @@ const sandboxRequestSchema = z.object({
  * Verify generated code in isolated sandbox environment
  */
 export async function POST(request: NextRequest): Promise<Response> {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const body = await request.json();
     const parsed = sandboxRequestSchema.safeParse(body);

@@ -1,6 +1,6 @@
 
-// DA-036 FIX: Sanitize file paths for GitHub operations
-function sanitizeRepoPath(path: string): string {
+/** Sanitize file paths for GitHub operations (DA-036) */
+export function sanitizeRepoPath(path: string): string {
   // Remove traversal sequences and normalize
   return path.replace(/\.\.\/|\.\.$/g, '').replace(/^\/+/, '').replace(/\/+/g, '/');
 }
@@ -9,9 +9,11 @@ import { serverEnv } from "@/lib/env";
 import { FileMap } from "./types";
 
 
-// DA-008 FIX: Global GitHub token should only be used for server operations.
-// User-initiated repo operations should use user's own OAuth token.
-function getGitHubToken(userId?: string): string {
+/**
+ * Get GitHub token for operations (DA-008).
+ * TODO: Implement per-user GitHub OAuth token storage.
+ */
+export function getGitHubToken(_userId?: string): string {
   // TODO: Implement per-user GitHub OAuth token storage
   // For now, restrict global token to read-only operations
   const token = process.env.GITHUB_TOKEN;

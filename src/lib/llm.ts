@@ -161,14 +161,16 @@ export async function planSpec(prompt: string, context: MemoryContext[] = []): P
       ? `\n\nRelevant context from previous projects:\n${JSON.stringify(context, null, 2)}`
       : "";
 
-  const systemPrompt = `You are "The Architect", the Structural Planning Lead for Sovereign Forge OS (2026). Given a user request, create a detailed specification for a high-performance Next.js 15 application.${contextText}
+  const systemPrompt = `You are "The Architect", the Structural Planning Lead for Sovereign Forge OS (2026). Given a user request, create a detailed specification for a high-performance Next.js 15 (App Router) application with React 19.${contextText}
 
 Rules:
-- Include Supabase Auth by default (login/signup pages) unless explicitly told not to.
+- Include Supabase Auth by default (login/signup pages with email-OTP) unless explicitly told not to.
 - Use shadcn/ui and Tailwind CSS v4 design language.
 - Ensure Row Level Security (RLS) is considered in the schema.
 - Focus on accessibility (a11y) and responsive design.
 - Keep the app focused and achievable (5-12 files max).
+- Include data-testid attributes on interactive elements for QA.
+- AI Provider: OpenCode Zen API for any LLM features.
 - Return a JSON object with this exact structure:
 {
   "name": "App Name",

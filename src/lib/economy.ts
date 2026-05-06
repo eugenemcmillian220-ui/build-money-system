@@ -50,7 +50,7 @@ const DEFAULT_COST_RATE = 0.00005; // medium tier
 
 /**
  * Look up cost rate for a model. Tries exact match first,
- * then partial match (for models like "gpt-4o-mini-2024-07-18").
+ * then partial match (for versioned model identifiers).
  */
 function getModelCostRate(model: string): number {
   // Exact match

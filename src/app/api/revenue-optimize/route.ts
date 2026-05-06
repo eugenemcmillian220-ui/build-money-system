@@ -47,6 +47,9 @@ const optimizeSuggestionsSchema = z.object({
  * Optimize pricing tiers based on current MRR
  */
 export async function POST(request: NextRequest): Promise<Response> {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const body = await request.json();
     const { action } = body;

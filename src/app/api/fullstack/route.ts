@@ -22,6 +22,9 @@ const fullStackConfigSchema = z.object({
  * Generate a complete full-stack application with all production features
  */
 export async function POST(request: NextRequest): Promise<Response> {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const body = await request.json();
     const parsed = fullStackConfigSchema.safeParse(body);

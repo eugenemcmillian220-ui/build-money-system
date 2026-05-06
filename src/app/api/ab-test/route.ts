@@ -15,6 +15,9 @@ const requestSchema = z.object({
 
 export async function POST(request: Request): Promise<Response> {
   let body: unknown;
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     body = await request.json();
   } catch {

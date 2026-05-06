@@ -13,7 +13,6 @@ import {
   type ManifestationRow,
 } from "./store";
 
-const AGENT_THROTTLE_MS = 100;
 
 async function loadAgents() {
   const [
@@ -191,7 +190,7 @@ export async function runGenerateStage(jobId: string, _baseUrl: string): Promise
 
     const agents = await loadAgents();
     const result = await agents.runDeveloperAgent(finalPrompt, {
-      mode: (state.mode as "web-app" | "mobile-app") || "web-app",
+      mode: "web-app",
       multiFile: true,
       orgId: row.org_id ?? undefined,
     });
@@ -267,7 +266,7 @@ export async function runPolishStage(jobId: string, _baseUrl: string): Promise<v
         ? traced("agent.sentinel", { "agent.role": "Sentinel" }, () => agents.runSentinelAgent(files))
         : Promise.resolve(undefined),
       isElite
-        ? traced("agent.phantom", { "agent.role": "Phantom" }, () => agents.runPhantom({ files, id: "temp", createdAt: new Date().toISOString() } as Project))
+        ? traced("agent.phantom", { "agent.role": "Phantom" }, () => agents.runPhantom({ name: projectName, description: projectDesc, files, id: "temp", createdAt: new Date().toISOString() } as Project))
         : Promise.resolve(undefined),
       (async () => {
         if (isElite && row.org_id) {
@@ -291,6 +290,7 @@ export async function runPolishStage(jobId: string, _baseUrl: string): Promise<v
     // Herald and Overseer depend on Chronicler (docs)
     const [launch, qaResult] = await Promise.all([
       traced("agent.herald", { "agent.role": "Herald" }, () => agents.runHerald({
+        name: projectName,
         description: projectDesc,
         files,
         id: "temp",

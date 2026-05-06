@@ -1,4 +1,5 @@
 import { createBrowserClient } from "@supabase/ssr";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export function createClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -11,5 +12,18 @@ export function createClient() {
   return createBrowserClient(supabaseUrl, supabaseAnonKey);
 }
 
-// Singleton instance for client-side usage
-export const supabase = createClient();
+let _client: ReturnType<typeof createBrowserClient> | null = null;
+
+/**
+ * Lazy singleton for client-side usage.
+ * Deferred so the module can be imported during SSR/build without throwing.
+ */
+export const supabase: SupabaseClient = new Proxy({} as SupabaseClient, {
+  get(_target, prop, receiver) {
+    if (!_client) {
+      _client = createClient();
+    }
+    const value = Reflect.get(_client, prop, receiver);
+    return typeof value === "function" ? value.bind(_client) : value;
+  },
+});

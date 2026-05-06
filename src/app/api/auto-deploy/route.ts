@@ -16,6 +16,9 @@ const deployRequestSchema = z.object({
  * Execute automated deployment with monitoring
  */
 export async function POST(request: NextRequest): Promise<Response> {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const body = await request.json();
     const parsed = deployRequestSchema.safeParse(body);

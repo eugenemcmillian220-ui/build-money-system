@@ -175,81 +175,97 @@ export async function aiComplete(options: AIOptions): Promise<AIResult> {
 }
 
 export async function* aiStream(options: AIOptions): AsyncIterable<string> {
-  const model = options.model || ZEN_FREE_MODELS[0];
-  const apiKey = keyManager.getKey("opencodezen");
+  const allModels = [...ZEN_FREE_MODELS, ...ZEN_PAID_MODELS];
+  const modelsToTry = options.model
+    ? [options.model, ...allModels].filter((m, i, self) => self.indexOf(m) === i)
+    : allModels;
 
-  if (!apiKey) {
-    throw new Error("No OpenCode Zen API keys available");
-  }
+  let lastError: Error | null = null;
 
-  const controller = new AbortController();
-  const timeoutMs = options.timeout ?? 120000;
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const response = await fetch(getApiUrl(), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        messages: options.messages.map(m => ({
-          role: m.role,
-          content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
-        })),
-        temperature: options.temperature ?? 0.7,
-        max_tokens: options.maxTokens ?? 4096,
-        stream: true,
-      }),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`OpenCode Zen API error (${response.status}): ${errorText}`);
+  for (const model of modelsToTry) {
+    const apiKey = keyManager.getKey("opencodezen");
+    if (!apiKey) {
+      throw new Error("No OpenCode Zen API keys available");
     }
 
-    const reader = response.body?.getReader();
-    if (!reader) throw new Error("No response body");
+    const controller = new AbortController();
+    const timeoutMs = options.timeout ?? 120000;
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-    const decoder = new TextDecoder();
-    let buffer = "";
+    try {
+      const response = await fetch(getApiUrl(), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages: options.messages.map(m => ({
+            role: m.role,
+            content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
+          })),
+          temperature: options.temperature ?? 0.7,
+          max_tokens: options.maxTokens ?? 4096,
+          stream: true,
+        }),
+        signal: controller.signal,
+      });
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+      clearTimeout(timeoutId);
 
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
+      if (!response.ok) {
+        const errorText = await response.text();
+        if (response.status === 429) {
+          keyManager.reportError("opencodezen", apiKey);
+        }
+        throw new Error(`OpenCode Zen API error (${response.status}): ${errorText}`);
+      }
 
-      for (const line of lines) {
-        if (line.startsWith("data: ")) {
-          const data = line.slice(6);
-          if (data === "[DONE]") return;
-          try {
-            const json = JSON.parse(data);
-            const content = json.choices?.[0]?.delta?.content;
-            if (content) yield content;
-          } catch {
-            // Ignore parse errors for incomplete chunks
+      keyManager.reportSuccess("opencodezen", apiKey);
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("No response body");
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const data = line.slice(6);
+            if (data === "[DONE]") return;
+            try {
+              const json = JSON.parse(data);
+              const content = json.choices?.[0]?.delta?.content;
+              if (content) yield content;
+            } catch {
+              // Ignore parse errors for incomplete chunks
+            }
           }
         }
       }
+      return;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === "AbortError") {
+        logger.warn(`AI stream timed out for model ${model}, trying next`);
+        lastError = new Error(`Stream timed out for model ${model}`);
+        continue;
+      }
+      logger.warn(`AI stream failed for model ${model}:`, { error });
+      lastError = error instanceof Error ? error : new Error(String(error));
+      continue;
     }
-  } catch (error) {
-    if (error instanceof Error && error.name === "AbortError") {
-      logger.error(`AI stream timed out after ${timeoutMs}ms`);
-      throw new Error("Generation timed out");
-    }
-    throw error;
-  } finally {
-    clearTimeout(timeoutId);
   }
+
+  throw lastError || new Error("All OpenCode Zen models failed for streaming");
 }
 
 export async function aiEmbed(text: string): Promise<number[]> {

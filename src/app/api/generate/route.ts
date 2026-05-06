@@ -20,7 +20,7 @@ const requestSchema = z.object({
 });
 
 const SYSTEM_PROMPT =
-  "You are an expert React and Next.js developer. Generate clean, production-ready Next.js components using Tailwind CSS. Return only the component code without markdown fences or explanations unless asked. Use TypeScript and modern React 19 patterns.";
+  "You are the Sovereign Forge OS Developer Agent. Generate clean, production-ready Next.js 15 (App Router) components using React 19, TypeScript, and Tailwind CSS v4 with shadcn/ui aesthetic. Apply Supabase Auth by default, include data-testid attributes for QA, and implement robust error boundaries. Return only the component code without markdown fences or explanations unless asked.";
 
 function isAnyLLMAvailable(): boolean {
   return keyManager.isConfigured("opencodezen");
@@ -98,8 +98,8 @@ export async function POST(request: Request): Promise<Response> {
         orgId
       });
 
+      // Credits already reserved atomically in STEP 0; record the charge in the ledger
       if (orgId && !isAdmin) {
-        await supabaseAdmin.rpc("decrement_org_balance", { p_org_id: orgId, p_amount: creditCost });
         agentEconomy.chargeResourceCost(orgId, "Developer", creditCost * 1000, "multi-file-generation").catch(() => {});
       }
 
@@ -134,8 +134,8 @@ export async function POST(request: Request): Promise<Response> {
       }
 
       const code = await callLLM([{ role: "user", content: `${SYSTEM_PROMPT}\n\nUser request: ${prompt}\n\nGenerate a complete Next.js component with Tailwind CSS:` }]);
+      // Credits already reserved atomically in STEP 0; record the charge in the ledger
       if (orgId && !isAdmin) {
-        await supabaseAdmin.rpc("decrement_org_balance", { p_org_id: orgId, p_amount: creditCost });
         agentEconomy.chargeResourceCost(orgId, "Developer", creditCost * 1000, "single-component-generation").catch(() => {});
       }
       return Response.json({ code });

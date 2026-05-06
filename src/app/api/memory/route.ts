@@ -14,6 +14,9 @@ export const runtime = "nodejs";
  * Get all memory data (projects, learning data)
  */
 export async function GET(): Promise<Response> {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     let projects: Project[];
     

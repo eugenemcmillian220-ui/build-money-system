@@ -10,6 +10,9 @@ export const runtime = "nodejs";
  * Get multi-agent economy data (agent marketplace, transactions)
  */
 export async function GET(): Promise<Response> {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     return NextResponse.json({
       success: true,
