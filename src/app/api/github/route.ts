@@ -9,7 +9,7 @@ import { z } from "zod";
 
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 280;
 
 const githubExportSchema = z.object({
   projectId: z.string().uuid("Invalid project ID"),

@@ -10,7 +10,7 @@ import { z } from "zod";
 
 
 export const runtime = "nodejs";
-export const maxDuration = 60; // Use manifest pipeline for long jobs
+export const maxDuration = 280; // Vercel Hobby 300s cap — safe buffer
 
 const requestSchema = z.object({
   projectId: z.string().uuid(),
