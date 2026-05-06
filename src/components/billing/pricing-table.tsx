@@ -1,7 +1,8 @@
 // DA-012 FIX: orgId resolved server-side from auth session, not client request
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { BILLING_TIERS, LIFETIME_LICENSES, CREDIT_PACKS, BillingTier, LifetimeLicense } from "@/lib/stripe-config";
 
 interface PricingTableProps {
@@ -9,39 +10,77 @@ interface PricingTableProps {
   currentTier?: string;
   currentInterval?: "monthly" | "yearly";
   affiliateCode?: string;
+  /** When true, buttons redirect to login instead of attempting checkout */
+  requiresLogin?: boolean;
 }
+
+const PLACEHOLDER_ORG_ID = "00000000-0000-0000-0000-000000000000";
 
 export function PricingTable({ 
   orgId, 
   currentTier, 
   currentInterval = "monthly",
-  affiliateCode 
+  affiliateCode,
+  requiresLogin = false,
 }: PricingTableProps) {
   const [loading, setLoading] = useState<string | null>(null);
   const [interval, setInterval] = useState<"monthly" | "yearly">(currentInterval);
   const [category, setCategory] = useState<"elite" | "basic" | "lifetime">("elite");
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   const subscriptionTiers = Object.values(BILLING_TIERS).filter(t => t.category === category);
   const lifetimeLicenses = Object.values(LIFETIME_LICENSES);
 
+  const redirectToLogin = useCallback(() => {
+    router.push("/login?redirectTo=/dashboard/billing");
+  }, [router]);
+
+  /** Shared checkout call with error handling */
+  const checkout = useCallback(async (body: Record<string, unknown>): Promise<void> => {
+    setError(null);
+
+    if (requiresLogin || orgId === PLACEHOLDER_ORG_ID) {
+      redirectToLogin();
+      return;
+    }
+
+    const res = await fetch("/api/billing/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      if (res.status === 401) {
+        redirectToLogin();
+        return;
+      }
+      throw new Error(data.error || `Checkout failed (${res.status})`);
+    }
+
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      throw new Error("No checkout URL returned");
+    }
+  }, [orgId, requiresLogin, redirectToLogin]);
+
   const handleSubscribe = async (tier: BillingTier) => {
     setLoading(tier.id);
     try {
-      const res = await fetch("/api/billing/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          orgId, 
-          type: "subscription", 
-          tier: tier.id, 
-          interval,
-          ...(affiliateCode && { affiliateCode })
-        }),
+      await checkout({
+        orgId,
+        type: "subscription",
+        tier: tier.id,
+        interval,
+        ...(affiliateCode && { affiliateCode }),
       });
-      const data = await res.json();
-      if (data.url) window.location.href = data.url;
     } catch (err) {
       console.error("Checkout failed:", err);
+      setError(err instanceof Error ? err.message : "Failed to start checkout. Please try again.");
     } finally {
       setLoading(null);
     }
@@ -50,20 +89,15 @@ export function PricingTable({
   const handleLifetimePurchase = async (license: LifetimeLicense) => {
     setLoading(license.id);
     try {
-      const res = await fetch("/api/billing/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          orgId, 
-          type: "lifetime", 
-          licenseId: license.id,
-          ...(affiliateCode && { affiliateCode })
-        }),
+      await checkout({
+        orgId,
+        type: "lifetime",
+        licenseId: license.id,
+        ...(affiliateCode && { affiliateCode }),
       });
-      const data = await res.json();
-      if (data.url) window.location.href = data.url;
     } catch (err) {
       console.error("Checkout failed:", err);
+      setError(err instanceof Error ? err.message : "Failed to start checkout. Please try again.");
     } finally {
       setLoading(null);
     }
@@ -72,15 +106,10 @@ export function PricingTable({
   const handleTopUp = async (packId: string) => {
     setLoading(packId);
     try {
-      const res = await fetch("/api/billing/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orgId, type: "topup", packId }),
-      });
-      const data = await res.json();
-      if (data.url) window.location.href = data.url;
+      await checkout({ orgId, type: "topup", packId });
     } catch (err) {
       console.error("Top-up failed:", err);
+      setError(err instanceof Error ? err.message : "Failed to start checkout. Please try again.");
     } finally {
       setLoading(null);
     }
@@ -88,6 +117,19 @@ export function PricingTable({
 
   return (
     <div className="space-y-12">
+      {/* Error Banner */}
+      {error && (
+        <div className="mx-auto max-w-2xl rounded-2xl border border-red-500/30 bg-red-500/10 px-6 py-4 text-center">
+          <p className="text-sm font-bold text-red-400">{error}</p>
+          <button
+            onClick={() => setError(null)}
+            className="mt-2 text-xs text-red-400/70 underline hover:text-red-300"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* Header Badge */}
       <div className="text-center">
         <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1.5 text-xs font-black uppercase tracking-widest text-amber-400">

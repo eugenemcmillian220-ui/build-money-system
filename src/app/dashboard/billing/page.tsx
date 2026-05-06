@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { PricingTable } from "@/components/billing/pricing-table";
 import { supabase } from "@/lib/supabase/client";
+import { repairOrganization } from "@/lib/auth-actions";
 import { Loader2 } from "lucide-react";
 
 interface Org {
@@ -18,14 +19,33 @@ export default function BillingPage() {
   useEffect(() => {
     async function fetchOrg() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data } = await supabase
-          .from("organizations")
-          .select("*")
-          .eq("owner_id", user.id)
-          .single();
-        setOrg(data);
+      if (!user) {
+        setLoading(false);
+        return;
       }
+
+      const { data } = await supabase
+        .from("organizations")
+        .select("*")
+        .eq("owner_id", user.id)
+        .limit(1)
+        .maybeSingle();
+
+      if (data) {
+        setOrg(data);
+        setLoading(false);
+        return;
+      }
+
+      // No org found — auto-create via server action
+      await repairOrganization();
+      const { data: retryData } = await supabase
+        .from("organizations")
+        .select("*")
+        .eq("owner_id", user.id)
+        .limit(1)
+        .maybeSingle();
+      setOrg(retryData);
       setLoading(false);
     }
     fetchOrg();
