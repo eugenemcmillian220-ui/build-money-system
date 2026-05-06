@@ -175,12 +175,17 @@ export const LIFETIME_LICENSES: Record<string, LifetimeLicense> = {
 };
 
 // === CREDIT TOP-UP PACKS (5 Packs) ===
-export const CREDIT_PACKS: CreditPack[] = [
-  { id: "credits_5k", credits: 5000, price: 2000, label: "Starter Pack" },
-  { id: "credits_10k", credits: 10000, price: 3800, label: "Pro Boost", savings: "5% off" },
-  { id: "credits_25k", credits: 25000, price: 9000, label: "Empire Surge", savings: "10% off" },
-  { id: "credits_50k", credits: 50000, price: 17000, label: "Empire Overdrive", savings: "15% off" },
-  { id: "credits_100k", credits: 100000, price: 32000, label: "Empire Titan", savings: "20% off" },
+// Each pack resolves its Stripe Price ID from env vars when available.
+interface CreditPackInternal extends CreditPack {
+  priceId?: string;
+}
+
+export const CREDIT_PACKS: CreditPackInternal[] = [
+  { id: "credits_5k", credits: 5000, price: 2000, label: "Starter Pack", priceId: serverEnv.STRIPE_CREDITS_5K_PRICE_ID },
+  { id: "credits_10k", credits: 10000, price: 3800, label: "Pro Boost", savings: "5% off", priceId: serverEnv.STRIPE_CREDITS_10K_PRICE_ID },
+  { id: "credits_25k", credits: 25000, price: 9000, label: "Empire Surge", savings: "10% off", priceId: serverEnv.STRIPE_CREDITS_25K_PRICE_ID },
+  { id: "credits_50k", credits: 50000, price: 17000, label: "Empire Overdrive", savings: "15% off", priceId: serverEnv.STRIPE_CREDITS_50K_PRICE_ID },
+  { id: "credits_100k", credits: 100000, price: 32000, label: "Empire Titan", savings: "20% off", priceId: serverEnv.STRIPE_CREDITS_100K_PRICE_ID },
 ];
 
 // === MARKETPLACE & AFFILIATE CONFIG ===
@@ -212,11 +217,11 @@ export class StripeService {
     if (!pack) throw new Error("Invalid credit pack");
 
     const baseUrl = this.getBaseUrl();
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
-      mode: "payment",
-      line_items: [
-        {
+
+    // Use pre-created Stripe Price ID when available, otherwise fall back to inline price_data
+    const lineItem: { price?: string; price_data?: { currency: string; product_data: { name: string; description: string }; unit_amount: number }; quantity: number } = pack.priceId
+      ? { price: pack.priceId, quantity: 1 }
+      : {
           price_data: {
             currency: "usd",
             product_data: {
@@ -226,8 +231,12 @@ export class StripeService {
             unit_amount: pack.price,
           },
           quantity: 1,
-        },
-      ],
+        };
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      mode: "payment",
+      line_items: [lineItem],
       metadata: { orgId, credits: pack.credits.toString(), type: "topup", packId, ...(affiliateCode && { affiliateCode }) },
       success_url: `${baseUrl}/dashboard/billing?success=true`,
       cancel_url: `${baseUrl}/dashboard/billing?canceled=true`,
