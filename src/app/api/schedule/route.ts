@@ -1,5 +1,6 @@
 // DA-028 TODO: Refactor action-switch pattern into dedicated sub-routes (e.g., /api/federation/register/route.ts)
 export const dynamic = "force-dynamic";
+import { requireAuth, isAuthError } from "@/lib/api-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { aiScheduler } from "@/lib/ai-scheduler";
 import { z } from "zod";
@@ -23,6 +24,9 @@ const executeScheduleSchema = z.object({
  * Schedule a new task or execute a schedule
  */
 export async function POST(request: NextRequest): Promise<Response> {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const body = await request.json();
     const { action } = body;

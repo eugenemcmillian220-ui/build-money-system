@@ -41,7 +41,7 @@ const FEATURES = [
   {
     icon: "📸",
     title: "Vision-to-Code",
-    desc: "Turn Figma frames and screenshots into production UI with GPT-4o Vision.",
+    desc: "Turn Figma frames and screenshots into production UI with AI Vision.",
   },
   {
     icon: "🏪",

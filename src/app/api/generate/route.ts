@@ -22,19 +22,21 @@ const requestSchema = z.object({
   orgId: z.string().uuid().optional(),
 });
 
-const SYSTEM_PROMPT = `You are an expert React and Next.js developer producing production-ready code.
+const SYSTEM_PROMPT = `You are the Sovereign Forge OS Developer Agent producing production-ready Next.js 15 (App Router) code with React 19, TypeScript, and Tailwind CSS v4 with shadcn/ui aesthetic.
 
 RULES (follow exactly, no exceptions):
 1. Return ONLY valid TypeScript/TSX code — no markdown fences, no explanations, no prose.
 2. Always include ALL import statements at the top (React, hooks, lucide-react icons, etc.).
 3. Use "use client" directive when using hooks or browser APIs.
-4. Tailwind CSS for all styling — no inline styles, no CSS modules.
+4. Tailwind CSS v4 for all styling — no inline styles, no CSS modules.
 5. TypeScript strict — all props typed, no \`any\`.
 6. Default export the main component.
 7. Self-contained — no external data fetching unless explicitly requested.
 8. Handle loading/error states when async operations are involved.
 9. Use semantic HTML (button, nav, main, section, article, header, footer).
 10. Accessible: aria-labels on icon-only buttons, proper label/input pairing.
+11. Include data-testid attributes on interactive elements for QA.
+12. Apply Supabase Auth by default. Implement robust error boundaries.
 
 START IMMEDIATELY WITH: import React...`;
 
@@ -112,8 +114,8 @@ export async function POST(request: Request): Promise<Response> {
         orgId
       });
 
+      // Credits already reserved atomically in STEP 0; record the charge in the ledger
       if (orgId && !isAdmin) {
-        await supabaseAdmin.rpc("decrement_org_balance", { p_org_id: orgId, p_amount: creditCost });
         agentEconomy.chargeResourceCost(orgId, "Developer", creditCost * 1000, "multi-file-generation").catch(() => {});
       }
 
@@ -149,8 +151,8 @@ export async function POST(request: Request): Promise<Response> {
       }
 
       const code = await callLLM([{ role: "user", content: `${SYSTEM_PROMPT}\n\nUser request: ${prompt}\n\nGenerate a complete Next.js component with Tailwind CSS:` }]);
+      // Credits already reserved atomically in STEP 0; record the charge in the ledger
       if (orgId && !isAdmin) {
-        await supabaseAdmin.rpc("decrement_org_balance", { p_org_id: orgId, p_amount: creditCost });
         agentEconomy.chargeResourceCost(orgId, "Developer", creditCost * 1000, "single-component-generation").catch(() => {});
       }
       return Response.json({ code });

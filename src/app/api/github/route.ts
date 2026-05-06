@@ -1,6 +1,7 @@
 // DA-064 FIX: TODO: Move long-running GitHub ops to background job queue
 // DA-063 FIX: TODO: Strip env vars from error responses
 export const dynamic = "force-dynamic";
+import { requireAuth, isAuthError } from "@/lib/api-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { isGitHubAvailable, exportToGitHub } from "@/lib/github";
 import { loadProjectDB, isDatabaseAvailable, updateProjectGitHubRepo } from "@/lib/supabase/db";
@@ -24,6 +25,9 @@ const githubExportSchema = z.object({
  * Export a project to GitHub
  */
 export async function POST(request: NextRequest): Promise<Response> {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const body = await request.json();
     const parsed = githubExportSchema.safeParse(body);

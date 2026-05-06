@@ -1,4 +1,5 @@
 export const dynamic = "force-dynamic";
+import { requireAuth, isAuthError } from "@/lib/api-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { autoDeployer } from "@/lib/auto-deployer";
 import { z } from "zod";
@@ -16,6 +17,9 @@ const deployRequestSchema = z.object({
  * Execute automated deployment with monitoring
  */
 export async function POST(request: NextRequest): Promise<Response> {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const body = await request.json();
     const parsed = deployRequestSchema.safeParse(body);

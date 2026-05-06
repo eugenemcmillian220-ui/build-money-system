@@ -16,7 +16,7 @@ import {
   type ManifestationRow,
 } from "./store";
 
-const _AGENT_THROTTLE_MS = 100;
+
 
 /** Stage budget — 240 s safe under the 300 s Vercel Hobby hard cap. */
 const STAGE_BUDGET_MS = 240_000;
@@ -450,7 +450,7 @@ export async function runGenerateBuildCodeStage(jobId: string, _baseUrl: string)
       const agents = await loadAgents();
       const result = await withTimeout(
         agents.runDeveloperAgent(state.finalPrompt as string, {
-          mode: (state.mode as "web-app" | "mobile-app") || "web-app",
+          mode: "web-app",
           multiFile: true,
           orgId: row.org_id ?? undefined,
           precomputedSpec: spec,
@@ -725,7 +725,7 @@ export async function runPolishAnalyzeStage(jobId: string, _baseUrl: string): Pr
         : Promise.resolve(undefined),
       isElite
         ? safeAgent("Phantom", jobId, undefined, () =>
-            traced("agent.phantom", { "agent.role": "Phantom" }, () => agents.runPhantom({ files, id: "temp", createdAt: new Date().toISOString() } as Project)),
+            traced("agent.phantom", { "agent.role": "Phantom" }, () => agents.runPhantom({ name: projectName, description: projectDesc, files, id: "temp", createdAt: new Date().toISOString() } as Project)),
           )
         : Promise.resolve(undefined),
       (async () => {
@@ -777,6 +777,7 @@ export async function runPolishLaunchStage(jobId: string, _baseUrl: string): Pro
     const agents = await loadAgents();
     const state = row.state as StageState;
     const files = state.files as Record<string, string>;
+    const projectName = (state.projectName as string) || "Untitled";
     const projectDesc = state.projectDesc as string;
     const mode = state.mode as string;
     const protocol = state.protocol as string;
@@ -788,6 +789,7 @@ export async function runPolishLaunchStage(jobId: string, _baseUrl: string): Pro
     const [launch, qaResult] = await Promise.all([
       safeAgent("Herald", jobId, null, () =>
         traced("agent.herald", { "agent.role": "Herald" }, () => agents.runHerald({
+          name: projectName,
           description: projectDesc,
           files,
           id: "temp",
@@ -900,7 +902,7 @@ export async function runPolishParallelStage(jobId: string, _baseUrl: string): P
         : Promise.resolve(undefined),
       isElite
         ? safeAgent("Phantom", jobId, undefined, () =>
-            traced("agent.phantom", { "agent.role": "Phantom" }, () => agents.runPhantom({ files, id: "temp", createdAt: new Date().toISOString() } as Project)),
+            traced("agent.phantom", { "agent.role": "Phantom" }, () => agents.runPhantom({ name: projectName, description: projectDesc, files, id: "temp", createdAt: new Date().toISOString() } as Project)),
           )
         : Promise.resolve(undefined),
       (async () => {
@@ -927,6 +929,7 @@ export async function runPolishParallelStage(jobId: string, _baseUrl: string): P
     const [launch, qaResult] = await Promise.all([
       safeAgent("Herald", jobId, null, () =>
         traced("agent.herald", { "agent.role": "Herald" }, () => agents.runHerald({
+          name: projectName,
           description: projectDesc,
           files,
           id: "temp",

@@ -416,78 +416,102 @@ export async function aiComplete(options: AIOptions): Promise<AIResult> {
 
 export async function* aiStream(options: AIOptions): AsyncIterable<string> {
   const order = buildProviderOrder(options.provider);
-  const { provider } = order[0] ?? { provider: "groq" as ProviderName };
-  const model = options.model || (ALL_FREE_MODELS[provider]?.[0] ?? GROQ_MODELS[0]);
-  const apiKey = keyManager.getKey(provider);
+  const timeoutMs = options.timeout ?? 55_000;
 
-  if (!apiKey) throw new Error(`No API key for streaming (${provider})`);
+  let lastError: Error | null = null;
 
-  const cfg = PROVIDER_CONFIGS[provider];
-  const controller = new AbortController();
-  const timeoutMs = options.timeout ?? 55_000; // Just under Vercel hobby 60s cap
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  for (const { provider, models } of order) {
+    const modelsToTry = options.model
+      ? [options.model, ...models].filter((m, i, a) => a.indexOf(m) === i)
+      : models;
 
-  try {
-    const response = await fetch(cfg.getUrl(), {
-      method: "POST",
-      headers: cfg.getHeaders(apiKey),
-      body: JSON.stringify({
-        model,
-        messages: options.messages.map((m) => ({
-          role: m.role,
-          content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
-        })),
-        temperature: options.temperature ?? 0.7,
-        max_tokens: options.maxTokens ?? 4096,
-        stream: true,
-      }),
-      signal: controller.signal,
-    });
+    for (const model of modelsToTry) {
+      const apiKey = keyManager.getKey(provider);
+      if (!apiKey) continue;
 
-    clearTimeout(timer);
+      const cfg = PROVIDER_CONFIGS[provider];
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`${provider} stream error (${response.status}): ${errorText}`);
-    }
+      try {
+        const response = await fetch(cfg.getUrl(), {
+          method: "POST",
+          headers: cfg.getHeaders(apiKey),
+          body: JSON.stringify({
+            model,
+            messages: options.messages.map((m) => ({
+              role: m.role,
+              content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
+            })),
+            temperature: options.temperature ?? 0.7,
+            max_tokens: options.maxTokens ?? 4096,
+            stream: true,
+          }),
+          signal: controller.signal,
+        });
 
-    const reader = response.body?.getReader();
-    if (!reader) throw new Error("No response body");
+        clearTimeout(timer);
 
-    const decoder = new TextDecoder();
-    let buffer = "";
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`${provider} stream error (${response.status}): ${errorText}`);
+        }
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+        const reader = response.body?.getReader();
+        if (!reader) throw new Error("No response body");
 
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let yielded = false;
 
-      for (const line of lines) {
-        if (line.startsWith("data: ")) {
-          const data = line.slice(6);
-          if (data === "[DONE]") return;
-          try {
-            const json = JSON.parse(data);
-            const content = json.choices?.[0]?.delta?.content;
-            if (content) yield content;
-          } catch {
-            // Ignore parse errors for incomplete chunks
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              const data = line.slice(6);
+              if (data === "[DONE]") {
+                recordSuccess(provider, Date.now());
+                return;
+              }
+              try {
+                const json = JSON.parse(data);
+                const content = json.choices?.[0]?.delta?.content;
+                if (content) {
+                  yielded = true;
+                  yield content;
+                }
+              } catch {
+                // Ignore parse errors for incomplete chunks
+              }
+            }
           }
+        }
+
+        if (yielded) {
+          recordSuccess(provider, Date.now());
+          return;
+        }
+      } catch (error) {
+        clearTimeout(timer);
+        recordFailure(provider);
+        if (error instanceof Error && error.name === "AbortError") {
+          lastError = new Error(`${provider}/${model} stream timed out after ${timeoutMs}ms`);
+        } else {
+          const msg = error instanceof Error ? error.message : String(error);
+          logger.warn(`AI stream failed [${provider}/${model}]: ${msg}`);
+          lastError = error instanceof Error ? error : new Error(msg);
         }
       }
     }
-  } catch (error) {
-    if (error instanceof Error && error.name === "AbortError") {
-      logger.error(`AI stream timed out after ${timeoutMs}ms`);
-      throw new Error("Generation timed out");
-    }
-    throw error;
-  } finally {
-    clearTimeout(timer);
   }
+
+  throw lastError || new Error("All AI providers failed for streaming");
 }
 
 // ---------------------------------------------------------------------------

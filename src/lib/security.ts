@@ -19,9 +19,9 @@ export interface SecurityConfig {
 }
 
 const PII_PATTERNS = {
-  email: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
-  ssn: /\b\d{3}-\d{2}-\d{4}\b/g,
-  creditCard: /\b(?:\d[ -]*?){13,16}\b/g,
+  email: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/,
+  ssn: /\b\d{3}-\d{2}-\d{4}\b/,
+  creditCard: /\b(?:\d[ -]*?){13,16}\b/,
 };
 
 /**

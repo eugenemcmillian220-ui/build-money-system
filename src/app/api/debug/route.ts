@@ -4,18 +4,6 @@ import { aiDebugger } from '@/lib/ai-debugger';
 import { security, SecurityError } from '@/lib/security';
 import { requireAuth, isAuthError } from "@/lib/api-auth";
 
-// DA-025 FIX: Sanitize file paths to prevent traversal
-function sanitizeFilePaths(files: Record<string, unknown>): Record<string, unknown> {
-  const sanitized: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(files)) {
-    const safePath = key.replace(/\.\.\//g, '').replace(/^\//, '');
-    if (safePath && !safePath.includes('..')) {
-      sanitized[safePath] = value;
-    }
-  }
-  return sanitized;
-}
-
 export async function POST(req: NextRequest) {
   // DA-003 FIX: Block in production
   if (process.env.NODE_ENV === 'production') {
@@ -39,8 +27,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'files object is required' }, { status: 400 });
     }
 
-    // Analyze project for issues (DA-025: sanitize paths first)
-    const sanitized = sanitizeFilePaths(files) as Record<string, string>;
+    // DA-025: sanitize paths to prevent traversal
+    const sanitized: Record<string, string> = {};
+    for (const [key, value] of Object.entries(files)) {
+      const safePath = key.replace(/\.\.\//g, "").replace(/^\//, "");
+      if (safePath && !safePath.includes("..") && typeof value === "string") {
+        sanitized[safePath] = value;
+      }
+    }
     const reports = aiDebugger.analyzeProject(sanitized);
 
     return NextResponse.json({ success: true, data: { reports } });
