@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from "uuid";
 import { GenerationResult, Project, validateFilePaths, AppSpec } from "../types";
 import { buildFromSpec, fixFiles, fixBrokenFiles, testFiles, planSpec } from "../llm";
 import { postProcessFiles } from "../processor";
@@ -10,7 +11,7 @@ import { productManager } from "../product-manager";
 import { processVisualContext } from "../vision";
 import { security } from "../security";
 import { hiveMind } from "../hive-mind";
-import crypto from "crypto";
+
 
 export class AgentError extends Error {
   constructor(
@@ -121,7 +122,7 @@ export async function runDeveloperAgent(
   }
 
   const result: DeveloperResult = {
-    id: crypto.randomUUID(),
+    id: uuidv4(),
     files,
     description,
     prompt: sanitizedPrompt,
