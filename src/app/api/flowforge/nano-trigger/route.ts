@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { v4 as uuidv4 } from "uuid";
 import { createAuditEntry } from "@/lib/flowforge/audit";
 
 export const runtime = "nodejs";
@@ -17,7 +16,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const executionId = uuidv4();
+    const executionId = crypto.randomUUID();
 
     createAuditEntry(
       "default-org",

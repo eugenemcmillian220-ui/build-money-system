@@ -1,4 +1,3 @@
-import { v4 as uuidv4 } from "uuid";
 import type {
   Workflow,
   WorkflowExecution,
@@ -22,7 +21,7 @@ export function createExecution(
   input: Record<string, unknown>,
 ): WorkflowExecution {
   return {
-    id: uuidv4(),
+    id: crypto.randomUUID(),
     workflow_id: workflow.id,
     org_id: workflow.org_id,
     status: "queued",
@@ -272,7 +271,7 @@ export function createNanoTrigger(
   color: string,
 ): NanoTrigger {
   return {
-    id: uuidv4(),
+    id: crypto.randomUUID(),
     workflow_id: workflow.id,
     label,
     icon,

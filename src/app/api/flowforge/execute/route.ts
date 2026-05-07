@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { v4 as uuidv4 } from "uuid";
 import { createExecution, executeNode, calculateCreditsUsed } from "@/lib/flowforge/engine";
 import type { Workflow, WorkflowNode, NodeExecutionResult } from "@/lib/flowforge/types";
 import { createAuditEntry } from "@/lib/flowforge/audit";
@@ -27,7 +26,7 @@ export async function POST(request: NextRequest) {
     }
 
     const wf: Workflow = {
-      id: workflow_id || workflow?.id || uuidv4(),
+      id: workflow_id || workflow?.id || crypto.randomUUID(),
       org_id: (workflow?.org_id as string) || "default-org",
       name: workflow?.name || "Unnamed Workflow",
       description: workflow?.description || "",

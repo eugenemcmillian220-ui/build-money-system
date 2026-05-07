@@ -1,4 +1,3 @@
-import { v4 as uuidv4 } from "uuid";
 import { GenerationResult, Project, validateFilePaths, AppSpec } from "../types";
 import { buildFromSpec, fixFiles, fixBrokenFiles, testFiles, planSpec } from "../llm";
 import { postProcessFiles } from "../processor";
@@ -122,7 +121,7 @@ export async function runDeveloperAgent(
   }
 
   const result: DeveloperResult = {
-    id: uuidv4(),
+    id: crypto.randomUUID(),
     files,
     description,
     prompt: sanitizedPrompt,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -10,15 +10,41 @@ import {
   Bell,
   Shield,
   Zap,
+  Crown,
 } from "lucide-react";
 
 type SettingsTab = "general" | "billing" | "api-keys" | "notifications" | "security";
+
+interface BillingInfo {
+  tier: string;
+  credits_remaining: number;
+  executions_remaining: number;
+  is_admin: boolean;
+  all_plans_free: boolean;
+}
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("general");
   const [defaultMode, setDefaultMode] = useState("universal");
   const [maxExecutionTimeout, setMaxExecutionTimeout] = useState(60);
   const [webhookRetries, setWebhookRetries] = useState(3);
+  const [billing, setBilling] = useState<BillingInfo | null>(null);
+
+  const loadBilling = useCallback(async () => {
+    try {
+      const res = await fetch("/api/flowforge/billing");
+      if (res.ok) {
+        const data = await res.json();
+        setBilling(data.current_plan);
+      }
+    } catch {
+      // Graceful fallback
+    }
+  }, []);
+
+  useEffect(() => {
+    loadBilling();
+  }, [loadBilling]);
 
   const tabs: { key: SettingsTab; label: string; icon: typeof Settings }[] = [
     { key: "general", label: "General", icon: Settings },
@@ -111,18 +137,31 @@ export default function SettingsPage() {
                 <h2 className="text-xl font-bold flex items-center gap-2">
                   <CreditCard size={20} className="text-amber-500" /> Billing
                 </h2>
+
+                {billing?.is_admin && (
+                  <div className="rounded-xl border border-amber-500/50 bg-amber-500/10 p-4 flex items-center gap-3">
+                    <Crown size={24} className="text-amber-400" />
+                    <div>
+                      <p className="font-bold text-amber-400">Admin Free Access</p>
+                      <p className="text-sm text-gray-300">All plans are free for your account. Unlimited credits &amp; executions.</p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-3 gap-4">
                   {[
-                    { tier: "Free", price: "$0/mo", features: ["5 workflows", "1K executions", "Community support"], current: false },
-                    { tier: "Pro", price: "$49/mo", features: ["Unlimited workflows", "50K executions", "API access", "Priority support"], current: true },
-                    { tier: "Enterprise", price: "Custom", features: ["Unlimited everything", "SLA guarantee", "Dedicated support", "Custom integrations"], current: false },
+                    { tier: "Free", price: billing?.all_plans_free ? "FREE" : "$0/mo", features: ["5 workflows", "1K executions", "Community support"], current: false },
+                    { tier: "Pro", price: billing?.all_plans_free ? "FREE" : "$49/mo", features: ["Unlimited workflows", "50K executions", "API access", "Priority support"], current: !billing?.is_admin },
+                    { tier: "Enterprise", price: billing?.all_plans_free ? "FREE" : "Custom", features: ["Unlimited everything", "SLA guarantee", "Dedicated support", "Custom integrations"], current: false },
                   ].map((plan) => (
                     <div
                       key={plan.tier}
                       className={`rounded-xl border p-6 ${
-                        plan.current
-                          ? "border-amber-500 bg-amber-500/5"
-                          : "border-gray-800 bg-gray-900/50"
+                        billing?.is_admin
+                          ? "border-amber-500/30 bg-amber-500/5"
+                          : plan.current
+                            ? "border-amber-500 bg-amber-500/5"
+                            : "border-gray-800 bg-gray-900/50"
                       }`}
                     >
                       <h3 className="font-bold text-lg">{plan.tier}</h3>
@@ -135,11 +174,15 @@ export default function SettingsPage() {
                           </li>
                         ))}
                       </ul>
-                      {plan.current && (
+                      {billing?.is_admin ? (
+                        <span className="inline-block mt-4 px-3 py-1 rounded-full bg-amber-500/20 text-xs font-bold text-amber-400">
+                          Included (Admin)
+                        </span>
+                      ) : plan.current ? (
                         <span className="inline-block mt-4 px-3 py-1 rounded-full bg-amber-500/20 text-xs font-bold text-amber-400">
                           Current Plan
                         </span>
-                      )}
+                      ) : null}
                     </div>
                   ))}
                 </div>
