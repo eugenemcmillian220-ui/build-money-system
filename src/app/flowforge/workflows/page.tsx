@@ -18,7 +18,6 @@ import {
   MousePointerClick,
 } from "lucide-react";
 import type { WorkflowNode, NodeType, TriggerType } from "@/lib/flowforge/types";
-import { v4 as uuidv4 } from "uuid";
 
 const NODE_TYPES: { type: NodeType; label: string; icon: typeof Zap; color: string }[] = [
   { type: "trigger", label: "Trigger", icon: Zap, color: "text-yellow-400" },
@@ -49,7 +48,7 @@ export default function WorkflowBuilderPage() {
 
   const addNode = (type: NodeType) => {
     const newNode: WorkflowNode = {
-      id: uuidv4(),
+      id: crypto.randomUUID(),
       type,
       label: `${type.charAt(0).toUpperCase() + type.slice(1)} Node`,
       config: {},

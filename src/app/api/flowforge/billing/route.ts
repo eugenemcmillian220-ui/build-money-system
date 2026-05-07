@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { v4 as uuidv4 } from "uuid";
 import { createAuditEntry } from "@/lib/flowforge/audit";
+import { isAdminEmail, ADMIN_CREDIT_BALANCE } from "@/lib/admin-emails";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,14 +20,14 @@ export async function POST(request: NextRequest) {
         "current-user",
         "billing.upgraded",
         "subscription",
-        uuidv4(),
+        crypto.randomUUID(),
         { from: "free", to: tier },
       );
 
       return NextResponse.json({
         success: true,
         subscription: {
-          id: uuidv4(),
+          id: crypto.randomUUID(),
           tier,
           status: "active",
           started_at: new Date().toISOString(),
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         credits_added: amount,
-        transaction_id: uuidv4(),
+        transaction_id: crypto.randomUUID(),
         timestamp: new Date().toISOString(),
       });
     }
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
         next_billing_date: new Date(Date.now() + 30 * 86400000).toISOString(),
       },
     });
-  } catch (err) {
+  } catch (err: unknown) {
     return NextResponse.json(
       { error: `Billing action failed: ${(err as Error).message}` },
       { status: 500 },
@@ -61,13 +61,18 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const email = request.headers.get("x-user-email") || "";
+  const adminFree = isAdminEmail(email);
+
   return NextResponse.json({
     current_plan: {
-      tier: "pro",
-      credits_remaining: 4550,
-      executions_remaining: 42750,
+      tier: adminFree ? "admin_free" : "pro",
+      credits_remaining: adminFree ? ADMIN_CREDIT_BALANCE : 4550,
+      executions_remaining: adminFree ? 999999 : 42750,
       next_billing_date: new Date(Date.now() + 30 * 86400000).toISOString(),
+      is_admin: adminFree,
+      all_plans_free: adminFree,
     },
     usage: {
       credits_used_this_month: 5450,

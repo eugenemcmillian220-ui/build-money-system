@@ -1,4 +1,3 @@
-import { v4 as uuidv4 } from "uuid";
 import type { AuditLogEntry, AuditAction } from "./types";
 
 /**
@@ -21,7 +20,7 @@ export function createAuditEntry(
   ipAddress: string = "0.0.0.0",
 ): AuditLogEntry {
   const entry: AuditLogEntry = {
-    id: uuidv4(),
+    id: crypto.randomUUID(),
     org_id: orgId,
     user_id: userId,
     action,

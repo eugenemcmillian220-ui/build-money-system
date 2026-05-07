@@ -1,5 +1,4 @@
 import "server-only";
-import { v4 as uuidv4 } from "uuid";
 import { traced } from "@/lib/telemetry";
 import { Project } from "@/lib/types";
 import { saveProjectDB } from "@/lib/supabase/db";
@@ -591,7 +590,7 @@ export async function runGenerateBuildFixStage(jobId: string, _baseUrl: string):
 
     const projectName = state.projectName as string;
     const projectDesc = state.projectDesc as string || row.prompt;
-    const projectId = uuidv4();
+    const projectId = crypto.randomUUID();
 
     const initialProject = await saveProjectDB({
       id: projectId,
@@ -1004,7 +1003,7 @@ export async function runPersistStage(jobId: string, _baseUrl: string): Promise<
     const projectId = state.projectId as string;
 
     const projectData: Partial<Project> = {
-      id: projectId || uuidv4(),
+      id: projectId || crypto.randomUUID(),
       files,
       description: (genData?.description as string) || row.prompt,
       prompt: row.prompt,
@@ -1037,7 +1036,7 @@ export async function runPersistStage(jobId: string, _baseUrl: string): Promise<
                 errors: (qaResult.testSteps || [])
                   .filter((s) => s.result === "failure")
                   .map((s) => s.error || s.step || "unknown"),
-                reportUrl: "/dashboard/qa/" + uuidv4(),
+                reportUrl: "/dashboard/qa/" + crypto.randomUUID(),
               },
             }
           : {}),
