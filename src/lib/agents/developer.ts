@@ -78,7 +78,9 @@ export async function runDeveloperAgent(
   const integrations = spec.integrations;
 
   // Building phase
-  let files = await buildFromSpec(spec);
+  let files = await buildFromSpec(spec, {
+    timeout: precomputedSpec ? 55_000 : undefined,
+  });
   files = postProcessFiles(files, { description, schema: spec.schema, integrations });
 
   // Infrastructure generation
