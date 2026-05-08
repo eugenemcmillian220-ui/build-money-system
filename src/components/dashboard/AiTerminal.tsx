@@ -42,7 +42,7 @@ async function repairOrganization(): Promise<{ success: boolean; error?: string 
 }
 
 const DEFAULT_HISTORY: { type: "input" | "output" | "error"; text: string }[] = [
-  { type: "output", text: "Sovereign Forge OS v2.8.0 (Phase 21 Active)" },
+  { type: "output", text: "Sovereign Forge OS v2.8.0 (Phase 25 Active)" },
   { type: "output", text: "Type 'help' for commands, or describe what you want to build in plain English." },
 ];
 
@@ -265,7 +265,7 @@ export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
 
     if (cmd.toLowerCase() === "test") {
       setIsProcessing(true);
-      addLine("output", "Launching 'The Overseer' (Phase 21) Autonomous QA Agent...");
+      addLine("output", "Launching 'The Overseer' (Phase 25) Autonomous QA Agent...");
       addLine("output", "Target: Main Platform & Active Manifestations");
       try {
         // Simulate E2E flow
@@ -288,7 +288,7 @@ export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
 
     if (cmd.toLowerCase() === "restart") {
       setIsProcessing(true);
-      addLine("output", "Executing Sovereign Fresh Restart (Phase 21)...");
+      addLine("output", "Executing Sovereign Fresh Restart (Phase 25)...");
       try {
         const repair = await repairOrganization();
         if (repair.success) {

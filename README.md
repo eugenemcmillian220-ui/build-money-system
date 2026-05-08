@@ -1,11 +1,11 @@
 # 🧠 Sovereign Forge OS (v2.8.0)
-### Absolute Dominance: The World's First 21-Phase Autonomous AI Business Empire Engine
+### Absolute Dominance: The World's First 25-Phase Autonomous AI Business Empire Engine
 
-Sovereign Forge OS is an elite, production-hardened platform that transforms natural language prompts into autonomous, revenue-generating SaaS empires. It doesn't just write code—it engineers, secures, legalizes, and manages entire business lifecycles using a swarm of 21 specialized AI agents.
+Sovereign Forge OS is an elite, production-hardened platform that transforms natural language prompts into autonomous, revenue-generating SaaS empires. It doesn't just write code—it engineers, secures, legalizes, and manages entire business lifecycles using a swarm of 25 specialized AI agents.
 
 ---
 
-## 🚀 The 21-Phase Sovereign Lifecycle (Absolute Dominance)
+## 🚀 The 25-Phase Sovereign Lifecycle (Absolute Dominance)
 
 | Phase | Designation | Mission | Status |
 | :--- | :--- | :--- | :--- |
@@ -20,10 +20,14 @@ Sovereign Forge OS is an elite, production-hardened platform that transforms nat
 | **19** | **Sovereign DAO** | Forge: User Governance Tokens (UGT) & Voting | ✅ |
 | **20** | **Lifecycle** | The Autonomous CEO: Portfolio Meta-Management | ✅ |
 | **21** | **Overseer** | **Autonomous QA Audit: E2E Browser & Visual Testing** | ✅ |
+| **22** | **Swarm Mesh** | Federation-ready orchestration and mesh collaboration | ✅ |
+| **23** | **Pulse** | Execution analytics, telemetry, and empire health intelligence | ✅ |
+| **24** | **Self-Evolution** | Adaptive timeout tuning, retry loops, and self-improvement | ✅ |
+| **25** | **Neural Link** | Infrastructure consolidation, semantic search, and neural memory | ✅ |
 
 ---
 
-## 🤖 The Sovereign Agent Swarm (21 Specialized Units)
+## 🤖 The Sovereign Agent Swarm (25 Specialized Units)
 
 1.  **The Classifier**: Intent dispatcher & high-level tech stack selector.
 2.  **The Scout**: Pre-generation technical R&D and competitor analysis.
@@ -46,6 +50,10 @@ Sovereign Forge OS is an elite, production-hardened platform that transforms nat
 19. **The Diplomat**: B2B negotiation and vendor cost optimization.
 20. **The Scrutinizer**: Deep-code audit and architectural verification.
 21. **The Overseer**: Autonomous QA lead for E2E browser and visual drift audits.
+22. **The Meshmaster**: Swarm federation orchestrator for cross-empire collaboration.
+23. **The Pulsekeeper**: Live telemetry analyst for execution health and performance intelligence.
+24. **The Evolver**: Adaptive optimizer for timeout tuning, retries, and self-improvement loops.
+25. **The Neural Link**: Semantic memory and infrastructure unifier across the sovereign stack.
 
 ---
 
@@ -78,7 +86,7 @@ Sovereign Forge OS is an elite, production-hardened platform that transforms nat
 *   Supabase Account (Service Role Key required)
 *   Stripe Account (Secret Key & Webhook Secret required)
 *   LLM Keys (recommended for production: GitHub Models token, Hugging Face token, and/or OpenCode Zen key)
-*   Arize AI Keys (For Phase 21 Observability)
+*   Arize AI Keys (For Phase 25 Observability)
 
 ### 2. Configuration
 ```bash
@@ -121,7 +129,7 @@ Navigate to `http://localhost:3000/dashboard` to access the **Neural Terminal**.
 2.  **Path Traversal Protection**: Zod-validated file paths for all generated code.
 3.  **Hardening pass**: Every build undergoes a Sentinel Hardening pass before deployment.
 4.  **Legal Vault**: Every empire includes a custom Legal Vault with generated patents and TOS.
-5.  **Overseer QA**: Phase 21 ensures zero-regression deployments through autonomous browser audits.
+5.  **Overseer QA**: Phase 25-era sovereignty includes autonomous browser audits and cross-phase regression protection.
 
 ---
 

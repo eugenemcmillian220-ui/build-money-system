@@ -29,7 +29,7 @@ export default function QADashboard() {
       <header className="mb-12">
         <div className="flex items-center gap-3 mb-2 text-brand-500">
           <ShieldCheck size={24} />
-          <span className="font-black uppercase tracking-tighter text-sm">Phase 21: The Overseer</span>
+          <span className="font-black uppercase tracking-tighter text-sm">Phase 25: The Overseer</span>
         </div>
         <h1 className="text-5xl font-black text-white tracking-tight uppercase italic italic-none">
           QA Audit <span className="text-brand-500">Control Center</span>
