@@ -174,6 +174,9 @@ export type AppSpecOutline = Pick<AppSpec, "name" | "description" | "features" |
 // Retrying here doubled the wall-clock time (2 × 50s budget = 100s)
 // which exceeded the Vercel Hobby 60s function limit.
 const MAX_PLAN_RETRIES = 0;
+const PLAN_LLM_TIMEOUT_MS = 18_000;
+const BUILD_LLM_TIMEOUT_MS = 45_000;
+const FIX_LLM_TIMEOUT_MS = 20_000;
 
 export async function planSpecOutline(prompt: string, context: MemoryContext[] = []): Promise<AppSpecOutline> {
   const contextText =
@@ -208,8 +211,8 @@ Rules:
       });
       const content = await callLLM(messages, {
         temperature: attempt === 1 ? 0.7 : 0.4,
-        maxTokens: 2048,
-        timeout: 25000,
+        maxTokens: 1400,
+        timeout: PLAN_LLM_TIMEOUT_MS,
       }, { cache: false });
 
       const parsed = robustParseJson<AppSpecOutline>(content);
@@ -275,8 +278,8 @@ Rules:
       });
       const content = await callLLM(messages, {
         temperature: attempt === 1 ? 0.5 : 0.3,
-        maxTokens: 2048,
-        timeout: 25000,
+        maxTokens: 1600,
+        timeout: PLAN_LLM_TIMEOUT_MS,
       }, { cache: false });
 
       const parsed = robustParseJson<AppSpecDetails>(content);
@@ -355,8 +358,8 @@ Rules:
       });
       const content = await callLLM(messages, {
         temperature: attempt === 1 ? 0.7 : 0.5,
-        maxTokens: 8192,
-        timeout: options.timeout ?? 25_000,
+        maxTokens: 6144,
+        timeout: options.timeout ?? BUILD_LLM_TIMEOUT_MS,
       });
       const parsed = parseMultiFileJson(content);
       logger.info("buildFromSpec succeeded", {
@@ -416,7 +419,7 @@ Rules:
     { role: "user", content: `Current Files:\n${filesList}${errorContext}\n\nReturn fixed files:` },
   ];
 
-  const content = await callLLM(messages, { temperature: 0.2, maxTokens: 8192, timeout: 25000 });
+  const content = await callLLM(messages, { temperature: 0.2, maxTokens: 4096, timeout: FIX_LLM_TIMEOUT_MS });
   const parsed = parseMultiFileJson(content);
   return parsed.files;
 }
@@ -488,7 +491,7 @@ Rules:
     },
   ];
 
-  const content = await callLLM(messages, { temperature: 0.1, maxTokens: 8192, timeout: 25000 });
+  const content = await callLLM(messages, { temperature: 0.1, maxTokens: 4096, timeout: FIX_LLM_TIMEOUT_MS });
   const parsed = parseMultiFileJson(content);
 
   return { ...allFiles, ...parsed.files };

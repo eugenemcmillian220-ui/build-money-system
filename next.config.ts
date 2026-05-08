@@ -7,9 +7,9 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: false // SECURITY FIX: Do not ship broken TypeScript to production,
   },
-  // Reduce webpack memory usage during build
-  webpack: (config, { isServer }) => {
-    config.parallelism = 3;
+  // Reduce webpack memory usage during build without forcing single-CPU compilation on Vercel
+  webpack: (config, { isServer, dev }) => {
+    config.parallelism = dev ? 3 : 6;
 
     config.optimization = {
       ...config.optimization,
@@ -38,8 +38,7 @@ const nextConfig: NextConfig = {
   output: "standalone",
   productionBrowserSourceMaps: false,
   experimental: {
-    workerThreads: false,
-    cpus: 1,
+    workerThreads: true,
     optimizePackageImports: ["@supabase/supabase-js", "openai", "stripe", "zod"],
   },
 };

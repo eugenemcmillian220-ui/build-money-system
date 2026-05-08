@@ -22,8 +22,10 @@ import {
 const STAGE_BUDGET_MS = 240_000;
 /** Per-agent call timeout — generous under the 300 s Hobby cap. */
 const AGENT_CALL_TIMEOUT_MS = 55_000;
-/** Max fix-pass iterations — 300 s Hobby cap allows multiple fix passes. */
-const MAX_FIX_ITERATIONS = 3;
+const SCOUT_CALL_TIMEOUT_MS = 20_000;
+const ARCHITECT_CALL_TIMEOUT_MS = 25_000;
+/** Max fix-pass iterations — keep validation fast enough for Vercel Hobby. */
+const MAX_FIX_ITERATIONS = 2;
 
 async function loadAgents() {
   const [
@@ -167,7 +169,7 @@ export async function runIntentScoutStage(jobId: string, _baseUrl: string): Prom
           { "agent.role": "Scout" },
           () => agents.runScoutAgent(row.prompt, protocol),
         ),
-        AGENT_CALL_TIMEOUT_MS,
+        SCOUT_CALL_TIMEOUT_MS,
         "runScoutAgent",
       );
     } catch (scoutErr) {
@@ -221,7 +223,7 @@ export async function runIntentArchitectStage(jobId: string, _baseUrl: string): 
           { "agent.role": "Architect" },
           () => agents.runArchitectAgent(row.prompt, strategyMarkdown),
         ),
-        AGENT_CALL_TIMEOUT_MS,
+        ARCHITECT_CALL_TIMEOUT_MS,
         "runArchitectAgent",
       );
     } catch (archErr) {
