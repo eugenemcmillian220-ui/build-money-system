@@ -1,12 +1,12 @@
 # 🧠 CODEBASE.md — Build Money System
 > **Canonical AI Context File** — Read this before making changes.
-> Last updated: 2026-04-15 | Phase 21 Active | Unified Dashboard Restored | Expansion v2.7.1 Active
+> Last updated: 2026-05-08 | Phase 21 Active | Unified Dashboard Restored | Expansion v2.8.0 Active
 
 ---
 
 ## 🏗️ What This Is
-**Build Money System** is a 20-phase autonomous AI SaaS empire engine.
-**Expansion v2.7.1 (Elite Empire) Enhancements:**
+**Build Money System** is a 21-phase autonomous AI SaaS empire engine.
+**Expansion v2.8.0 (Elite Empire) Enhancements:**
 - **Sovereign Agent Swarm (Ph 1-21)**: 21 specialized agents for R&D, security, M&A, legal, and meta-management.
 - **Economic Intelligence**: Agent ROI tracking, Surge Pricing, and Staking/RevShare infrastructure.
 - **Autonomous Lifecycle**: Real-time UI refinement (Sculptor), self-healing error diagnosis (Healer), and design-to-code (Figma).
@@ -25,7 +25,7 @@
 | Database | Supabase (PostgreSQL) |
 | Auth | Supabase Auth |
 | Payments | Stripe (Checkout, Webhooks, Subscriptions) |
-| AI / LLM | Multi-provider rotation: Groq, Gemini, OpenRouter, OpenAI |
+| AI / LLM | Production routing: GitHub Models free tier, Hugging Face free tier, OpenCode Zen free/paid |
 | Observability | Arize AI (OTel via @vercel/otel) + Sentry |
 | Analytics | PostHog |
 | Deployment | Vercel (project: `prj_IWU7CvE5WyYuKCaEqxRwPY2H00Xn`) |
@@ -63,7 +63,7 @@ src/
     billing-engine.ts      ← Webhook-side billing logic (credit grants on payment events)
     economy.ts             ← AgentEconomy: credit balance, transactions, agent hiring
     llm.ts                 ← callLLM(), planSpec(), buildFromSpec() — instrumented with Arize OTel
-    llm-router.ts          ← LLMRouter: provider rotation (Groq→Gemini→OpenRouter→OpenAI)
+    llm-router.ts          ← LLMRouter: provider routing tuned for GitHub Models, Hugging Face, and OpenCode Zen
     key-manager.ts         ← Multi-key rotation pool management
     telemetry.ts           ← Arize AI / OTel span wrapper (startSpan, traced)
     types.ts               ← Shared TypeScript types (Project, FileMap, AppSpec, etc.)
@@ -116,7 +116,7 @@ _archive/                  ← ⚠️ IGNORED — old code snapshots, do not imp
 
 ---
 
-## 🤖 Agent Swarm (Phase 1-20)
+## 🤖 Agent Swarm (Phase 1-21)
 | Agent | Mission | Phase |
 |---|---|---|
 | **Classifier** | Intent dispatch & stack selector | 19 |

@@ -42,7 +42,7 @@ async function repairOrganization(): Promise<{ success: boolean; error?: string 
 }
 
 const DEFAULT_HISTORY: { type: "input" | "output" | "error"; text: string }[] = [
-  { type: "output", text: "Sovereign Forge OS v2.7.1 (Phase 21 Active)" },
+  { type: "output", text: "Sovereign Forge OS v2.8.0 (Phase 21 Active)" },
   { type: "output", text: "Type 'help' for commands, or describe what you want to build in plain English." },
 ];
 

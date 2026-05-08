@@ -1,7 +1,7 @@
 # 🧠 Sovereign Forge OS (v2.8.0)
-### Absolute Dominance: The World's First 22-Phase Autonomous AI Business Empire Engine
+### Absolute Dominance: The World's First 21-Phase Autonomous AI Business Empire Engine
 
-Sovereign Forge OS is an elite, production-hardened platform that transforms natural language prompts into autonomous, revenue-generating SaaS empires. It doesn't just write code—it engineers, secures, legalizes, and manages entire business lifecycles using a swarm of 22 specialized AI agents.
+Sovereign Forge OS is an elite, production-hardened platform that transforms natural language prompts into autonomous, revenue-generating SaaS empires. It doesn't just write code—it engineers, secures, legalizes, and manages entire business lifecycles using a swarm of 21 specialized AI agents.
 
 ---
 
@@ -54,7 +54,7 @@ Sovereign Forge OS is an elite, production-hardened platform that transforms nat
 *   **Neural Credits & Surge Pricing**: Dynamic manifestation costs based on system load and build complexity.
 *   **User Governance Tokens (UGT)**: Earn 1 UGT per 1,000 credits topped up. UGT grants voting power in the **Sovereign DAO**.
 *   **Sovereign DAO**: A fully decentralized governance hub where token holders can propose and vote on the future of the Forge OS.
-*   **Multi-Key Rotation Pool**: Unstoppable intelligence via round-robin rotation across Groq, Gemini, OpenAI, DeepSeek, and OpenRouter.
+*   **Provider routing tuned for Vercel Hobby**: Production generation now prioritizes GitHub Models free tier, Hugging Face free tier, and OpenCode Zen free/paid models to stay within hobby-plan constraints and avoid unsupported model failures.
 *   **Hardened Monitoring**: Real-time telemetry via **Slack Command Center**, Sentry error tracking, and Arize AI observability.
 
 ---
@@ -77,7 +77,7 @@ Sovereign Forge OS is an elite, production-hardened platform that transforms nat
 *   Node.js 22.x (LTS)
 *   Supabase Account (Service Role Key required)
 *   Stripe Account (Secret Key & Webhook Secret required)
-*   LLM Keys (At least one: Groq, Gemini, OpenAI, or OpenRouter)
+*   LLM Keys (recommended for production: GitHub Models token, Hugging Face token, and/or OpenCode Zen key)
 *   Arize AI Keys (For Phase 21 Observability)
 
 ### 2. Configuration
@@ -95,11 +95,17 @@ cp .env.example .env.local
 ```
 
 ### 3. Intelligence Pool Setup
-Forge OS supports **Multi-Key Rotation**. Provide multiple keys separated by commas:
+Forge OS supports **provider failover and key rotation**. For Vercel Hobby production, prefer GitHub Models free tier, Hugging Face free tier, and OpenCode Zen free/paid models:
 ```bash
-OPENROUTER_API_KEYS=sk-or-v1-key1,sk-or-v1-key2
-GROQ_API_KEYS=gsk_key1,gsk_key2
+GITHUB_TOKEN=github_pat_or_models_token
+HF_TOKEN=hf_xxx
+OPENCODE_ZEN_API_KEY=zen_xxx
+
+# Optional multi-key rotation where supported
+OPENCODE_ZEN_API_KEYS=zen_key_1,zen_key_2
 ```
+
+Avoid relying on Groq, Gemini, standalone OpenAI, or OpenRouter for the production manifestation pipeline if you want behavior to match the current production routing configuration.
 
 ### 4. Manifest the Empire
 ```bash
@@ -122,12 +128,15 @@ Navigate to `http://localhost:3000/dashboard` to access the **Neural Terminal**.
 ## 🚀 Deployment
 Deploying the Forge OS or a Manifested Empire:
 ```bash
-# Sync environment to Vercel
-npx tsx src/lib/diagnostics.ts --sync
-
 # Production Build
 npm run build
 ```
+
+### Vercel Hobby production notes
+- Production LLM routing is tuned for Vercel Hobby limits.
+- The manifestation pipeline now prefers GitHub Models free tier, Hugging Face free tier, and OpenCode Zen free/paid models.
+- The manifest build stage uses a longer code-generation timeout for the precomputed-spec path to reduce premature component-generation failures.
+- If the AI Terminal still shows an older version after deploy, force-refresh the page or clear session storage because terminal history is persisted per session.
 
 ---
 
@@ -135,4 +144,4 @@ npm run build
 Sovereign Forge OS is licensed under the MIT Elite License. See `LICENSE` for details.
 
 ---
-**Sovereign Forge OS v2.7.1** · *From Idea To Revenue. Autonomously.*
+**Sovereign Forge OS v2.8.0** · *From Idea To Revenue. Autonomously.*
