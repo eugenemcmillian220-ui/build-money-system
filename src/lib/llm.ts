@@ -512,10 +512,6 @@ export async function fixBrokenFiles(
   brokenFilePaths: string[],
   errors: string[]
 ): Promise<FileMap> {
-  const brokenFiles = Object.fromEntries(
-    Object.entries(allFiles).filter(([path]) => brokenFilePaths.includes(path))
-  );
-
   const filesList = serializeFilesForPrompt(allFiles, brokenFilePaths);
 
   const errorContext = `Errors to fix:\n${errors.join("\n")}`;

@@ -6,34 +6,6 @@ import { keyManager, ProviderName } from "./key-manager";
 // Model catalogues per provider
 // ---------------------------------------------------------------------------
 
-export const GROQ_MODELS = [
-  "llama-3.3-70b-versatile",
-  "llama-3.1-8b-instant",
-  "mixtral-8x7b-32768",
-  "gemma2-9b-it",
-];
-
-export const GEMINI_MODELS = [
-  "gemini-2.0-flash",
-  "gemini-2.5-flash-preview-04-17",
-  "gemini-1.5-flash",
-  "gemini-1.5-pro",
-];
-
-export const OPENAI_MODELS = [
-  "gpt-4o-mini",
-  "gpt-4.1-mini",
-  "gpt-4o",
-];
-
-export const OPENROUTER_MODELS = [
-  "meta-llama/llama-3.3-70b-instruct:free",
-  "deepseek/deepseek-chat-v3-0324:free",
-  "qwen/qwen3-8b:free",
-  "mistralai/mistral-7b-instruct:free",
-  "google/gemma-3-12b-it:free",
-];
-
 export const ZEN_FREE_MODELS = [
   "deepseek-v4-flash",
   "glm-5",
@@ -98,41 +70,6 @@ interface ProviderConfig {
 }
 
 const PROVIDER_CONFIGS: Record<ProviderName, ProviderConfig> = {
-  groq: {
-    getUrl: () => "https://api.groq.com/openai/v1/chat/completions",
-    getHeaders: (apiKey) => ({
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    }),
-    supportsStream: true,
-  },
-  gemini: {
-    getUrl: (/* model set below per-call */) =>
-      "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-    getHeaders: (apiKey) => ({
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    }),
-    supportsStream: true,
-  },
-  openai: {
-    getUrl: () => "https://api.openai.com/v1/chat/completions",
-    getHeaders: (apiKey) => ({
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    }),
-    supportsStream: true,
-  },
-  openrouter: {
-    getUrl: () => "https://openrouter.ai/api/v1/chat/completions",
-    getHeaders: (apiKey) => ({
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-      "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL || "https://build-money-system-omd8.vercel.app",
-      "X-Title": "Sovereign Forge OS",
-    }),
-    supportsStream: true,
-  },
   opencodezen: {
     getUrl: () =>
       process.env.OPENCODE_ZEN_API_URL || "https://opencode.ai/zen/go/v1/chat/completions",
@@ -190,20 +127,24 @@ export interface AIResult {
 }
 
 const MODEL_COSTS: Record<string, number> = {
-  // Groq (very cheap)
-  "llama-3.3-70b-versatile": 0.0000006,
-  "llama-3.1-8b-instant": 0.00000005,
-  "mixtral-8x7b-32768": 0.0000006,
-  // Gemini
-  "gemini-2.0-flash": 0.0000001,
-  "gemini-1.5-flash": 0.0000001,
-  "gemini-1.5-pro": 0.00000125,
-  // OpenAI
-  "gpt-4o-mini": 0.00000015,
-  "gpt-4.1-mini": 0.0000004,
-  // OpenRouter free
-  "meta-llama/llama-3.3-70b-instruct:free": 0,
-  "deepseek/deepseek-chat-v3-0324:free": 0,
+  // GitHub Models
+  "openai/gpt-4.1-mini": 0,
+  "openai/gpt-4.1-nano": 0,
+  "openai/gpt-4o-mini": 0,
+  "meta-llama/Llama-4-Scout-17B-16E-Instruct": 0,
+  "meta-llama/Meta-Llama-3.1-8B-Instruct": 0,
+  "meta-llama/Meta-Llama-3.1-70B-Instruct": 0,
+  "mistralai/Mistral-Small-24B-Instruct-2501": 0,
+  "deepseek/DeepSeek-V3-0324": 0,
+  "microsoft/Phi-4": 0,
+  "Cohere/cohere-command-a": 0,
+  // Hugging Face free
+  "deepseek-ai/DeepSeek-V3-0324": 0,
+  "meta-llama/Llama-3.1-8B-Instruct": 0,
+  "Qwen/Qwen2.5-72B-Instruct": 0,
+  "microsoft/Phi-3.5-mini-instruct": 0,
+  "NousResearch/Hermes-3-Llama-3.1-8B": 0,
+  "HuggingFaceH4/zephyr-7b-beta": 0,
   // ZEN free
   "deepseek-v4-flash": 0, "glm-5": 0, "mimo-v2.5": 0,
   "qwen3.5-plus": 0, "kimi-k2.5": 0, "minimax-m2.5": 0,
