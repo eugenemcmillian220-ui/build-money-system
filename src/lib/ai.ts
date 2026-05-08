@@ -78,11 +78,11 @@ export const HF_FREE_MODELS = [
 ];
 
 export const ALL_FREE_MODELS: Record<ProviderName, string[]> = {
-  groq: GROQ_MODELS,
-  gemini: GEMINI_MODELS,
-  openai: OPENAI_MODELS,
-  openrouter: OPENROUTER_MODELS,
-  opencodezen: ZEN_FREE_MODELS,
+  groq: [],
+  gemini: [],
+  openai: [],
+  openrouter: [],
+  opencodezen: [...ZEN_FREE_MODELS, ...ZEN_PAID_MODELS],
   github: GITHUB_FREE_MODELS,
   huggingface: HF_FREE_MODELS,
 };
@@ -264,8 +264,8 @@ function buildProviderOrder(preferred?: ProviderName): Array<{ provider: Provide
     );
   }
 
-  // Preferred order for speed/cost: Groq (fastest) → Gemini flash → OpenAI mini → OpenRouter free → ZEN → GitHub → HF
-  const DEFAULT_PRIORITY: ProviderName[] = ["groq", "gemini", "openai", "openrouter", "opencodezen", "github", "huggingface"];
+  // Preferred order for Vercel Hobby cost and availability: GitHub free → Hugging Face free → OpenCode Zen → others disabled
+  const DEFAULT_PRIORITY: ProviderName[] = ["github", "huggingface", "opencodezen", "groq", "gemini", "openai", "openrouter"];
 
   const scored = configured.map((p) => {
     const s = getStats(p);
