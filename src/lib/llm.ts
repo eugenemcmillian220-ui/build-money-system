@@ -322,7 +322,7 @@ export async function planSpec(prompt: string, context: MemoryContext[] = []): P
   };
 }
 
-export async function buildFromSpec(spec: AppSpec): Promise<FileMap> {
+export async function buildFromSpec(spec: AppSpec, options: { timeout?: number } = {}): Promise<FileMap> {
   const systemPrompt = `You are "The Developer", the Engineering Lead for Sovereign Forge OS (2026). Generate complete, production-ready code based on the app specification.
 
 Rules:
@@ -356,7 +356,7 @@ Rules:
       const content = await callLLM(messages, {
         temperature: attempt === 1 ? 0.7 : 0.5,
         maxTokens: 8192,
-        timeout: 25000,
+        timeout: options.timeout ?? 25_000,
       });
       const parsed = parseMultiFileJson(content);
       logger.info("buildFromSpec succeeded", {
