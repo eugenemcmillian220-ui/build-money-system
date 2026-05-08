@@ -22,7 +22,7 @@
  * Phase 18: R&D Scout            — R&D roadmap
  * Phase 19: DAO Engine           — Decentralized governance
  * Phase 20: Self-Evolution       — Self-improvement plan
- * Phase 21: CEO Orchestrator     — Executive strategy
+ * Phase 21: The Overseer         — Executive orchestration and QA oversight
  * Phase 22: Federation           — Multi-agent swarm mesh
  * Phase 23: Pulse                — Execution analytics
  * Phase 24: Self-Evolution+      — Adaptive timeout and retry tuning
@@ -355,7 +355,7 @@ async function phase20(): Promise<PhaseResult> {
 }
 
 async function phase21(idea: string): Promise<PhaseResult> {
-  const name = "CEO Orchestrator";
+  const name = "The Overseer";
   try {
     const { runCeoAgent } = await import("@/lib/agents/ceo");
     // runCeoAgent expects Project[] — create a synthetic project from the business idea
@@ -368,16 +368,16 @@ async function phase21(idea: string): Promise<PhaseResult> {
     const { result: report, elapsed } = await timed(() => runCeoAgent(projects as unknown as Parameters<typeof runCeoAgent>[0]));
     return {
       phase: 21, name, status: "pass", elapsed,
-      detail: `CEO report generated: empire health ${typeof report === "object" && report !== null ? (report as { empireHealth?: string | number }).empireHealth || "N/A" : "N/A"}/100`,
+      detail: `Overseer report generated: empire health ${typeof report === "object" && report !== null ? (report as { empireHealth?: string | number }).empireHealth || "N/A" : "N/A"}/100`,
       data: report
     };
   } catch (e) {
     // Fallback: just verify module loads
     try {
       const ceo = await import("@/lib/agents/ceo");
-      return { phase: 21, name, status: "degraded", elapsed: 0, detail: `CEO module loaded (exports: ${Object.keys(ceo).join(", ")}). LLM call failed.`, error: String(e) };
+      return { phase: 21, name, status: "degraded", elapsed: 0, detail: `Overseer module loaded (exports: ${Object.keys(ceo).join(", ")}). LLM call failed.`, error: String(e) };
     } catch {
-      return { phase: 21, name, status: "fail", elapsed: 0, detail: "CEO agent failed", error: String(e) };
+      return { phase: 21, name, status: "fail", elapsed: 0, detail: "Overseer agent failed", error: String(e) };
     }
   }
 }
@@ -459,7 +459,7 @@ export async function POST(req: NextRequest) {
   const [p19, p20] = await Promise.all([phase19(), phase20()]);
   phases.push(p19, p20);
 
-  // Phase 21: CEO gets ALL prior phase data
+  // Phase 21: The Overseer consolidates prior phase data for executive QA oversight
   phases.push(await phase21(idea));
 
   // Phase 22+: Federation and post-orchestration expansion phases
