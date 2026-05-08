@@ -111,7 +111,7 @@ export const FLOWFORGE_BLUEPRINT = {
     "Phase 18 (R&D Scout)": "Template recommendations based on trends",
     "Phase 19 (DAO)": "Governance proposals with quorum-based voting",
     "Phase 20 (Lifecycle)": "Workflow versioning and lifecycle management",
-    "Phase 21 (Overseer)": "data-testid attributes for E2E QA testing",
+    "Phase 21 (Overseer)": "Autonomous E2E browser and visual QA enforcement",
     "Phase 22 (Swarm Mesh)": "Federation-ready workflow sharing protocol",
     "Phase 23 (Pulse)": "Execution analytics, success rates, cost tracking",
     "Phase 24 (Self-Evolution)": "Adaptive timeout and retry configuration",

@@ -1,5 +1,5 @@
 /**
- * /api/launch-business — Full 22-Phase Business Builder
+ * /api/launch-business — Full 25-Phase Business Builder
  * 
  * Takes a business idea and runs the ENTIRE pipeline:
  * Phase 1:  Component Forge      — Generate marketplace UI components
@@ -24,6 +24,9 @@
  * Phase 20: Self-Evolution       — Self-improvement plan
  * Phase 21: CEO Orchestrator     — Executive strategy
  * Phase 22: Federation           — Multi-agent swarm mesh
+ * Phase 23: Pulse                — Execution analytics
+ * Phase 24: Self-Evolution+      — Adaptive timeout and retry tuning
+ * Phase 25: Neural Link          — Semantic memory and infrastructure unification
  * 
  * Auth: E2E_TEST_SECRET bearer token (admin bypass)
  */
@@ -441,7 +444,7 @@ export async function POST(req: NextRequest) {
   const [p7, p8, p9] = await Promise.all([phase7(), phase8(), phase9()]);
   phases.push(p7, p8, p9);
 
-  // Phases 10-22: Agent ecosystem (mix of parallel + sequential)
+  // Phases 10-25: Agent ecosystem (mix of parallel + sequential)
   phases.push(await phase10(idea));
   phases.push(await phase11(idea));
 
@@ -459,7 +462,7 @@ export async function POST(req: NextRequest) {
   // Phase 21: CEO gets ALL prior phase data
   phases.push(await phase21(idea));
 
-  // Phase 22: Federation
+  // Phase 22+: Federation and post-orchestration expansion phases
   phases.push(await phase22());
 
   const totalElapsed = Date.now() - startTime;
