@@ -25,6 +25,13 @@ export async function GET() {
       : `Missing: ${envResult.missing.join(", ")}`,
   };
 
+  checks["manifest_worker"] = process.env.WORKER_SHARED_SECRET
+    ? { ok: true, message: "Worker shared secret configured" }
+    : {
+        ok: false,
+        message: "WORKER_SHARED_SECRET not set — manifest pipeline will use inline chaining fallback",
+      };
+
   // 2. Supabase connectivity
   try {
     const { getSupabaseAdmin } = await import("@/lib/supabase/admin");

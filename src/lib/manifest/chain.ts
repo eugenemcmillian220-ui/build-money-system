@@ -18,6 +18,37 @@ import type { StageName } from "./stages";
  * `WORKER_SHARED_SECRET` authenticates inter-stage calls so worker endpoints
  * cannot be invoked externally.
  */
+function runStageInline(stage: StageName, jobId: string, baseUrl: string): Promise<void> {
+  return import("./stages").then((stages) => {
+    const RUNNERS: Record<StageName, (id: string, base: string) => Promise<void>> = {
+      "intent-classify": stages.runIntentClassifyStage,
+      "intent-scout": stages.runIntentScoutStage,
+      "intent-architect": stages.runIntentArchitectStage,
+      intent: stages.runIntentStage,
+      generate: stages.runGenerateStage,
+      "generate-plan": stages.runGeneratePlanStage,
+      "plan-outline": stages.runPlanOutlineStage,
+      "plan-details": stages.runPlanDetailsStage,
+      "generate-build-code": stages.runGenerateBuildCodeStage,
+      "generate-build-fix": stages.runGenerateBuildFixStage,
+      "generate-build": stages.runGenerateBuildStage,
+      "polish-analyze": stages.runPolishAnalyzeStage,
+      "polish-launch": stages.runPolishLaunchStage,
+      polish: stages.runPolishStage,
+      "polish-parallel": stages.runPolishParallelStage,
+      persist: stages.runPersistStage,
+    };
+
+    const runner = RUNNERS[stage];
+    if (!runner) {
+      console.warn(`[manifest/chain] unknown stage "${stage}" for job ${jobId}`);
+      return;
+    }
+
+    return runner(jobId, baseUrl);
+  });
+}
+
 export function triggerStage(
   baseUrl: string,
   stage: StageName,
@@ -26,35 +57,9 @@ export function triggerStage(
   if (process.env.NODE_ENV !== "production") {
     after(async () => {
       try {
-        const stages = await import("./stages");
-        const { nextStage } = stages;
+        const { nextStage } = await import("./stages");
 
-        const RUNNERS: Record<StageName, (id: string, base: string) => Promise<void>> = {
-          "intent-classify": stages.runIntentClassifyStage,
-          "intent-scout": stages.runIntentScoutStage,
-          "intent-architect": stages.runIntentArchitectStage,
-          intent: stages.runIntentStage,
-          generate: stages.runGenerateStage,
-          "generate-plan": stages.runGeneratePlanStage,
-          "plan-outline": stages.runPlanOutlineStage,
-          "plan-details": stages.runPlanDetailsStage,
-          "generate-build-code": stages.runGenerateBuildCodeStage,
-          "generate-build-fix": stages.runGenerateBuildFixStage,
-          "generate-build": stages.runGenerateBuildStage,
-          "polish-analyze": stages.runPolishAnalyzeStage,
-          "polish-launch": stages.runPolishLaunchStage,
-          polish: stages.runPolishStage,
-          "polish-parallel": stages.runPolishParallelStage,
-          persist: stages.runPersistStage,
-        };
-
-        const runner = RUNNERS[stage];
-        if (!runner) {
-          console.warn(`[manifest/chain] unknown stage "${stage}" for job ${jobId}`);
-          return;
-        }
-
-        await runner(jobId, baseUrl);
+        await runStageInline(stage, jobId, baseUrl);
 
         const next = nextStage[stage];
         if (next) {
@@ -71,7 +76,16 @@ export function triggerStage(
     try {
       const workerSecret = process.env.WORKER_SHARED_SECRET;
       if (!workerSecret) {
-        console.error(`[manifest/chain] WORKER_SHARED_SECRET is not set — stage "${stage}" for job ${jobId} will not run in production!`);
+        console.warn(
+          `[manifest/chain] WORKER_SHARED_SECRET is not set — falling back to inline chaining for stage "${stage}" on job ${jobId}. Configure the secret in Vercel to restore isolated worker invocations.`,
+        );
+        await runStageInline(stage, jobId, baseUrl);
+
+        const { nextStage } = await import("./stages");
+        const next = nextStage[stage];
+        if (next) {
+          triggerStage(baseUrl, next, jobId);
+        }
         return;
       }
       const res = await fetch(`${baseUrl}/api/manifest/worker?stage=${stage}`, {
