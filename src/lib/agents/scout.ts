@@ -1,6 +1,32 @@
 import { callLLMJson } from "../llm";
 import { scoutResultSchema } from "../types";
-import axios from "axios";
+
+const SCOUT_FETCH_TIMEOUT_MS = 3_500;
+
+async function fetchText(url: string, init?: RequestInit): Promise<string> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), SCOUT_FETCH_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(url, {
+      ...init,
+      signal: controller.signal,
+      headers: {
+        Accept: "application/json, text/plain, */*",
+        ...(init?.headers || {}),
+      },
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      throw new Error(`Scout fetch failed with status ${response.status}`);
+    }
+
+    return await response.text();
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 export interface ScoutStrategy {
   strategyMarkdown: string;
@@ -13,8 +39,13 @@ export interface ScoutStrategy {
  */
 async function fetchGithubTrends(query: string): Promise<string> {
   try {
-    const res = await axios.get(`https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&sort=stars&order=desc&per_page=5`, { timeout: 5000 });
-    return (res.data as { items: Array<{ full_name: string; description: string; stargazers_count: number }> }).items.map((repo) => `- ${repo.full_name}: ${repo.description} (${repo.stargazers_count} stars)`).join("\n");
+    const responseText = await fetchText(`https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&sort=stars&order=desc&per_page=5`, {
+      headers: {
+        "User-Agent": "sovereign-forge-scout",
+      },
+    });
+    const data = JSON.parse(responseText) as { items: Array<{ full_name: string; description: string; stargazers_count: number }> };
+    return data.items.map((repo) => `- ${repo.full_name}: ${repo.description} (${repo.stargazers_count} stars)`).join("\n");
   } catch {
     return "No GitHub trends found.";
   }
@@ -25,10 +56,8 @@ async function fetchGithubTrends(query: string): Promise<string> {
  */
 async function fetchArxivPapers(query: string): Promise<string> {
   try {
-    const res = await axios.get(`http://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=3`, { timeout: 5000 });
-    // ArXiv returns XML, but for a lightweight scout, we just want to know if we hit it.
-    // In a real empire, we'd parse this. For now, we note the research attempt.
-    return res.status === 200 ? "Recent arXiv research successfully indexed." : "No papers found.";
+    await fetchText(`http://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=3`);
+    return "Recent arXiv research successfully indexed.";
   } catch {
     return "Research archive inaccessible.";
   }
@@ -37,8 +66,10 @@ async function fetchArxivPapers(query: string): Promise<string> {
 export async function runScoutAgent(prompt: string, protocol: string): Promise<ScoutStrategy> {
   console.log(`[Scout] Ingesting real-time R&D for protocol: ${protocol}...`);
   
-  const githubTrends = await fetchGithubTrends(protocol);
-  const arxivStatus = await fetchArxivPapers(protocol);
+  const [githubTrends, arxivStatus] = await Promise.all([
+    fetchGithubTrends(protocol),
+    fetchArxivPapers(protocol),
+  ]);
 
   const systemPrompt = `
     You are "The Scout", the R&D Lead for Sovereign Forge OS (2026).
@@ -75,7 +106,7 @@ export async function runScoutAgent(prompt: string, protocol: string): Promise<S
         { role: "user", content: prompt }
       ],
       scoutResultSchema,
-      { temperature: 0.3 }
+      { temperature: 0.3, maxTokens: 900, timeout: 8_000 }
     );
   } catch (err) {
     console.error("Scout parse failed, falling back to defaults.", err);

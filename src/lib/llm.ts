@@ -177,12 +177,62 @@ const MAX_PLAN_RETRIES = 0;
 const PLAN_LLM_TIMEOUT_MS = 18_000;
 const BUILD_LLM_TIMEOUT_MS = 45_000;
 const FIX_LLM_TIMEOUT_MS = 20_000;
+const PLAN_OUTLINE_MAX_TOKENS = 900;
+const PLAN_DETAILS_MAX_TOKENS = 1000;
+const FIX_CONTEXT_MAX_CHARS = 14_000;
+
+function summarizeMemoryContext(context: MemoryContext[]): string {
+  return context
+    .slice(0, 3)
+    .map((item, index) => {
+      const summary = [item.prompt, item.description, ...(item.integrations || [])]
+        .filter(Boolean)
+        .join(" | ")
+        .replace(/\s+/g, " ")
+        .slice(0, 240);
+      return `${index + 1}. ${summary}`;
+    })
+    .join("\n");
+}
+
+function compactSpec(spec: AppSpec): string {
+  return JSON.stringify({
+    name: spec.name,
+    description: spec.description,
+    features: spec.features,
+    pages: spec.pages.map((page) => ({
+      route: page.route,
+      description: page.description,
+      components: page.components,
+    })),
+    components: spec.components.map((component) => ({
+      name: component.name,
+      description: component.description,
+      props: component.props,
+    })),
+    integrations: spec.integrations,
+    schema: spec.schema,
+    fileStructure: spec.fileStructure,
+    visuals: spec.visuals,
+  });
+}
+
+function serializeFilesForPrompt(files: FileMap, limitToPaths?: string[]): string {
+  const selectedEntries = (limitToPaths && limitToPaths.length > 0
+    ? limitToPaths.map((path) => [path, files[path]] as const).filter((entry): entry is readonly [string, string] => typeof entry[1] === "string")
+    : Object.entries(files)
+  ).slice(0, 8);
+
+  return selectedEntries
+    .map(([path, content]) => `File: ${path}\n${content.slice(0, FIX_CONTEXT_MAX_CHARS)}`)
+    .join("\n\n---\n\n");
+}
 
 export async function planSpecOutline(prompt: string, context: MemoryContext[] = []): Promise<AppSpecOutline> {
-  const contextText =
-    context.length > 0
-      ? `\n\nRelevant context from previous projects:\n${JSON.stringify(context, null, 2)}`
-      : "";
+  const contextSummary = summarizeMemoryContext(context);
+  const contextText = contextSummary
+    ? `\n\nRelevant context from previous projects:\n${contextSummary}`
+    : "";
 
   const systemPrompt = `You are "The Architect", the Structural Planning Lead for Sovereign Forge OS (2026). Given a user request, create a detailed specification for a high-performance Next.js 15 (App Router) application with React 19.${contextText}
 
@@ -211,7 +261,7 @@ Rules:
       });
       const content = await callLLM(messages, {
         temperature: attempt === 1 ? 0.7 : 0.4,
-        maxTokens: 1400,
+        maxTokens: PLAN_OUTLINE_MAX_TOKENS,
         timeout: PLAN_LLM_TIMEOUT_MS,
       }, { cache: false });
 
@@ -278,7 +328,7 @@ Rules:
       });
       const content = await callLLM(messages, {
         temperature: attempt === 1 ? 0.5 : 0.3,
-        maxTokens: 1600,
+        maxTokens: PLAN_DETAILS_MAX_TOKENS,
         timeout: PLAN_LLM_TIMEOUT_MS,
       }, { cache: false });
 
@@ -338,7 +388,7 @@ Rules:
 - Return ONLY valid JSON in this structure: {"files": {"path": "content"}}.
 - No markdown fences.`;
 
-  const specJson = JSON.stringify(spec, null, 2);
+  const specJson = compactSpec(spec);
   const messages: ChatMessage[] = [
     { role: "system", content: systemPrompt },
     { role: "user", content: `App Specification:\n${specJson}\n\nGenerate all files:` },
@@ -408,9 +458,7 @@ Rules:
 - Return ONLY valid JSON, no markdown fences
 - Preserve the original file structure`;
 
-  const filesList = Object.entries(files)
-    .map(([path, content]) => `File: ${path}\n\`\`\`tsx\n${content}\n\`\`\``)
-    .join("\n\n");
+  const filesList = serializeFilesForPrompt(files);
 
   const errorContext = error ? `\n\nReported Error:\n${error}` : "";
 
@@ -468,9 +516,7 @@ export async function fixBrokenFiles(
     Object.entries(allFiles).filter(([path]) => brokenFilePaths.includes(path))
   );
 
-  const filesList = Object.entries(brokenFiles)
-    .map(([path, content]) => `File: ${path}\n\`\`\`tsx\n${content}\n\`\`\``)
-    .join("\n\n");
+  const filesList = serializeFilesForPrompt(allFiles, brokenFilePaths);
 
   const errorContext = `Errors to fix:\n${errors.join("\n")}`;
 
