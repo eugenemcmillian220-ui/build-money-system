@@ -302,6 +302,13 @@ export type AppSpecDetails = Pick<AppSpec, "components" | "schema" | "fileStruct
 
 export async function planSpecDetails(prompt: string, outline: AppSpecOutline): Promise<AppSpecDetails> {
   const outlineSummary = `${outline.name}: ${outline.features.join(", ")}. Pages: ${outline.pages.map(p => p.route).join(", ")}`;
+  const preferredPlanDetailsModels = [
+    "openai/gpt-4.1-mini",
+    "openai/gpt-4o-mini",
+    "meta-llama/Meta-Llama-3.1-70B-Instruct",
+    "mistralai/Mistral-Small-24B-Instruct-2501",
+    "deepseek-ai/DeepSeek-V3-0324",
+  ];
   const systemPrompt = `You are "The Architect" for Sovereign Forge OS. Given an outline, produce implementation details.
 
 OUTLINE: ${outlineSummary}
@@ -324,9 +331,11 @@ Rules:
     try {
       logger.debug("planSpecDetails attempt starting", {
         attempt,
+        model: preferredPlanDetailsModels[attempt - 1],
         outlineName: outline.name,
       });
       const content = await callLLM(messages, {
+        model: preferredPlanDetailsModels[attempt - 1],
         temperature: attempt === 1 ? 0.5 : 0.3,
         maxTokens: PLAN_DETAILS_MAX_TOKENS,
         timeout: PLAN_LLM_TIMEOUT_MS,

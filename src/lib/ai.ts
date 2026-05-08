@@ -7,12 +7,12 @@ import { keyManager, ProviderName } from "./key-manager";
 // ---------------------------------------------------------------------------
 
 export const ZEN_FREE_MODELS = [
-  "deepseek-v4-flash",
-  "glm-5",
   "mimo-v2.5",
   "qwen3.5-plus",
   "kimi-k2.5",
   "minimax-m2.5",
+  "glm-5",
+  "deepseek-v4-flash",
 ];
 
 export const ZEN_PAID_MODELS = [
@@ -201,7 +201,8 @@ function buildProviderOrder(preferred?: ProviderName): Array<{ provider: Provide
     );
   }
 
-  // Preferred order for Vercel Hobby cost and availability: GitHub free → Hugging Face free → OpenCode Zen → others disabled
+  // Preferred order for Vercel Hobby cost and availability: GitHub free → Hugging Face free → OpenCode Zen.
+  // Keep Zen last because its currently-configured models are less reliable in production.
   const DEFAULT_PRIORITY: ProviderName[] = ["github", "huggingface", "opencodezen"];
 
   const scored = configured.map((p) => {
