@@ -180,6 +180,25 @@ const FIX_LLM_TIMEOUT_MS = 20_000;
 const PLAN_OUTLINE_MAX_TOKENS = 900;
 const PLAN_DETAILS_MAX_TOKENS = 1000;
 const FIX_CONTEXT_MAX_CHARS = 14_000;
+const VETTED_OUTLINE_MODELS = [
+  "openai/gpt-4.1-mini",
+  "openai/gpt-4o-mini",
+  "meta-llama/Meta-Llama-3.1-8B-Instruct",
+  "mistralai/Mistral-Small-24B-Instruct-2501",
+] as const;
+const VETTED_DETAILS_MODELS = [
+  "openai/gpt-4.1-mini",
+  "openai/gpt-4o-mini",
+  "meta-llama/Meta-Llama-3.1-8B-Instruct",
+  "mistralai/Mistral-Small-24B-Instruct-2501",
+  "HuggingFaceH4/zephyr-7b-beta",
+] as const;
+const VETTED_BUILD_MODELS = [
+  "openai/gpt-4.1-mini",
+  "openai/gpt-4o-mini",
+  "meta-llama/Meta-Llama-3.1-8B-Instruct",
+  "mistralai/Mistral-Small-24B-Instruct-2501",
+] as const;
 
 function summarizeMemoryContext(context: MemoryContext[]): string {
   return context
@@ -253,13 +272,16 @@ Rules:
   let lastError: Error | null = null;
   const planStart = Date.now();
 
-  for (let attempt = 1; attempt <= MAX_PLAN_RETRIES + 1; attempt++) {
+  for (let attempt = 1; attempt <= VETTED_OUTLINE_MODELS.length; attempt++) {
     try {
+      const model = VETTED_OUTLINE_MODELS[attempt - 1];
       logger.debug("planSpecOutline attempt starting", {
         attempt,
+        model,
         promptLength: prompt.length,
       });
       const content = await callLLM(messages, {
+        model,
         temperature: attempt === 1 ? 0.7 : 0.4,
         maxTokens: PLAN_OUTLINE_MAX_TOKENS,
         timeout: PLAN_LLM_TIMEOUT_MS,
@@ -285,13 +307,14 @@ Rules:
       lastError = e instanceof Error ? e : new Error(String(e));
       logger.warn("planSpecOutline attempt failed", {
         attempt,
+        model: VETTED_OUTLINE_MODELS[attempt - 1],
         error: lastError.message,
         durationMs: Date.now() - planStart,
       });
     }
   }
 
-  throw new LLMError(`planSpecOutline failed after ${MAX_PLAN_RETRIES + 1} attempts: ${lastError?.message}`);
+  throw new LLMError(`planSpecOutline failed after ${VETTED_OUTLINE_MODELS.length} model attempts: ${lastError?.message}`);
 }
 
 /**
@@ -302,13 +325,6 @@ export type AppSpecDetails = Pick<AppSpec, "components" | "schema" | "fileStruct
 
 export async function planSpecDetails(prompt: string, outline: AppSpecOutline): Promise<AppSpecDetails> {
   const outlineSummary = `${outline.name}: ${outline.features.join(", ")}. Pages: ${outline.pages.map(p => p.route).join(", ")}`;
-  const preferredPlanDetailsModels = [
-    "openai/gpt-4.1-mini",
-    "openai/gpt-4o-mini",
-    "meta-llama/Meta-Llama-3.1-8B-Instruct",
-    "mistralai/Mistral-Small-24B-Instruct-2501",
-    "HuggingFaceH4/zephyr-7b-beta",
-  ];
   const systemPrompt = `You are "The Architect" for Sovereign Forge OS. Given an outline, produce implementation details.
 
 OUTLINE: ${outlineSummary}
@@ -327,9 +343,9 @@ Rules:
   let lastError: Error | null = null;
   const detailStart = Date.now();
 
-  for (let attempt = 1; attempt <= preferredPlanDetailsModels.length; attempt++) {
+  for (let attempt = 1; attempt <= VETTED_DETAILS_MODELS.length; attempt++) {
     try {
-      const model = preferredPlanDetailsModels[attempt - 1];
+      const model = VETTED_DETAILS_MODELS[attempt - 1];
       logger.debug("planSpecDetails attempt starting", {
         attempt,
         model,
@@ -368,7 +384,7 @@ Rules:
     }
   }
 
-  throw new LLMError(`planSpecDetails failed after ${preferredPlanDetailsModels.length} model attempts: ${lastError?.message}`);
+  throw new LLMError(`planSpecDetails failed after ${VETTED_DETAILS_MODELS.length} model attempts: ${lastError?.message}`);
 }
 
 /**
@@ -404,19 +420,20 @@ Rules:
     { role: "user", content: `App Specification:\n${specJson}\n\nGenerate all files:` },
   ];
 
-  const MAX_BUILD_RETRIES = 1;
   let lastError: Error | null = null;
   const buildStart = Date.now();
 
-  for (let attempt = 1; attempt <= MAX_BUILD_RETRIES + 1; attempt++) {
+  for (let attempt = 1; attempt <= VETTED_BUILD_MODELS.length; attempt++) {
     try {
+      const model = VETTED_BUILD_MODELS[attempt - 1];
       logger.debug("buildFromSpec attempt starting", {
         attempt,
-        maxRetries: MAX_BUILD_RETRIES,
+        model,
         specName: spec.name,
         featureCount: spec.features.length,
       });
       const content = await callLLM(messages, {
+        model,
         temperature: attempt === 1 ? 0.7 : 0.5,
         maxTokens: 6144,
         timeout: options.timeout ?? BUILD_LLM_TIMEOUT_MS,
@@ -432,14 +449,15 @@ Rules:
       lastError = e instanceof Error ? e : new Error(String(e));
       logger.warn("buildFromSpec attempt failed", {
         attempt,
+        model: VETTED_BUILD_MODELS[attempt - 1],
         error: lastError.message,
         durationMs: Date.now() - buildStart,
       });
     }
   }
 
-  logger.error("buildFromSpec exhausted all retries, falling back to template", {
-    attempts: MAX_BUILD_RETRIES + 1,
+  logger.error("buildFromSpec exhausted vetted models, falling back to template", {
+    attempts: VETTED_BUILD_MODELS.length,
     totalMs: Date.now() - buildStart,
     lastError: lastError?.message,
   });
