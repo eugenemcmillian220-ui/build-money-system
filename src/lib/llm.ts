@@ -305,9 +305,9 @@ export async function planSpecDetails(prompt: string, outline: AppSpecOutline): 
   const preferredPlanDetailsModels = [
     "openai/gpt-4.1-mini",
     "openai/gpt-4o-mini",
-    "meta-llama/Meta-Llama-3.1-70B-Instruct",
+    "meta-llama/Meta-Llama-3.1-8B-Instruct",
     "mistralai/Mistral-Small-24B-Instruct-2501",
-    "deepseek-ai/DeepSeek-V3-0324",
+    "HuggingFaceH4/zephyr-7b-beta",
   ];
   const systemPrompt = `You are "The Architect" for Sovereign Forge OS. Given an outline, produce implementation details.
 
@@ -327,15 +327,16 @@ Rules:
   let lastError: Error | null = null;
   const detailStart = Date.now();
 
-  for (let attempt = 1; attempt <= MAX_PLAN_RETRIES + 1; attempt++) {
+  for (let attempt = 1; attempt <= preferredPlanDetailsModels.length; attempt++) {
     try {
+      const model = preferredPlanDetailsModels[attempt - 1];
       logger.debug("planSpecDetails attempt starting", {
         attempt,
-        model: preferredPlanDetailsModels[attempt - 1],
+        model,
         outlineName: outline.name,
       });
       const content = await callLLM(messages, {
-        model: preferredPlanDetailsModels[attempt - 1],
+        model,
         temperature: attempt === 1 ? 0.5 : 0.3,
         maxTokens: PLAN_DETAILS_MAX_TOKENS,
         timeout: PLAN_LLM_TIMEOUT_MS,
@@ -367,7 +368,7 @@ Rules:
     }
   }
 
-  throw new LLMError(`planSpecDetails failed after ${MAX_PLAN_RETRIES + 1} attempts: ${lastError?.message}`);
+  throw new LLMError(`planSpecDetails failed after ${preferredPlanDetailsModels.length} model attempts: ${lastError?.message}`);
 }
 
 /**

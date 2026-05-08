@@ -11,13 +11,10 @@ export const ZEN_FREE_MODELS = [
   "qwen3.5-plus",
   "kimi-k2.5",
   "minimax-m2.5",
-  "glm-5",
-  "deepseek-v4-flash",
 ];
 
 export const ZEN_PAID_MODELS = [
   "kimi-k2.6",
-  "glm-5.1",
   "mimo-v2-pro",
   "mimo-v2-omni",
   "mimo-v2.5-pro",
@@ -146,10 +143,12 @@ const MODEL_COSTS: Record<string, number> = {
   "NousResearch/Hermes-3-Llama-3.1-8B": 0,
   "HuggingFaceH4/zephyr-7b-beta": 0,
   // ZEN free
-  "deepseek-v4-flash": 0, "glm-5": 0, "mimo-v2.5": 0,
-  "qwen3.5-plus": 0, "kimi-k2.5": 0, "minimax-m2.5": 0,
+  "mimo-v2.5": 0,
+  "qwen3.5-plus": 0,
+  "kimi-k2.5": 0,
+  "minimax-m2.5": 0,
   // ZEN paid
-  "kimi-k2.6": 0.00003, "glm-5.1": 0.00003,
+  "kimi-k2.6": 0.00003,
   "mimo-v2-pro": 0.00004, "mimo-v2-omni": 0.00004,
   "mimo-v2.5-pro": 0.00005, "minimax-m2.7": 0.00004,
   "qwen3.6-plus": 0.00004, "deepseek-v4-pro": 0.00005,
