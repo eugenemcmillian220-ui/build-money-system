@@ -69,7 +69,7 @@ export const FLOWFORGE_BLUEPRINT = {
     database: "Supabase (PostgreSQL + RLS)",
     auth: "Supabase Auth with email-OTP",
     payments: "Stripe (Neural Credits)",
-    ai: "OpenCode Zen API",
+    ai: "GitHub Models + Hugging Face + OpenCode Zen", 
     deployment: "Vercel Edge Runtime",
   },
   routes: {

@@ -240,7 +240,7 @@ Rules:
 - Include Supabase Auth by default (login/signup pages with email-OTP) unless explicitly told not to.
 - shadcn/ui + Tailwind CSS v4. Keep app focused: 5-12 files max.
 - Include data-testid attributes on interactive elements for QA.
-- AI Provider: OpenCode Zen API for any LLM features.
+- AI Providers: Prefer GitHub Models and Hugging Face free-tier models first, then OpenCode Zen when needed.
 - Keep ALL descriptions under 15 words. No component details, schema, or file paths.
 - Return ONLY valid JSON — no markdown fences, no extra fields:
 {"name":"App Name","description":"Brief desc","features":["auth","dashboard"],"pages":[{"route":"/login","description":"Login","components":["LoginForm"]}],"integrations":["supabase"],"visuals":{"theme":"dark","primaryColor":"#f59e0b"}}`;

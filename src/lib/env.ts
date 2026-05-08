@@ -29,16 +29,7 @@ const serverEnvSchema = z.object({
   // Admin
   ADMIN_API_KEYS: z.string().optional(),
 
-  // AI providers — Multi-provider rotation (Groq / Gemini / OpenAI / OpenRouter / Zen / GitHub / HF)
-  GROQ_API_KEY: z.string().optional(),
-  GROQ_API_KEYS: z.string().optional(),
-  GEMINI_API_KEY: z.string().optional(),
-  GEMINI_API_KEYS: z.string().optional(),
-  GOOGLE_AI_API_KEY: z.string().optional(),
-  OPENAI_API_KEY: z.string().optional(),
-  OPENAI_API_KEYS: z.string().optional(),
-  OPENROUTER_API_KEY: z.string().optional(),
-  OPENROUTER_API_KEYS: z.string().optional(),
+  // AI providers — Multi-provider rotation (GitHub / Hugging Face / OpenCode Zen)
   OPENCODE_ZEN_API_KEY: z.string().optional(),
   OPENCODE_ZEN_API_KEYS: z.string().optional(),
   OPENCODE_ZEN_API_URL: z.string().optional(),

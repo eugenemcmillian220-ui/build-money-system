@@ -165,6 +165,6 @@ export async function POST(request: Request): Promise<Response> {
   return Response.json({
     code: `"use client";\nimport React from "react";\n\nexport default function Component() {\n  return (\n    <div className="p-8 bg-gray-50 rounded-lg text-center">\n      <h2 className="text-xl font-semibold text-gray-700 mb-2">Demo Component</h2>\n      <p className="text-gray-500">Configure an AI provider to generate real components.</p>\n    </div>\n  );\n}`,
     fallback: true,
-    message: "Demo component returned. Configure an AI provider (GROQ_API_KEY, GEMINI_API_KEY, OPENAI_API_KEY, or OPENROUTER_API_KEY) for full generation.",
+    message: "Demo component returned. Configure an AI provider (GITHUB_TOKEN, HF_TOKEN, or OPENCODE_ZEN_API_KEY) for full generation.",
   });
 }

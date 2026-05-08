@@ -15,7 +15,7 @@ ARCHITECTURE RULES:
 - Database: Supabase (PostgreSQL) with Row-Level Security (RLS) by default.
 - Auth: Supabase Auth with email-OTP by default unless explicitly told not to.
 - Logic: Server Actions, optimistic UI updates.
-- AI Provider: OpenCode Zen API for any LLM features.
+- AI Providers: Prefer GitHub Models and Hugging Face free-tier models first, then OpenCode Zen when needed.
 
 MONEY SYSTEM LAYER:
 - Integrate Stripe billing by default.

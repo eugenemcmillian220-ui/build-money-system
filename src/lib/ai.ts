@@ -78,10 +78,6 @@ export const HF_FREE_MODELS = [
 ];
 
 export const ALL_FREE_MODELS: Record<ProviderName, string[]> = {
-  groq: [],
-  gemini: [],
-  openai: [],
-  openrouter: [],
   opencodezen: [...ZEN_FREE_MODELS, ...ZEN_PAID_MODELS],
   github: GITHUB_FREE_MODELS,
   huggingface: HF_FREE_MODELS,
@@ -260,12 +256,12 @@ function buildProviderOrder(preferred?: ProviderName): Array<{ provider: Provide
   const configured = keyManager.getConfiguredProviders();
   if (configured.length === 0) {
     throw new Error(
-      "No AI providers configured. Set at least one of: GROQ_API_KEY, GEMINI_API_KEY, OPENAI_API_KEY, OPENROUTER_API_KEY, OPENCODE_ZEN_API_KEY, GITHUB_TOKEN, or HF_TOKEN"
+      "No AI providers configured. Set at least one of: GITHUB_TOKEN, HF_TOKEN, or OPENCODE_ZEN_API_KEY"
     );
   }
 
   // Preferred order for Vercel Hobby cost and availability: GitHub free → Hugging Face free → OpenCode Zen → others disabled
-  const DEFAULT_PRIORITY: ProviderName[] = ["github", "huggingface", "opencodezen", "groq", "gemini", "openai", "openrouter"];
+  const DEFAULT_PRIORITY: ProviderName[] = ["github", "huggingface", "opencodezen"];
 
   const scored = configured.map((p) => {
     const s = getStats(p);
