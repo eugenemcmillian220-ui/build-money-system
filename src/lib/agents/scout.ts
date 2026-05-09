@@ -1,7 +1,7 @@
 import { callLLMJson } from "../llm";
 import { scoutResultSchema } from "../types";
 
-const SCOUT_FETCH_TIMEOUT_MS = 3_500;
+const SCOUT_FETCH_TIMEOUT_MS = 8_000;
 
 async function fetchText(url: string, init?: RequestInit): Promise<string> {
   const controller = new AbortController();
@@ -106,7 +106,7 @@ export async function runScoutAgent(prompt: string, protocol: string): Promise<S
         { role: "user", content: prompt }
       ],
       scoutResultSchema,
-      { temperature: 0.3, maxTokens: 900, timeout: 8_000 }
+      { temperature: 0.3, maxTokens: 900, timeout: 12_000 }
     );
   } catch (err) {
     console.error("Scout parse failed, falling back to defaults.", err);

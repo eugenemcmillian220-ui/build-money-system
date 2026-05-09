@@ -7,28 +7,7 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: false // SECURITY FIX: Do not ship broken TypeScript to production,
   },
-  // Reduce webpack memory usage during build without forcing single-CPU compilation on Vercel
-  webpack: (config, { isServer, dev }) => {
-    config.parallelism = dev ? 3 : 6;
-
-    config.optimization = {
-      ...config.optimization,
-      moduleIds: "deterministic",
-      splitChunks: isServer ? false : {
-        maxAsyncRequests: 3,
-        maxInitialRequests: 2,
-        cacheGroups: {
-          default: false,
-          vendors: {
-            test: /[\\/]node_modules[\\/]/,
-            name: "vendors",
-            chunks: "all" as const,
-            priority: -10,
-          },
-        },
-      },
-    };
-
+  webpack: (config, { isServer }) => {
     if (!isServer) {
       config.devtool = false;
     }
@@ -38,8 +17,8 @@ const nextConfig: NextConfig = {
   output: "standalone",
   productionBrowserSourceMaps: false,
   experimental: {
-    workerThreads: true,
     optimizePackageImports: ["@supabase/supabase-js", "openai", "stripe", "zod"],
+    webpackBuildWorker: false,
   },
 };
 
