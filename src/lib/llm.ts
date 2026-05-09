@@ -170,10 +170,10 @@ export async function generateEmbedding(text: string): Promise<number[]> {
  */
 export type AppSpecOutline = Pick<AppSpec, "name" | "description" | "features" | "pages" | "integrations" | "visuals">;
 
-// No outer retries — aiComplete already retries across providers/models.
-// Retrying here doubled the wall-clock time (2 × 50s budget = 100s)
-// which exceeded the Vercel Hobby 60s function limit.
-const MAX_PLAN_RETRIES = 0;
+// Retries with provider failover to handle unavailable models gracefully.
+// The detail stage can now retry through different providers/models if the primary fails.
+// aiComplete has built-in multi-provider failover with budget constraints.
+const MAX_PLAN_RETRIES = 1;
 
 export async function planSpecOutline(prompt: string, context: MemoryContext[] = []): Promise<AppSpecOutline> {
   const contextText =

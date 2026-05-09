@@ -35,7 +35,6 @@ export const OPENROUTER_MODELS = [
 ];
 
 export const ZEN_FREE_MODELS = [
-  "deepseek-v4-flash",
   "glm-5",
   "mimo-v2.5",
   "qwen3.5-plus",
@@ -209,7 +208,7 @@ const MODEL_COSTS: Record<string, number> = {
   "meta-llama/llama-3.3-70b-instruct:free": 0,
   "deepseek/deepseek-chat-v3-0324:free": 0,
   // ZEN free
-  "deepseek-v4-flash": 0, "glm-5": 0, "mimo-v2.5": 0,
+  "glm-5": 0, "mimo-v2.5": 0,
   "qwen3.5-plus": 0, "kimi-k2.5": 0, "minimax-m2.5": 0,
   // ZEN paid
   "kimi-k2.6": 0.00003, "glm-5.1": 0.00003,
