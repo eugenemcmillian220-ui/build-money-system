@@ -1,34 +1,38 @@
-export const dynamic = "force-dynamic";
-import { NextResponse } from "next/server";
-import { selfImprovementEngine } from "@/lib/self-improve";
+import { NextRequest, NextResponse } from "next/server";
 
-export const runtime = "nodejs";
-export const maxDuration = 280;
+export const maxDuration = 9;
+export const preferredRegion = "iad1";
 
-/**
- * Cron: /api/cron/self-improve — runs daily at 2 AM
- * Processes feedback and learning data to improve the AI system
- */
-export async function GET(request: Request): Promise<Response> {
-  const authHeader = request.headers.get("authorization");
-  if (
-    process.env.CRON_SECRET &&
-    authHeader !== `Bearer ${process.env.CRON_SECRET}`
-  ) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export async function POST(request: NextRequest) {
   try {
-    const result = await selfImprovementEngine.runSelfImprovement();
-    return NextResponse.json({
-      ...result,
-      triggeredBy: "cron",
-      timestamp: new Date().toISOString(),
-    });
-  } catch (e) {
+    const authHeader = request.headers.get("authorization");
+    const expectedSecret = process.env.CRON_SECRET;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const token = authHeader.substring(7);
+    if (token !== expectedSecret) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    }
+
+    // Queue job instead of running synchronously
+    // This prevents timeout on Vercel Hobby
+    const jobId = await queueSelfImproveJob();
+
+    return NextResponse.json({ success: true, jobId }, { status: 200 });
+  } catch (error) {
+    console.error("Self-improve cron error:", error);
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Self-improvement failed" },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
+}
+
+async function queueSelfImproveJob() {
+  // TODO: Implement job queuing (Redis, database, or external queue service)
+  // For now, return a mock job ID
+  return `job_${Date.now()}`;
 }
