@@ -1,0 +1,32 @@
+name: Cron Jobs
+
+on:
+  schedule:
+    - cron: "0 */12 * * *"
+    - cron: "0 0 * * 0"
+
+jobs:
+  training:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger training
+        run: |
+          curl -X POST "https://your-domain.vercel.app/api/cron/training" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+
+  market-update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger market update
+        run: |
+          curl -X POST "https://your-domain.vercel.app/api/cron/market-update" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+
+  self-improve:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger self-improve
+        run: |
+          curl -X POST "https://your-domain.vercel.app/api/cron/self-improve" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+
