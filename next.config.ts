@@ -1,33 +1,48 @@
 import type { NextConfig } from "next";
 
-const config: NextConfig = {
+const nextConfig: NextConfig = {
+  eslint: {
+    ignoreDuringBuilds: false // SECURITY FIX: Do not skip ESLint during builds,
+  },
+  typescript: {
+    ignoreBuildErrors: false // SECURITY FIX: Do not ship broken TypeScript to production,
+  },
+  // Reduce webpack memory usage during build
   webpack: (config, { isServer }) => {
-    if (!isServer) {
-      config.optimization = {
-        ...config.optimization,
-        parallelism: 1,
-        minimize: true,
-        usedExports: true,
-        sideEffects: false,
-        concatenateModules: true,
-      };
-    }
+    config.parallelism = 2;
 
-    config.resolve = {
-      ...config.resolve,
-      alias: {
-        "@": "/src",
+    config.optimization = {
+      ...config.optimization,
+      moduleIds: "deterministic",
+      splitChunks: isServer ? false : {
+        maxAsyncRequests: 2,
+        maxInitialRequests: 2,
+        minSize: 50000,
+        cacheGroups: {
+          default: false,
+          vendors: {
+            test: /[\\/]node_modules[\\/]/,
+            name: "vendors",
+            chunks: "all" as const,
+            priority: -10,
+          },
+        },
       },
     };
 
+    if (!isServer) {
+      config.devtool = false;
+    }
+
     return config;
   },
+  output: "standalone",
+  productionBrowserSourceMaps: false,
   experimental: {
-    optimizePackageImports: ["@icons-pack/react-simple-icons"],
-    turbopack: false,
+    workerThreads: false,
+    cpus: 1,
+    optimizePackageImports: ["@supabase/supabase-js", "openai", "stripe", "zod"],
   },
-  compress: true,
-  swcMinify: true,
 };
 
-export default config;
+export default nextConfig;
