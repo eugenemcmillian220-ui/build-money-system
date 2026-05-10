@@ -1,6 +1,18 @@
 import { ChatMessage } from "./types";
 import { logger } from "./logger";
 import { keyManager, ProviderName } from "./key-manager";
+import {
+  ZEN_GO_OPENAI_MODELS,
+  ZEN_GO_ANTHROPIC_MODELS,
+  ZEN_GO_ALL_MODELS,
+  ZEN_FREE_MODELS as ZEN_FREE_MODELS_NEW,
+  GITHUB_MODELS as GITHUB_MODELS_NEW,
+  HF_MODELS as HF_MODELS_NEW,
+  STAGE_MODEL_MAP,
+  PROVIDERS,
+  getEndpointPath,
+  extractResponseContent,
+} from "./providers";
 
 // ---------------------------------------------------------------------------
 // Model catalogues per provider
@@ -34,32 +46,29 @@ export const OPENROUTER_MODELS = [
   "google/gemma-3-12b-it:free",
 ];
 
-export const ZEN_FREE_MODELS = [
-  "big-pickle",
-  "glm-4.7-free",
-  "kimi-k2.5-free",
-];
+export { ZEN_FREE_MODELS_NEW as ZEN_FREE_MODELS_V2 };
+export { ZEN_GO_OPENAI_MODELS, ZEN_GO_ANTHROPIC_MODELS, ZEN_GO_ALL_MODELS };
+export { STAGE_MODEL_MAP };
 
-export const ZEN_GO_MODELS = [
-  "kimi-k2.5",
-  "kimi-k2",
-  "kimi-k2-thinking",
-  "glm-4.7",
-  "glm-4.6",
-  "minimax-m2.1",
-  "qwen3-coder",
-];
+// Legacy model lists — kept for backward compatibility with llm-router imports
+export const ZEN_FREE_MODELS = [...ZEN_FREE_MODELS_NEW];
+
+export const ZEN_GO_MODELS = [...ZEN_GO_ALL_MODELS];
 
 /** @deprecated Alias kept for backward compatibility */
 export const ZEN_PAID_MODELS = ZEN_GO_MODELS;
 
 export const STAGE_PREFERRED_MODELS: Record<string, string> = {
   "detailing-components": "kimi-k2.5",
-  "planSpecDetails": "qwen3-coder",
+  "planSpecDetails": "kimi-k2.5",
+  "codegen": "deepseek-v4-pro",
+  "quick": "deepseek-v4-flash",
+  "outline": "big-pickle",
   "default": "big-pickle",
 };
 
 export const GITHUB_FREE_MODELS = [
+  ...GITHUB_MODELS_NEW,
   "openai/gpt-4.1-mini",
   "openai/gpt-4.1-nano",
   "openai/gpt-4o-mini",
@@ -73,6 +82,7 @@ export const GITHUB_FREE_MODELS = [
 ];
 
 export const HF_FREE_MODELS = [
+  ...HF_MODELS_NEW,
   "deepseek-ai/DeepSeek-V3-0324",
   "meta-llama/Llama-3.1-8B-Instruct",
   "Qwen/Qwen2.5-72B-Instruct",
@@ -87,7 +97,9 @@ export const ALL_FREE_MODELS: Record<ProviderName, string[]> = {
   gemini: GEMINI_MODELS,
   openai: OPENAI_MODELS,
   openrouter: OPENROUTER_MODELS,
-  opencodezen: [...ZEN_FREE_MODELS, ...ZEN_GO_MODELS],
+  opencodezen: [...ZEN_FREE_MODELS],
+  opencodezen_go_openai: [...ZEN_GO_OPENAI_MODELS],
+  opencodezen_go_anthropic: [...ZEN_GO_ANTHROPIC_MODELS],
   github: GITHUB_FREE_MODELS,
   huggingface: HF_FREE_MODELS,
 };
@@ -149,6 +161,24 @@ const PROVIDER_CONFIGS: Record<ProviderName, ProviderConfig> = {
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
     }),
+    supportsStream: true,
+  },
+  opencodezen_go_openai: {
+    getUrl: () => `${PROVIDERS.opencodezen_go_openai.baseURL}${getEndpointPath("openai")}`,
+    getHeaders: (apiKey) => ({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    }),
+    extractContent: (data) => extractResponseContent(data, "openai"),
+    supportsStream: true,
+  },
+  opencodezen_go_anthropic: {
+    getUrl: () => `${PROVIDERS.opencodezen_go_anthropic.baseURL}${getEndpointPath("anthropic")}`,
+    getHeaders: (apiKey) => ({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    }),
+    extractContent: (data) => extractResponseContent(data, "anthropic"),
     supportsStream: true,
   },
   github: {
@@ -214,12 +244,18 @@ const MODEL_COSTS: Record<string, number> = {
   "meta-llama/llama-3.3-70b-instruct:free": 0,
   "deepseek/deepseek-chat-v3-0324:free": 0,
   // ZEN free tier
-  "big-pickle": 0, "glm-4.7-free": 0, "kimi-k2.5-free": 0,
-  // ZEN paid tier
-  "kimi-k2.5": 0.00003, "kimi-k2": 0.0000025,
-  "kimi-k2-thinking": 0.0000025, "glm-4.7": 0.0000022,
-  "glm-4.6": 0.0000022, "minimax-m2.1": 0.0000012,
-  "qwen3-coder": 0.0000015,
+  "big-pickle": 0, "minimax-m2.5-free": 0, "gpt-5-nano": 0,
+  "nemotron-3-super-free": 0, "hy3-preview-free": 0,
+  "ling-2.6-flash-free": 0, "trinity-large-preview-free": 0,
+  // ZEN Go tier — openai-compatible
+  "glm-5": 0.0000022, "glm-5.1": 0.0000022,
+  "kimi-k2.5": 0.00003, "kimi-k2.6": 0.00003,
+  "deepseek-v4-pro": 0.000003, "deepseek-v4-flash": 0.0000003,
+  "mimo-v2.5": 0.0000015, "mimo-v2.5-pro": 0.000003,
+  "qwen3.5-plus": 0.0000015, "qwen3.6-plus": 0.0000015,
+  "hy3-preview": 0.0000015,
+  // ZEN Go tier — anthropic-compatible (MiniMax)
+  "minimax-m2.5": 0.0000012, "minimax-m2.7": 0.0000015,
 };
 
 function getEmbedUrl(): string {
@@ -269,7 +305,7 @@ function buildProviderOrder(preferred?: ProviderName): Array<{ provider: Provide
   }
 
   // Preferred order for speed/cost: Groq (fastest) → Gemini flash → OpenAI mini → OpenRouter free → ZEN → GitHub → HF
-  const DEFAULT_PRIORITY: ProviderName[] = ["groq", "gemini", "openai", "openrouter", "opencodezen", "github", "huggingface"];
+  const DEFAULT_PRIORITY: ProviderName[] = ["groq", "gemini", "openai", "openrouter", "opencodezen", "opencodezen_go_openai", "opencodezen_go_anthropic", "github", "huggingface"];
 
   const scored = configured.map((p) => {
     const s = getStats(p);
