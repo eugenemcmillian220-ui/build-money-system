@@ -121,15 +121,15 @@ export const STAGE_MODEL_MAP: Record<string, {
   },
   "plan-details": {
     provider: "opencodezen_go_openai",
-    model: "kimi-k2.5", // Strong reasoning for component details
+    model: "deepseek-v4-flash", // Use flash for speed to avoid serverless stalls
   },
   "detailing-components": {
     provider: "opencodezen_go_openai",
-    model: "kimi-k2.5",
+    model: "deepseek-v4-flash",
   },
   "planSpecDetails": {
     provider: "opencodezen_go_openai",
-    model: "kimi-k2.5",
+    model: "deepseek-v4-flash",
   },
   "codegen": {
     provider: "opencodezen_go_openai",

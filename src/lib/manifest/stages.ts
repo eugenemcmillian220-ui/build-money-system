@@ -21,7 +21,7 @@ import {
 /** Stage budget — 240 s safe under the 300 s Vercel Hobby hard cap. */
 const STAGE_BUDGET_MS = 240_000;
 /** Per-agent call timeout — generous under the 300 s Hobby cap. */
-const AGENT_CALL_TIMEOUT_MS = 55_000;
+const AGENT_CALL_TIMEOUT_MS = 40_000;
 /** Max fix-pass iterations — 300 s Hobby cap allows multiple fix passes. */
 const MAX_FIX_ITERATIONS = 3;
 
@@ -366,9 +366,10 @@ export async function runPlanDetailsStage(jobId: string, _baseUrl: string): Prom
     try {
       const { planSpecDetails } = await import("@/lib/llm");
       logger.debug("Calling planSpecDetails", { jobId, timeout: AGENT_CALL_TIMEOUT_MS });
+      // Aggressive timeout for detailing to ensure we have room for chaining
       details = await withTimeout(
         planSpecDetails(finalPrompt, outline),
-        AGENT_CALL_TIMEOUT_MS,
+        Math.min(AGENT_CALL_TIMEOUT_MS, 35_000),
         "planSpecDetails",
       );
       logger.info("planSpecDetails returned", { jobId, componentCount: details.components.length });

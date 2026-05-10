@@ -60,9 +60,9 @@ export const ZEN_PAID_MODELS = ZEN_GO_MODELS;
 
 export const STAGE_PREFERRED_MODELS: Record<string, string> = {
   "plan-outline": "deepseek-v4-flash",
-  "plan-details": "kimi-k2.5",
-  "detailing-components": "kimi-k2.5",
-  "planSpecDetails": "kimi-k2.5",
+  "plan-details": "deepseek-v4-flash",
+  "detailing-components": "deepseek-v4-flash",
+  "planSpecDetails": "deepseek-v4-flash",
   "codegen": "deepseek-v4-pro",
   "quick": "deepseek-v4-flash",
   "outline": "deepseek-v4-flash",
