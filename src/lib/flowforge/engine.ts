@@ -100,8 +100,27 @@ async function processAction(
 ): Promise<unknown> {
   const actionType = node.config.actionType as string;
   switch (actionType) {
-    case "http_request":
-      return { status: 200, body: input, action: "http_request" };
+    case "http_request": {
+      const url = node.config.url as string | undefined;
+      const method = (node.config.method as string) || "POST";
+      if (!url) return { error: "http_request requires a url in config", action: "http_request" };
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), NODE_TIMEOUT_MS);
+      try {
+        const res = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: method !== "GET" ? JSON.stringify(input) : undefined,
+          signal: controller.signal,
+        });
+        const body = await res.text();
+        return { status: res.status, body, action: "http_request" };
+      } catch (err) {
+        throw new Error(`http_request to ${url} failed: ${(err as Error).message}`);
+      } finally {
+        clearTimeout(timer);
+      }
+    }
     case "database_query":
       return { rows: [], action: "database_query", input };
     case "send_email":
@@ -175,13 +194,29 @@ async function invokeAiAgent(
   input: unknown,
 ): Promise<unknown> {
   const agentType = node.config.agentType as string;
-  return {
-    agent: agentType || "general",
-    input,
-    response: `AI agent processed input successfully`,
-    confidence: 0.95,
-    tokens_used: 150,
-  };
+  const prompt = node.config.prompt as string | undefined;
+  const inputStr = typeof input === "string" ? input : JSON.stringify(input);
+
+  try {
+    const { callLLM } = await import("@/lib/llm");
+    const systemPrompt = prompt || `You are a ${agentType || "general"} AI agent. Process the following input and return a JSON response.`;
+    const response = await callLLM(
+      [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: inputStr },
+      ],
+      { timeout: NODE_TIMEOUT_MS },
+    );
+
+    return {
+      agent: agentType || "general",
+      input,
+      response,
+      tokens_used: response.length,
+    };
+  } catch (err) {
+    throw new Error(`AI agent (${agentType || "general"}) failed: ${(err as Error).message}`);
+  }
 }
 
 async function callWebhook(
@@ -189,12 +224,29 @@ async function callWebhook(
   input: unknown,
 ): Promise<unknown> {
   const url = node.config.url as string;
-  return {
-    webhook_url: url,
-    payload: input,
-    status: "delivered",
-    response_code: 200,
-  };
+  if (!url) throw new Error("Webhook node requires a url in config");
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), NODE_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+      signal: controller.signal,
+    });
+
+    return {
+      webhook_url: url,
+      payload: input,
+      status: res.ok ? "delivered" : "failed",
+      response_code: res.status,
+    };
+  } catch (err) {
+    throw new Error(`Webhook to ${url} failed: ${(err as Error).message}`);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function applyDelay(

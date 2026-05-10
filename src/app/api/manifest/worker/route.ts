@@ -72,9 +72,8 @@ export async function POST(request: NextRequest) {
   try {
     await RUNNERS[stage](jobId, baseUrl);
   } catch (err) {
-    // runners already persisted failure state; just acknowledge.
     console.error(`[manifest/worker] ${stage} failed:`, err);
-    return NextResponse.json({ ok: false, stage, error: (err as Error).message }, { status: 200 });
+    return NextResponse.json({ ok: false, stage, error: (err as Error).message }, { status: 500 });
   }
 
   const next = nextStage[stage];
