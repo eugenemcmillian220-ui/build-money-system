@@ -59,12 +59,14 @@ export const ZEN_GO_MODELS = [...ZEN_GO_ALL_MODELS];
 export const ZEN_PAID_MODELS = ZEN_GO_MODELS;
 
 export const STAGE_PREFERRED_MODELS: Record<string, string> = {
+  "plan-outline": "deepseek-v4-flash",
+  "plan-details": "kimi-k2.5",
   "detailing-components": "kimi-k2.5",
   "planSpecDetails": "kimi-k2.5",
   "codegen": "deepseek-v4-pro",
   "quick": "deepseek-v4-flash",
-  "outline": "big-pickle",
-  "default": "big-pickle",
+  "outline": "deepseek-v4-flash",
+  "default": "deepseek-v4-flash",
 };
 
 export const GITHUB_FREE_MODELS = [
@@ -419,9 +421,18 @@ export async function aiComplete(options: AIOptions): Promise<AIResult> {
   const budgetStart = Date.now();
 
   for (const { provider, models } of order) {
-    const modelsToTry = options.model
-      ? [options.model, ...models].filter((m, i, a) => a.indexOf(m) === i)
-      : models;
+    let modelsToTry: string[];
+    if (options.model) {
+      const isSupportedByProvider = models.includes(options.model);
+      const isPreferredProvider = options.provider === provider;
+      if (isSupportedByProvider || isPreferredProvider) {
+        modelsToTry = [options.model, ...models].filter((m, i, a) => a.indexOf(m) === i);
+      } else {
+        modelsToTry = models;
+      }
+    } else {
+      modelsToTry = models;
+    }
 
     for (const model of modelsToTry) {
       if (totalAttempts >= MAX_TOTAL_ATTEMPTS) break;
@@ -461,9 +472,18 @@ export async function* aiStream(options: AIOptions): AsyncIterable<string> {
   let lastError: Error | null = null;
 
   for (const { provider, models } of order) {
-    const modelsToTry = options.model
-      ? [options.model, ...models].filter((m, i, a) => a.indexOf(m) === i)
-      : models;
+    let modelsToTry: string[];
+    if (options.model) {
+      const isSupportedByProvider = models.includes(options.model);
+      const isPreferredProvider = options.provider === provider;
+      if (isSupportedByProvider || isPreferredProvider) {
+        modelsToTry = [options.model, ...models].filter((m, i, a) => a.indexOf(m) === i);
+      } else {
+        modelsToTry = models;
+      }
+    } else {
+      modelsToTry = models;
+    }
 
     for (const model of modelsToTry) {
       const apiKey = keyManager.getKey(provider);

@@ -207,6 +207,7 @@ Rules:
         promptLength: prompt.length,
       });
       const content = await callLLM(messages, {
+        model: STAGE_PREFERRED_MODELS["plan-outline"],
         temperature: attempt === 1 ? 0.7 : 0.4,
         maxTokens: 2048,
         timeout: 25000,
@@ -264,7 +265,7 @@ Rules:
     { role: "user", content: `User request: ${prompt}\n\nGenerate the implementation details:` },
   ];
 
-  const preferredModel = STAGE_PREFERRED_MODELS["detailing-components"] || "kimi-k2.5";
+  const preferredModel = STAGE_PREFERRED_MODELS["plan-details"] || "kimi-k2.5";
 
   let lastError: Error | null = null;
   const detailStart = Date.now();

@@ -115,9 +115,17 @@ export const STAGE_MODEL_MAP: Record<string, {
   provider: ProviderID;
   model: string;
 }> = {
+  "plan-outline": {
+    provider: "opencodezen_go_openai",
+    model: "deepseek-v4-flash", // Fast, cheap, and reliable for high-level structure
+  },
+  "plan-details": {
+    provider: "opencodezen_go_openai",
+    model: "kimi-k2.5", // Strong reasoning for component details
+  },
   "detailing-components": {
     provider: "opencodezen_go_openai",
-    model: "kimi-k2.5",           // 9,250 req/month, strong output
+    model: "kimi-k2.5",
   },
   "planSpecDetails": {
     provider: "opencodezen_go_openai",
@@ -125,19 +133,19 @@ export const STAGE_MODEL_MAP: Record<string, {
   },
   "codegen": {
     provider: "opencodezen_go_openai",
-    model: "deepseek-v4-pro",     // 17,150 req/month
+    model: "deepseek-v4-pro",
   },
   "quick": {
     provider: "opencodezen_go_openai",
-    model: "deepseek-v4-flash",   // 158,150 req/month — cheapest by far
+    model: "deepseek-v4-flash",
   },
   "outline": {
-    provider: "opencodezen",
-    model: "big-pickle",          // free, no quota burn
+    provider: "opencodezen_go_openai",
+    model: "deepseek-v4-flash",
   },
   "default": {
-    provider: "opencodezen",
-    model: "big-pickle",
+    provider: "opencodezen_go_openai",
+    model: "deepseek-v4-flash",
   },
 };
 
