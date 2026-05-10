@@ -54,11 +54,11 @@ const PROVIDER_URLS: Record<ProviderName, string> = {
 };
 
 export function getPreferredModel(stage: string): string {
-  return STAGE_PREFERRED_MODELS[stage] || STAGE_PREFERRED_MODELS["default"] || "big-pickle";
+  return STAGE_PREFERRED_MODELS[stage] || STAGE_PREFERRED_MODELS["default"] || "deepseek-v4-flash";
 }
 
 export function getStageModelConfig(stage: string): { provider: LLMProvider; model: string } {
-  return STAGE_MODEL_MAP[stage] || STAGE_MODEL_MAP["default"] || { provider: "opencodezen", model: "big-pickle" };
+  return STAGE_MODEL_MAP[stage] || STAGE_MODEL_MAP["default"] || { provider: "opencodezen_go_openai", model: "deepseek-v4-flash" };
 }
 
 export class LLMRouter {
