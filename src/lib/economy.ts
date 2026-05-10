@@ -28,21 +28,17 @@ export interface Transaction {
  */
 const MODEL_COST_TABLE: Record<string, number> = {
   // === OpenCode Zen Free-Tier ===
-  "deepseek-v4-flash": 0,
-  "glm-5": 0,
-  "mimo-v2.5": 0,
-  "qwen3.5-plus": 0,
-  "kimi-k2.5": 0,
-  "minimax-m2.5": 0,
-  // === OpenCode Zen Paid-Tier (Go/Pro plans) ===
-  "kimi-k2.6": 0.00003,
-  "glm-5.1": 0.00003,
-  "mimo-v2-pro": 0.00004,
-  "mimo-v2-omni": 0.00004,
-  "mimo-v2.5-pro": 0.00005,
-  "minimax-m2.7": 0.00004,
-  "qwen3.6-plus": 0.00004,
-  "deepseek-v4-pro": 0.00005,
+  "big-pickle": 0,
+  "glm-4.7-free": 0,
+  "kimi-k2.5-free": 0,
+  // === OpenCode Zen Paid-Tier ===
+  "kimi-k2.5": 0.00003,
+  "kimi-k2": 0.0000025,
+  "kimi-k2-thinking": 0.0000025,
+  "glm-4.7": 0.0000022,
+  "glm-4.6": 0.0000022,
+  "minimax-m2.1": 0.0000012,
+  "qwen3-coder": 0.0000015,
 };
 
 /** Default rate when a model isn't in the table */

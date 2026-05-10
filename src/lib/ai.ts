@@ -36,29 +36,26 @@ export const OPENROUTER_MODELS = [
 
 export const ZEN_FREE_MODELS = [
   "big-pickle",
-  "minimax-m2.5-free",
-  "ling-2.6-flash",
-  "hy3-preview-free",
-  "nemotron-3-super-free",
+  "glm-4.7-free",
+  "kimi-k2.5-free",
 ];
 
 export const ZEN_GO_MODELS = [
-  "kimi-k2.6",
-  "deepseek-v4-pro",
-  "glm-5.1",
-  "glm-5",
-  "mimo-v2.5-pro",
-  "minimax-m2.7",
-  "qwen3.6-plus",
-  "deepseek-v4-flash",
+  "kimi-k2.5",
+  "kimi-k2",
+  "kimi-k2-thinking",
+  "glm-4.7",
+  "glm-4.6",
+  "minimax-m2.1",
+  "qwen3-coder",
 ];
 
 /** @deprecated Alias kept for backward compatibility */
 export const ZEN_PAID_MODELS = ZEN_GO_MODELS;
 
 export const STAGE_PREFERRED_MODELS: Record<string, string> = {
-  "detailing-components": "kimi-k2.6",
-  "planSpecDetails": "deepseek-v4-pro",
+  "detailing-components": "kimi-k2.5",
+  "planSpecDetails": "qwen3-coder",
   "default": "big-pickle",
 };
 
@@ -146,12 +143,8 @@ const PROVIDER_CONFIGS: Record<ProviderName, ProviderConfig> = {
     supportsStream: true,
   },
   opencodezen: {
-    getUrl: (model?: string) => {
-      if (model && ZEN_GO_MODELS.includes(model)) {
-        return process.env.OPENCODE_GO_API_URL || "https://opencode.ai/zen/go/v1/chat/completions";
-      }
-      return process.env.OPENCODE_ZEN_FREE_API_URL || "https://opencode.ai/zen/v1/chat/completions";
-    },
+    getUrl: () =>
+      process.env.OPENCODE_ZEN_API_URL || "https://opencode.ai/zen/v1/chat/completions",
     getHeaders: (apiKey) => ({
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
@@ -221,17 +214,16 @@ const MODEL_COSTS: Record<string, number> = {
   "meta-llama/llama-3.3-70b-instruct:free": 0,
   "deepseek/deepseek-chat-v3-0324:free": 0,
   // ZEN free tier
-  "big-pickle": 0, "minimax-m2.5-free": 0, "ling-2.6-flash": 0,
-  "hy3-preview-free": 0, "nemotron-3-super-free": 0,
-  // ZEN Go plan
-  "kimi-k2.6": 0.00003, "deepseek-v4-pro": 0.00005,
-  "glm-5.1": 0.00003, "glm-5": 0,
-  "mimo-v2.5-pro": 0.00005, "minimax-m2.7": 0.00004,
-  "qwen3.6-plus": 0.00004, "deepseek-v4-flash": 0,
+  "big-pickle": 0, "glm-4.7-free": 0, "kimi-k2.5-free": 0,
+  // ZEN paid tier
+  "kimi-k2.5": 0.00003, "kimi-k2": 0.0000025,
+  "kimi-k2-thinking": 0.0000025, "glm-4.7": 0.0000022,
+  "glm-4.6": 0.0000022, "minimax-m2.1": 0.0000012,
+  "qwen3-coder": 0.0000015,
 };
 
 function getEmbedUrl(): string {
-  return process.env.OPENCODE_ZEN_EMBED_URL || "https://opencode.ai/zen/go/v1/embeddings";
+  return process.env.OPENCODE_ZEN_EMBED_URL || "https://opencode.ai/zen/v1/embeddings";
 }
 
 // ---------------------------------------------------------------------------

@@ -264,7 +264,7 @@ Rules:
     { role: "user", content: `User request: ${prompt}\n\nGenerate the implementation details:` },
   ];
 
-  const preferredModel = STAGE_PREFERRED_MODELS["detailing-components"] || "kimi-k2.6";
+  const preferredModel = STAGE_PREFERRED_MODELS["detailing-components"] || "kimi-k2.5";
 
   let lastError: Error | null = null;
   const detailStart = Date.now();

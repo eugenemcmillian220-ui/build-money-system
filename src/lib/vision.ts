@@ -58,7 +58,7 @@ Rules:
   ];
 
   const content = await callLLM(messages, { 
-    model: "mimo-v2-omni", 
+    model: "big-pickle", 
     temperature: 0.3, 
     maxTokens: 4096 
   });
