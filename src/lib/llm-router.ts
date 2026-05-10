@@ -7,10 +7,11 @@ import {
   OPENAI_MODELS,
   OPENROUTER_MODELS,
   ZEN_FREE_MODELS,
-  ZEN_PAID_MODELS,
+  ZEN_GO_MODELS,
   GITHUB_FREE_MODELS,
   HF_FREE_MODELS,
   ALL_FREE_MODELS,
+  STAGE_PREFERRED_MODELS,
   getProviderHealth,
 } from "./ai";
 
@@ -28,10 +29,13 @@ export const FREE_MODELS: Record<LLMProvider, string[]> = {
   gemini: GEMINI_MODELS,
   openai: OPENAI_MODELS,
   openrouter: OPENROUTER_MODELS,
-  opencodezen: [...ZEN_FREE_MODELS, ...ZEN_PAID_MODELS],
+  opencodezen: [...ZEN_FREE_MODELS, ...ZEN_GO_MODELS],
   github: GITHUB_FREE_MODELS,
   huggingface: HF_FREE_MODELS,
 };
+
+const ZEN_FREE_URL = process.env.OPENCODE_ZEN_FREE_API_URL || "https://opencode.ai/zen/v1/chat/completions";
+const ZEN_GO_URL = process.env.OPENCODE_GO_API_URL || "https://opencode.ai/zen/go/v1/chat/completions";
 
 /** URL map for direct fetch calls (getFetchParams). Auto-selects configured provider. */
 const PROVIDER_URLS: Record<ProviderName, string> = {
@@ -39,10 +43,18 @@ const PROVIDER_URLS: Record<ProviderName, string> = {
   gemini: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
   openai: "https://api.openai.com/v1/chat/completions",
   openrouter: "https://openrouter.ai/api/v1/chat/completions",
-  opencodezen: process.env.OPENCODE_ZEN_API_URL || "https://opencode.ai/zen/go/v1/chat/completions",
+  opencodezen: ZEN_GO_URL,
   github: process.env.GITHUB_MODELS_API_URL || "https://models.github.ai/inference/chat/completions",
   huggingface: process.env.HF_API_URL || "https://router.huggingface.co/v1/chat/completions",
 };
+
+function getZenUrl(model: string): string {
+  return ZEN_GO_MODELS.includes(model) ? ZEN_GO_URL : ZEN_FREE_URL;
+}
+
+export function getPreferredModel(stage: string): string {
+  return STAGE_PREFERRED_MODELS[stage] || STAGE_PREFERRED_MODELS["default"] || "big-pickle";
+}
 
 export class LLMRouter {
   async executeWithFailover(
@@ -69,7 +81,7 @@ export class LLMRouter {
   getFetchParams(req: { provider: string; model: string; messages: ChatMessage[]; config?: Partial<AgentConfig> }) {
     const provider = (req.provider as ProviderName) || keyManager.getConfiguredProviders()[0] || "groq";
     const apiKey = keyManager.getKey(provider) ?? "";
-    const url = PROVIDER_URLS[provider] ?? PROVIDER_URLS.groq;
+    const url = provider === "opencodezen" ? getZenUrl(req.model) : (PROVIDER_URLS[provider] ?? PROVIDER_URLS.groq);
 
     return {
       url,

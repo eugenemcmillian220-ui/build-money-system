@@ -117,7 +117,7 @@ const PROVIDER_ENV_MAP: Record<ProviderName, { multi: string[]; single: string[]
   },
   opencodezen: {
     multi: ["OPENCODE_ZEN_API_KEYS"],
-    single: ["OPENCODE_ZEN_API_KEY"],
+    single: ["OPENCODE_ZEN_API_KEY", "OPENCODE_GO_API_KEY"],
   },
   github: {
     multi: ["GITHUB_MODELS_TOKENS"],

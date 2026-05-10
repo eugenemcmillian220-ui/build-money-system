@@ -35,24 +35,32 @@ export const OPENROUTER_MODELS = [
 ];
 
 export const ZEN_FREE_MODELS = [
-  "deepseek-v4-flash",
-  "glm-5",
-  "mimo-v2.5",
-  "qwen3.5-plus",
-  "kimi-k2.5",
-  "minimax-m2.5",
+  "big-pickle",
+  "minimax-m2.5-free",
+  "ling-2.6-flash",
+  "hy3-preview-free",
+  "nemotron-3-super-free",
 ];
 
-export const ZEN_PAID_MODELS = [
+export const ZEN_GO_MODELS = [
   "kimi-k2.6",
+  "deepseek-v4-pro",
   "glm-5.1",
-  "mimo-v2-pro",
-  "mimo-v2-omni",
+  "glm-5",
   "mimo-v2.5-pro",
   "minimax-m2.7",
   "qwen3.6-plus",
-  "deepseek-v4-pro",
+  "deepseek-v4-flash",
 ];
+
+/** @deprecated Alias kept for backward compatibility */
+export const ZEN_PAID_MODELS = ZEN_GO_MODELS;
+
+export const STAGE_PREFERRED_MODELS: Record<string, string> = {
+  "detailing-components": "kimi-k2.6",
+  "planSpecDetails": "deepseek-v4-pro",
+  "default": "big-pickle",
+};
 
 export const GITHUB_FREE_MODELS = [
   "openai/gpt-4.1-mini",
@@ -82,7 +90,7 @@ export const ALL_FREE_MODELS: Record<ProviderName, string[]> = {
   gemini: GEMINI_MODELS,
   openai: OPENAI_MODELS,
   openrouter: OPENROUTER_MODELS,
-  opencodezen: ZEN_FREE_MODELS,
+  opencodezen: [...ZEN_FREE_MODELS, ...ZEN_GO_MODELS],
   github: GITHUB_FREE_MODELS,
   huggingface: HF_FREE_MODELS,
 };
@@ -92,7 +100,7 @@ export const ALL_FREE_MODELS: Record<ProviderName, string[]> = {
 // ---------------------------------------------------------------------------
 
 interface ProviderConfig {
-  getUrl: () => string;
+  getUrl: (model?: string) => string;
   getHeaders: (apiKey: string) => Record<string, string>;
   // Some providers (Gemini) use a different request body shape
   transformBody?: (body: Record<string, unknown>, model: string) => Record<string, unknown>;
@@ -138,8 +146,12 @@ const PROVIDER_CONFIGS: Record<ProviderName, ProviderConfig> = {
     supportsStream: true,
   },
   opencodezen: {
-    getUrl: () =>
-      process.env.OPENCODE_ZEN_API_URL || "https://opencode.ai/zen/go/v1/chat/completions",
+    getUrl: (model?: string) => {
+      if (model && ZEN_GO_MODELS.includes(model)) {
+        return process.env.OPENCODE_GO_API_URL || "https://opencode.ai/zen/go/v1/chat/completions";
+      }
+      return process.env.OPENCODE_ZEN_FREE_API_URL || "https://opencode.ai/zen/v1/chat/completions";
+    },
     getHeaders: (apiKey) => ({
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
@@ -208,14 +220,14 @@ const MODEL_COSTS: Record<string, number> = {
   // OpenRouter free
   "meta-llama/llama-3.3-70b-instruct:free": 0,
   "deepseek/deepseek-chat-v3-0324:free": 0,
-  // ZEN free
-  "deepseek-v4-flash": 0, "glm-5": 0, "mimo-v2.5": 0,
-  "qwen3.5-plus": 0, "kimi-k2.5": 0, "minimax-m2.5": 0,
-  // ZEN paid
-  "kimi-k2.6": 0.00003, "glm-5.1": 0.00003,
-  "mimo-v2-pro": 0.00004, "mimo-v2-omni": 0.00004,
+  // ZEN free tier
+  "big-pickle": 0, "minimax-m2.5-free": 0, "ling-2.6-flash": 0,
+  "hy3-preview-free": 0, "nemotron-3-super-free": 0,
+  // ZEN Go plan
+  "kimi-k2.6": 0.00003, "deepseek-v4-pro": 0.00005,
+  "glm-5.1": 0.00003, "glm-5": 0,
   "mimo-v2.5-pro": 0.00005, "minimax-m2.7": 0.00004,
-  "qwen3.6-plus": 0.00004, "deepseek-v4-pro": 0.00005,
+  "qwen3.6-plus": 0.00004, "deepseek-v4-flash": 0,
 };
 
 function getEmbedUrl(): string {
@@ -306,7 +318,7 @@ async function callProvider(
   const start = Date.now();
 
   try {
-    const response = await fetch(cfg.getUrl(), {
+    const response = await fetch(cfg.getUrl(model), {
       method: "POST",
       headers: cfg.getHeaders(apiKey),
       body: JSON.stringify({
@@ -434,7 +446,7 @@ export async function* aiStream(options: AIOptions): AsyncIterable<string> {
       const timer = setTimeout(() => controller.abort(), timeoutMs);
 
       try {
-        const response = await fetch(cfg.getUrl(), {
+        const response = await fetch(cfg.getUrl(model), {
           method: "POST",
           headers: cfg.getHeaders(apiKey),
           body: JSON.stringify({
