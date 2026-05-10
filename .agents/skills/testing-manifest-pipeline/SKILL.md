@@ -12,6 +12,7 @@ The app requires these in `.env.local`:
 - `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase project credentials
 - `SUPABASE_SERVICE_ROLE_KEY` — for admin operations (jobs.ts uses `supabaseAdmin`)
 - At least one AI provider key: `OPENCODE_ZEN_API_KEY`, `GITHUB_TOKEN`, or `HF_TOKEN`
+- `OPENCODE_GO_API_KEY` — optional separate key for Go Plan tier (falls back to `OPENCODE_ZEN_API_KEY`)
 
 You can retrieve Supabase credentials via the Management API:
 ```bash
@@ -110,11 +111,48 @@ First page load may take 20-30 seconds to compile.
 
 ## Verifying Timeout Configuration
 
-To confirm timeout changes are active:
 1. Submit a prompt and watch for the scout agent timeout message
 2. The timeout value in the message should match `AGENT_CALL_TIMEOUT_MS` in `src/lib/manifest/stages.ts`
 3. Example: "Scout agent failed (runScoutAgent timed out after 55000ms)" confirms `AGENT_CALL_TIMEOUT_MS = 55_000`
 4. The pipeline should recover gracefully using a fallback strategy
+
+## Verifying Dual OpenCode Tier Routing
+
+The system uses two OpenCode Zen tiers with model-aware URL routing:
+
+| Tier | URL | Models | Use Case |
+|------|-----|--------|----------|
+| Free Zen | `https://opencode.ai/zen/v1/chat/completions` | `big-pickle`, `minimax-m2.5-free`, `ling-2.6-flash`, `hy3-preview-free`, `nemotron-3-super-free` | Light stages, default fallback |
+| Go Plan | `https://opencode.ai/zen/go/v1/chat/completions` | `kimi-k2.6`, `deepseek-v4-pro`, `glm-5.1`, `glm-5`, `mimo-v2.5-pro`, `minimax-m2.7`, `qwen3.6-plus`, `deepseek-v4-flash` | Heavy stages (detailing-components) |
+
+### Stage-Preferred Models
+- `detailing-components` stage → `kimi-k2.6` (Go Plan)
+- `planSpecDetails` stage → `deepseek-v4-pro` (Go Plan)
+- Default → `big-pickle` (Free Tier)
+
+See `STAGE_PREFERRED_MODELS` in `src/lib/ai.ts`.
+
+### How to Verify Without API Keys
+When no AI provider keys are available, run shell-based logic tests:
+```bash
+# Verify routing logic, model lists, stage preferences
+node test-dual-tier.mjs  # if test script exists
+
+# Or grep for key patterns:
+grep -n 'ZEN_GO_MODELS\|STAGE_PREFERRED\|getUrl.*model' src/lib/ai.ts src/lib/llm-router.ts src/lib/llm.ts
+```
+
+Key assertions to verify:
+- `planSpecDetails` in `src/lib/llm.ts` sets `model: preferredModel` from `STAGE_PREFERRED_MODELS["detailing-components"]`
+- `maxTokens` is `8192` and `timeout` is `120000` for `planSpecDetails`
+- `opencodezen` provider config in `src/lib/ai.ts` calls `ZEN_GO_MODELS.includes(model)` to select URL
+- Both `callProvider` and streaming pass `model` to `cfg.getUrl(model)`
+
+### How to Verify With API Keys (E2E)
+With keys available, trigger a manifest pipeline and check dev server console logs:
+- `planSpecDetails attempt starting` log should show `preferredModel: "kimi-k2.6"`
+- The request should go to the Go Plan URL for the detail stage
+- If Go Plan quota is exceeded, it should fall back to Free Tier models
 
 ## Key Files
 
@@ -124,6 +162,10 @@ To confirm timeout changes are active:
 | `src/app/api/manifest/route.ts` | Main manifest route (maxDuration=280) |
 | `src/lib/manifest/stages.ts` | Stage budgets (STAGE_BUDGET_MS, AGENT_CALL_TIMEOUT_MS) |
 | `src/lib/pipeline-timeout.ts` | Default pipeline budget (DEFAULT_BUDGET_MS) |
+| `src/lib/ai.ts` | Model lists (ZEN_FREE_MODELS, ZEN_GO_MODELS), STAGE_PREFERRED_MODELS, provider configs |
+| `src/lib/llm.ts` | planSpecDetails (uses Go Plan model for detailing) |
+| `src/lib/llm-router.ts` | URL routing (getZenUrl, getPreferredModel), provider URL map |
+| `src/lib/key-manager.ts` | API key rotation (supports OPENCODE_GO_API_KEY) |
 | `src/lib/jobs.ts` | Job tracking service (manifest_jobs table) |
 | `src/lib/with-timeout.ts` | Timeout utility with TimeoutError |
 | `src/lib/admin-emails.ts` | Admin email list (forces OTP login) |
@@ -157,3 +199,4 @@ npx tsc --noEmit  # Should exit 0 with no errors
 - When switching accounts, log out first then navigate to `/login`
 - The pipeline typically completes in 1-2 minutes locally for simple prompts
 - Admin accounts have unlimited credits and skip credit reservation
+- `planSpecDetails` timeout is 120s — may exceed Vercel Hobby 60s function limit; pipeline stages run in separate invocations which may help
