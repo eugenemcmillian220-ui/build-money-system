@@ -34,8 +34,7 @@ export const FREE_MODELS: Record<LLMProvider, string[]> = {
   huggingface: HF_FREE_MODELS,
 };
 
-const ZEN_FREE_URL = process.env.OPENCODE_ZEN_FREE_API_URL || "https://opencode.ai/zen/v1/chat/completions";
-const ZEN_GO_URL = process.env.OPENCODE_GO_API_URL || "https://opencode.ai/zen/go/v1/chat/completions";
+const ZEN_URL = process.env.OPENCODE_ZEN_API_URL || "https://opencode.ai/zen/v1/chat/completions";
 
 /** URL map for direct fetch calls (getFetchParams). Auto-selects configured provider. */
 const PROVIDER_URLS: Record<ProviderName, string> = {
@@ -43,13 +42,13 @@ const PROVIDER_URLS: Record<ProviderName, string> = {
   gemini: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
   openai: "https://api.openai.com/v1/chat/completions",
   openrouter: "https://openrouter.ai/api/v1/chat/completions",
-  opencodezen: ZEN_GO_URL,
+  opencodezen: ZEN_URL,
   github: process.env.GITHUB_MODELS_API_URL || "https://models.github.ai/inference/chat/completions",
   huggingface: process.env.HF_API_URL || "https://router.huggingface.co/v1/chat/completions",
 };
 
-function getZenUrl(model: string): string {
-  return ZEN_GO_MODELS.includes(model) ? ZEN_GO_URL : ZEN_FREE_URL;
+function getZenUrl(_model: string): string {
+  return ZEN_URL;
 }
 
 export function getPreferredModel(stage: string): string {

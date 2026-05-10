@@ -249,7 +249,7 @@ export interface AgentConfig {
 export const defaultAgentConfig: AgentConfig = {
   maxRetries: 3,
   retryDelay: 1000,
-  model: "deepseek-v4-flash",
+  model: "big-pickle",
   temperature: 0.7,
   maxTokens: 16384,
   enablePIIScanning: true,
