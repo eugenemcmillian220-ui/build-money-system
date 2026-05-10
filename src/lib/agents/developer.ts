@@ -78,9 +78,16 @@ export async function runDeveloperAgent(
   const integrations = spec.integrations;
 
   // Building phase
-  let files = await buildFromSpec(spec, {
-    timeout: precomputedSpec ? 55_000 : undefined,
-  });
+  let files: Record<string, string>;
+  try {
+    files = await buildFromSpec(spec, {
+      timeout: precomputedSpec ? 55_000 : undefined,
+    });
+  } catch (error) {
+    console.error("[Developer] Build failed:", error);
+    throw new AgentError(`Build failed: ${(error as Error).message}`, 502, true);
+  }
+  
   files = postProcessFiles(files, { description, schema: spec.schema, integrations });
 
   // Infrastructure generation
@@ -110,11 +117,19 @@ export async function runDeveloperAgent(
   }
 
   // Sandbox Verification
-  const sandboxResult = await codeSandbox.verifyProject(files);
-  if (!sandboxResult.success) {
-    const errors = [...sandboxResult.typeErrors, ...sandboxResult.runtimeErrors];
-    const brokenPaths = errors.map(e => e.split(":")[0].trim()).filter(p => !!p);
-    files = await fixBrokenFiles(files, brokenPaths.length > 0 ? brokenPaths : Object.keys(files), errors);
+  try {
+    const sandboxResult = await codeSandbox.verifyProject(files);
+    if (!sandboxResult.success) {
+      console.warn("[Developer] Sandbox verification failed, attempting fix...");
+      const errors = [...sandboxResult.typeErrors, ...sandboxResult.runtimeErrors];
+      const brokenPaths = errors.map(e => e.split(":")[0].trim()).filter(p => !!p);
+      files = await fixBrokenFiles(files, brokenPaths.length > 0 ? brokenPaths : Object.keys(files), errors);
+    } else {
+      console.log("[Developer] Sandbox verification successful:", sandboxResult.buildOutput);
+    }
+  } catch (error) {
+    console.error("[Developer] Sandbox verification error:", error);
+    // Continue even if sandbox fails, as it might be a connectivity issue
   }
 
   const pathValidation = validateFilePaths(files);

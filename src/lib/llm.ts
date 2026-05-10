@@ -438,7 +438,7 @@ export async function testFiles(files: FileMap): Promise<{ success: boolean; err
     }
 
     if (path.endsWith(".tsx")) {
-      if (/useState|useEffect|useCallback|useMemo/.test(content)) {
+      if (/useState|useEffect|useCallback|useMemo|useContext|useReducer|useLayoutEffect/.test(content)) {
         if (!content.includes('"use client"') && !content.includes("'use client'")) {
           errors.push(`${path}: Uses React hooks but missing 'use client' directive`);
         }
@@ -447,11 +447,20 @@ export async function testFiles(files: FileMap): Promise<{ success: boolean; err
       if (path.includes("/page.") && !content.includes("export default")) {
         errors.push(`${path}: Page file missing default export`);
       }
+
+      if (content.includes("any") && !content.includes("eslint-disable")) {
+        errors.push(`${path}: Use of 'any' type detected without explicit ESLint override`);
+      }
+
+      if (content.includes("console.log") || content.includes("console.error")) {
+        // Warning instead of error for production readiness
+        logger.warn(`${path}: contains console logs which should be replaced with a logger in production`);
+      }
     }
 
-    const openTags = (content.match(/<[A-Z][A-Za-z0-9]*[^/>]*>/g) || []).length;
-    const closeTags = (content.match(/<\/[A-Z][A-Za-z0-9]*>/g) || []).length;
-    const selfClosing = (content.match(/<[A-Z][A-Za-z0-9]*[^>]*\/>/g) || []).length;
+    const openTags = (content.match(/<[a-zA-Z][a-zA-Z0-9]*[^/>]*>/g) || []).length;
+    const closeTags = (content.match(/<\/[a-zA-Z][a-zA-Z0-9]*>/g) || []).length;
+    const selfClosing = (content.match(/<[a-zA-Z][a-zA-Z0-9]*[^>]*\/>/g) || []).length;
     if (openTags > closeTags + selfClosing) {
       errors.push(`${path}: Possible unclosed JSX tags`);
     }

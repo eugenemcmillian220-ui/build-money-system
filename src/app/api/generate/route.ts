@@ -37,6 +37,9 @@ RULES (follow exactly, no exceptions):
 10. Accessible: aria-labels on icon-only buttons, proper label/input pairing.
 11. Include data-testid attributes on interactive elements for QA.
 12. Apply Supabase Auth by default. Implement robust error boundaries.
+13. Use React.use() for data fetching in Client Components if applicable.
+14. Ensure all async Server Actions are properly typed and handle errors.
+15. Follow Next.js 15 partial prerelease (PPR) best practices.
 
 START IMMEDIATELY WITH: import React...`;
 
@@ -89,7 +92,7 @@ export async function POST(request: Request): Promise<Response> {
           .single();
 
         if (!freshOrg || Number(freshOrg.credit_balance) < creditCost) {
-          return Response.json({ error: `Insufficient credits. This operation requires ${creditCost} units.` }, { status: 402 });
+          return Response.json({ error: \`Insufficient credits. This operation requires \${creditCost} units.\` }, { status: 402 });
         }
       }
     }
@@ -136,15 +139,15 @@ export async function POST(request: Request): Promise<Response> {
         const streamResult = new ReadableStream<Uint8Array>({
           async start(controller) {
             try {
-              const fullPrompt = `${SYSTEM_PROMPT}\n\nUser request: ${prompt}\n\nGenerate a complete Next.js component with Tailwind CSS:`;
+              const fullPrompt = \`\${SYSTEM_PROMPT}\\n\\nUser request: \${prompt}\\n\\nGenerate a complete Next.js component with Tailwind CSS:\`;
               const readable = streamLLM([{ role: "user", content: fullPrompt }]);
               for await (const chunk of readable) {
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "chunk", delta: chunk })}\n\n`));
+                controller.enqueue(encoder.encode(\`data: \${JSON.stringify({ type: "chunk", delta: chunk })}\\n\\n\`));
               }
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "done" })}\n\n`));
+              controller.enqueue(encoder.encode(\`data: \${JSON.stringify({ type: "done" })}\\n\\n\`));
               controller.close();
             } catch (error) {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", error: (error as Error).message })}\n\n`));
+              controller.enqueue(encoder.encode(\`data: \${JSON.stringify({ type: "error", error: (error as Error).message })}\\n\\n\`));
               controller.close();
             }
           },
@@ -152,7 +155,7 @@ export async function POST(request: Request): Promise<Response> {
         return new Response(streamResult, { headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache" } });
       }
 
-      const code = await callLLM([{ role: "user", content: `${SYSTEM_PROMPT}\n\nUser request: ${prompt}\n\nGenerate a complete Next.js component with Tailwind CSS:` }]);
+      const code = await callLLM([{ role: "user", content: \`\${SYSTEM_PROMPT}\\n\\nUser request: \${prompt}\\n\\nGenerate a complete Next.js component with Tailwind CSS:\` }]);
       // Credits already reserved atomically in STEP 0; record the charge in the ledger
       if (orgId && !isAdmin) {
         agentEconomy.chargeResourceCost(orgId, "Developer", creditCost * 1000, "single-component-generation").catch((err) => {
@@ -167,7 +170,7 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   return Response.json({
-    code: `"use client";\nimport React from "react";\n\nexport default function Component() {\n  return (\n    <div className="p-8 bg-gray-50 rounded-lg text-center">\n      <h2 className="text-xl font-semibold text-gray-700 mb-2">Demo Component</h2>\n      <p className="text-gray-500">Configure an AI provider to generate real components.</p>\n    </div>\n  );\n}`,
+    code: \`"use client";\\nimport React from "react";\\n\\nexport default function Component() {\\n  return (\\n    <div className="p-8 bg-gray-50 rounded-lg text-center">\\n      <h2 className="text-xl font-semibold text-gray-700 mb-2">Demo Component</h2>\\n      <p className="text-gray-500">Configure an AI provider to generate real components.</p>\\n    </div>\\n  );\\n}\`,
     fallback: true,
     message: "Demo component returned. Configure an AI provider (GROQ_API_KEY, GEMINI_API_KEY, OPENAI_API_KEY, or OPENROUTER_API_KEY) for full generation.",
   });
