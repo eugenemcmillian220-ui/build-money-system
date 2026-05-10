@@ -350,9 +350,10 @@ export async function runPlanDetailsStage(jobId: string, _baseUrl: string): Prom
   const row = await loadManifestation(jobId);
   if (!row) return;
 
-  try {
-    await setStage(jobId, "plan-details", { status: "running" }, "Detailing components & schema...");
-    const state = row.state as StageState;
+    try {
+      await setStage(jobId, "plan-details", { status: "running" }, "Detailing components & schema...");
+      logger.info("runPlanDetailsStage starting", { jobId });
+      const state = row.state as StageState;
     const finalPrompt = state.finalPrompt as string;
     const outline = state.outline as import("@/lib/llm").AppSpecOutline | undefined;
     if (!finalPrompt) throw new Error("Intent stage did not produce finalPrompt.");
@@ -364,11 +365,13 @@ export async function runPlanDetailsStage(jobId: string, _baseUrl: string): Prom
 
     try {
       const { planSpecDetails } = await import("@/lib/llm");
+      logger.debug("Calling planSpecDetails", { jobId, timeout: AGENT_CALL_TIMEOUT_MS });
       details = await withTimeout(
         planSpecDetails(finalPrompt, outline),
         AGENT_CALL_TIMEOUT_MS,
         "planSpecDetails",
       );
+      logger.info("planSpecDetails returned", { jobId, componentCount: details.components.length });
     } catch (llmErr) {
       logger.warn("planSpecDetails LLM failed, using template fallback", {
         jobId,

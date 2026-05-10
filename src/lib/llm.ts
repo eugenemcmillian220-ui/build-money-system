@@ -173,7 +173,7 @@ export type AppSpecOutline = Pick<AppSpec, "name" | "description" | "features" |
 // No outer retries — aiComplete already retries across providers/models.
 // Retrying here doubled the wall-clock time (2 × 50s budget = 100s)
 // which exceeded the Vercel Hobby 60s function limit.
-const MAX_PLAN_RETRIES = 0;
+const MAX_PLAN_RETRIES = 1;
 
 export async function planSpecOutline(prompt: string, context: MemoryContext[] = []): Promise<AppSpecOutline> {
   const contextText =
@@ -281,7 +281,8 @@ Rules:
         model: preferredModel,
         temperature: attempt === 1 ? 0.5 : 0.3,
         maxTokens: 8192,
-        timeout: 120000,
+        // Detail calls can be heavy; allow up to 50s per attempt within the 60s budget
+        timeout: 50000,
       }, { cache: false });
 
       const parsed = robustParseJson<AppSpecDetails>(content);
