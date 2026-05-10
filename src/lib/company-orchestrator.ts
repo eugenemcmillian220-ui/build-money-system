@@ -40,7 +40,7 @@ export class CompanyOrchestrator {
   async buildCompany(idea: string): Promise<CompanyBuildResult> {
     const buildId = Math.random().toString(36).substring(2, 11);
 
-    analyticsEngine.trackMetric({ name: 'company_build_started', value: 1, metadata: { idea, buildId } });
+    await analyticsEngine.trackMetric({ name: 'company_build_started', value: 1, metadata: { idea, buildId } });
 
     const validation = await this.ideaValidator.validateIdea(idea);
 
@@ -58,7 +58,7 @@ export class CompanyOrchestrator {
 
     const revenue = await this.monetizationEngine.startMonetization(idea);
 
-    analyticsEngine.trackMetric({
+    await analyticsEngine.trackMetric({
       name: 'company_build_completed',
       value: 1,
       metadata: { idea, buildId, score: validation.score },

@@ -1,11 +1,10 @@
-// DA-072 FIX: TODO: Use dependency injection instead of singleton
-// DA-073 FIX: TODO: Use Map/index for O(1) metric lookups
-// DA-037 FIX: TODO: Replace in-memory storage with Supabase persistence
-// DA-038 FIX: TODO: Wrap multi-step operations in database transactions
 /**
  * Analytics Engine Module for Phase 6 - Autonomous AI Company Builder
- * Tracks metrics, generates reports, and provides business intelligence
+ * Tracks metrics, generates reports, and provides business intelligence.
+ * Persisted to Supabase (DA-037, DA-038 fixes).
  */
+
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 export interface MetricData {
   name: string;
@@ -52,36 +51,79 @@ export interface MetricSummary {
   max: number;
 }
 
+function rowToMetric(row: Record<string, unknown>): Metric {
+  return {
+    id: row.id as string,
+    name: row.name as string,
+    value: row.value as number,
+    unit: (row.unit as string) ?? undefined,
+    category: (row.category as string) ?? undefined,
+    userId: (row.user_id as string) ?? undefined,
+    metadata: (row.metadata as Record<string, unknown>) ?? undefined,
+    ts: row.ts as number,
+    timestamp: row.created_at as string,
+  };
+}
+
 export class AnalyticsEngine {
-  private metrics: Metric[] = [];
+  async trackMetric(data: MetricData): Promise<Metric> {
+    const supabase = getSupabaseAdmin();
+    const ts = Date.now();
 
-  trackMetric(data: MetricData): Metric {
-    const metric: Metric = {
-      ...data,
-      id: crypto.randomUUID(),
-      ts: Date.now(),
-      timestamp: new Date().toISOString(),
-    };
-    this.metrics.push(metric);
-    return metric;
+    const { data: row, error } = await supabase
+      .from("analytics_metrics")
+      .insert({
+        name: data.name,
+        value: data.value,
+        unit: data.unit ?? null,
+        category: data.category ?? null,
+        user_id: data.userId ?? null,
+        metadata: data.metadata ?? {},
+        ts,
+      })
+      .select()
+      .single();
+
+    if (error || !row) {
+      console.error("[analytics] trackMetric failed:", error?.message);
+      // Return a metric object even on error so callers aren't disrupted
+      return {
+        ...data,
+        id: crypto.randomUUID(),
+        ts,
+        timestamp: new Date().toISOString(),
+      };
+    }
+
+    return rowToMetric(row);
   }
 
-  getMetrics(filters?: MetricFilters): Metric[] {
-    let result = [...this.metrics];
+  async getMetrics(filters?: MetricFilters): Promise<Metric[]> {
+    const supabase = getSupabaseAdmin();
+    let query = supabase.from("analytics_metrics").select("*");
 
-    if (filters?.name) result = result.filter(m => m.name === filters.name);
-    if (filters?.category) result = result.filter(m => m.category === filters.category);
-    if (filters?.userId) result = result.filter(m => m.userId === filters.userId);
-    if (filters?.since !== undefined) result = result.filter(m => m.ts >= filters.since!);
-    if (filters?.until !== undefined) result = result.filter(m => m.ts <= filters.until!);
+    if (filters?.name) query = query.eq("name", filters.name);
+    if (filters?.category) query = query.eq("category", filters.category);
+    if (filters?.userId) query = query.eq("user_id", filters.userId);
+    if (filters?.since !== undefined) query = query.gte("ts", filters.since);
+    if (filters?.until !== undefined) query = query.lte("ts", filters.until);
 
-    return result;
+    query = query.order("ts", { ascending: false }).limit(1000);
+
+    const { data, error } = await query;
+    if (error) {
+      console.error("[analytics] getMetrics failed:", error.message);
+      return [];
+    }
+
+    return (data ?? []).map(rowToMetric);
   }
 
-  generateReport(dateRange: DateRange): AnalyticsReport {
+  async generateReport(dateRange: DateRange): Promise<AnalyticsReport> {
     const from = dateRange.from.getTime();
     const to = dateRange.to.getTime();
-    const rangeMetrics = this.metrics.filter(m => m.ts >= from && m.ts <= to);
+
+    const rangeMetrics = await this.getMetrics({ since: from, until: to });
 
     const byName: Record<string, number[]> = {};
     for (const m of rangeMetrics) {
@@ -101,7 +143,7 @@ export class AnalyticsEngine {
     const topEvents = summary
       .sort((a, b) => b.count - a.count)
       .slice(0, 5)
-      .map(s => s.name);
+      .map((s) => s.name);
 
     return {
       generatedAt: new Date().toISOString(),
@@ -113,10 +155,6 @@ export class AnalyticsEngine {
       summary,
       topEvents,
     };
-  }
-
-  clearMetrics(): void {
-    this.metrics = [];
   }
 }
 

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { CategoryFilter } from "@/components/marketplace/category-filter";
 import { SkillCard } from "@/components/marketplace/skill-card";
-import { AgentSkill } from "@/lib/marketplace";
+import { AgentSkill } from "@/lib/marketplace-types";
 
 export default function MarketplacePage() {
   const [skills, setSkills] = useState<AgentSkill[]>([]);

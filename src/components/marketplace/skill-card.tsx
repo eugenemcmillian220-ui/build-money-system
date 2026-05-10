@@ -1,6 +1,6 @@
 "use client";
 
-import { AgentSkill } from "@/lib/marketplace";
+import { AgentSkill } from "@/lib/marketplace-types";
 
 export function SkillCard({ skill, onSubscribe }: { skill: AgentSkill; onSubscribe: (id: string) => void }) {
   return (
