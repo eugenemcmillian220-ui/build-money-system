@@ -72,11 +72,49 @@ npm run dev
 ```
 
 First page load may take 20-30 seconds to compile.
+Note: Port 3000 may be in use — check the dev server output for the actual port (e.g., 3001).
+
+## Provider Architecture
+
+The AI provider system uses three OpenCode Zen tiers:
+- `opencodezen` — free tier, uses `/chat/completions` (openai format)
+- `opencodezen_go_openai` — Go tier, uses `/chat/completions` (openai format) for most models (GLM-5, Kimi K2.5/K2.6, DeepSeek V4, MiMo V2.5, Qwen3.5+, etc.)
+- `opencodezen_go_anthropic` — Go tier, uses `/messages` (anthropic format) for MiniMax M2.5 and M2.7 ONLY
+
+All three tiers share the same `OPENCODE_ZEN_API_KEY`. The provider config lives in `src/lib/providers.ts` (single source of truth) and is consumed by `src/lib/ai.ts` and `src/lib/llm-router.ts`.
+
+API model IDs are bare (e.g., `kimi-k2.5`, not `opencode-go/kimi-k2.5`). The `opencode-go/` prefix is TUI config only.
+
+### Verifying Provider Registry
+
+The `/api/health/check` endpoint reports all configured providers under `checks.llm.details.providers`. Use this to verify provider changes without needing AI keys:
+```bash
+curl -s http://localhost:3001/api/health/check | python3 -m json.tool
+```
+
+Expected output should show all three Zen provider entries:
+```json
+"providers": {
+    "opencodezen": false,
+    "opencodezen_go_openai": false,
+    "opencodezen_go_anthropic": false
+}
+```
+
+If any old provider names appear (e.g., `opencodezen_go` without suffix), the split was not applied correctly.
+
+### Stage-to-Model Assignments
+
+The `STAGE_MODEL_MAP` in `src/lib/providers.ts` assigns specific providers and models to pipeline stages:
+- `detailing-components` / `planSpecDetails` → `opencodezen_go_openai` / `kimi-k2.5`
+- `codegen` → `opencodezen_go_openai` / `deepseek-v4-pro`
+- `quick` → `opencodezen_go_openai` / `deepseek-v4-flash`
+- `outline` / `default` → `opencodezen` / `big-pickle` (free)
 
 ## Testing Flow
 
 ### 1. Login
-- Navigate to `http://localhost:3000/login`
+- Navigate to `http://localhost:3000/login` (or actual port from dev server output)
 - The middleware redirects `/dashboard` to `/login` if unauthenticated
 - Non-admin accounts: use password mode
 - Admin accounts (in `src/lib/admin-emails.ts`): forced to OTP mode, need user to provide code
@@ -112,48 +150,15 @@ First page load may take 20-30 seconds to compile.
 
 To confirm timeout changes are active:
 1. Submit a prompt and watch for the scout agent timeout message
-2. The timeout value in the message should match `AGENT_CALL_TIMEOUT_MS` in `src/lib/manifest/stages.ts`
-3. Example: "Scout agent failed (runScoutAgent timed out after 55000ms)" confirms `AGENT_CALL_TIMEOUT_MS = 55_000`
-4. The pipeline should recover gracefully using a fallback strategy
+2. Check the dev server console for `pipeline-timeout.ts` log lines
+3. The timeout values are in `src/lib/pipeline-timeout.ts`
 
-## Key Files
+## Testing Without AI Keys
 
-| File | Purpose |
-|------|--------|
-| `src/app/api/manifest/start/route.ts` | Entry point for manifest pipeline |
-| `src/app/api/manifest/route.ts` | Main manifest route (maxDuration=280) |
-| `src/lib/manifest/stages.ts` | Stage budgets (STAGE_BUDGET_MS, AGENT_CALL_TIMEOUT_MS) |
-| `src/lib/pipeline-timeout.ts` | Default pipeline budget (DEFAULT_BUDGET_MS) |
-| `src/lib/jobs.ts` | Job tracking service (manifest_jobs table) |
-| `src/lib/with-timeout.ts` | Timeout utility with TimeoutError |
-| `src/lib/admin-emails.ts` | Admin email list (forces OTP login) |
-| `src/hooks/use-manifestation.ts` | Frontend hook that calls /api/manifest/start and polls status |
-| `src/components/dashboard/AiTerminal.tsx` | Terminal UI component |
-| `src/components/dashboard/ManifestWorkspace.tsx` | Workspace with code panel |
+If no `OPENCODE_ZEN_API_KEY` is available, you can still verify:
+1. **Provider registry**: Hit `/api/health/check` and confirm all expected provider entries exist
+2. **App integrity**: Load FlowForge pages (no secrets needed — they use mock data)
+3. **Code correctness**: Run `npx tsc --noEmit` and `npx next lint` to verify no type or lint errors
+4. **Cost table**: Check `src/lib/economy.ts` has entries for all models in `src/lib/providers.ts`
 
-## Verifying Supabase Schema
-
-```bash
-curl -s -X POST "https://api.supabase.com/v1/projects/<PROJECT_REF>/database/query" \
-  -H "Authorization: Bearer $SUPABASE_MANAGEMENT_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"query": "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '\''manifest_jobs'\'' ORDER BY ordinal_position;"}'
-```
-
-Expected: 11 columns (id, user_id, prompt, current_stage, progress, status, state_snapshot, resume_token, error_message, created_at, updated_at).
-
-## TypeScript Verification
-
-```bash
-npx tsc --noEmit  # Should exit 0 with no errors
-```
-
-## Tips
-
-- The app's first compile after `npm run dev` can take 20-30s per page — be patient
-- OpenTelemetry warnings during compilation are expected and harmless
-- The Codeac CI check might fail due to their service issues — not a code problem
-- To log out, click the LOGOUT link at the bottom of the left sidebar
-- When switching accounts, log out first then navigate to `/login`
-- The pipeline typically completes in 1-2 minutes locally for simple prompts
-- Admin accounts have unlimited credits and skip credit reservation
+For full end-to-end testing of LLM calls, you need `OPENCODE_ZEN_API_KEY` set in `.env.local`.
