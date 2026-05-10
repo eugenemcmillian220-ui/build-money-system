@@ -50,9 +50,9 @@ export async function GET(request: NextRequest) {
       case "empires": {
         const capability = searchParams.get("capability") || undefined;
         const minTrust = searchParams.get("minTrust")
-          ? parseInt(searchParams.get("minTrust")!)
+          ? parseInt(searchParams.get("minTrust")!, 10)
           : undefined;
-        const limit = parseInt(searchParams.get("limit") || "50");
+        const limit = parseInt(searchParams.get("limit") || "50", 10);
         const empires = await swarmMesh.getEmpires({ capability, minTrust, limit });
         return NextResponse.json({ empires });
       }
@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
         const empireId = searchParams.get("empireId") || undefined;
         const status = (searchParams.get("status") || undefined) as TradeStatus | undefined;
         const tradeType = (searchParams.get("tradeType") || undefined) as TradeType | undefined;
-        const limit = parseInt(searchParams.get("limit") || "50");
+        const limit = parseInt(searchParams.get("limit") || "50", 10);
         const trades = await swarmMesh.getTrades({ empireId, status, tradeType, limit });
         return NextResponse.json({ trades });
       }
@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
         const minConfidence = searchParams.get("minConfidence")
           ? parseFloat(searchParams.get("minConfidence")!)
           : undefined;
-        const limit = parseInt(searchParams.get("limit") || "50");
+        const limit = parseInt(searchParams.get("limit") || "50", 10);
         const feed = await swarmMesh.getIntelligenceFeed({ intelType, minConfidence, limit });
         return NextResponse.json({ intelligence: feed });
       }

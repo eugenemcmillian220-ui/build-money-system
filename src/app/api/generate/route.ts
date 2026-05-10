@@ -116,7 +116,9 @@ export async function POST(request: Request): Promise<Response> {
 
       // Credits already reserved atomically in STEP 0; record the charge in the ledger
       if (orgId && !isAdmin) {
-        agentEconomy.chargeResourceCost(orgId, "Developer", creditCost * 1000, "multi-file-generation").catch(() => {});
+        agentEconomy.chargeResourceCost(orgId, "Developer", creditCost * 1000, "multi-file-generation").catch((err) => {
+          console.error("[Generate] Failed to charge credits for multi-file generation:", err);
+        });
       }
 
       return Response.json(result);
@@ -153,7 +155,9 @@ export async function POST(request: Request): Promise<Response> {
       const code = await callLLM([{ role: "user", content: `${SYSTEM_PROMPT}\n\nUser request: ${prompt}\n\nGenerate a complete Next.js component with Tailwind CSS:` }]);
       // Credits already reserved atomically in STEP 0; record the charge in the ledger
       if (orgId && !isAdmin) {
-        agentEconomy.chargeResourceCost(orgId, "Developer", creditCost * 1000, "single-component-generation").catch(() => {});
+        agentEconomy.chargeResourceCost(orgId, "Developer", creditCost * 1000, "single-component-generation").catch((err) => {
+          console.error("[Generate] Failed to charge credits for single-component generation:", err);
+        });
       }
       return Response.json({ code });
     } catch (error) {
