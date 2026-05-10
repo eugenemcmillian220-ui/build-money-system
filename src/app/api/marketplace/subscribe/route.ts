@@ -1,4 +1,3 @@
-// DA-031 FIX: TODO: Use SELECT ... FOR UPDATE or atomic RPC for balance check + deduction
 export const dynamic = "force-dynamic";
 import { createClient } from "@/lib/supabase/server";
 import { agentEconomy } from "@/lib/economy";
@@ -33,7 +32,7 @@ export async function POST(request: Request): Promise<Response> {
 
     if (skillError || !skill) return Response.json({ error: "Skill not found" }, { status: 404 });
 
-    // 2. Check balance and charge (admin accounts bypass)
+    // 2. Atomically reserve credits (admin accounts bypass)
     const { data: orgData } = await supabaseAdmin
       .from("organizations")
       .select("billing_tier")
@@ -42,14 +41,15 @@ export async function POST(request: Request): Promise<Response> {
     const isAdmin = orgData?.billing_tier === ADMIN_FREE_TIER;
 
     if (!isAdmin) {
-      const balance = await agentEconomy.getBalance(orgId);
-      if (balance < skill.price) {
+      const { data: reserved, error: reserveError } = await supabaseAdmin.rpc("reserve_credits", {
+        org_id: orgId,
+        amount: skill.price,
+      });
+
+      if (reserveError || !reserved) {
         return Response.json({ error: "Insufficient credits" }, { status: 402 });
       }
-    }
 
-    // 3. Record transaction (skip credit deduction for admin accounts)
-    if (!isAdmin) {
       await agentEconomy.recordTransaction({
         orgId,
         fromAgent: "System",
@@ -59,7 +59,7 @@ export async function POST(request: Request): Promise<Response> {
       });
     }
 
-    // 4. Increment usage count
+    // 3. Increment usage count
     await supabase.rpc("increment_skill_usage", { skill_id: skillId });
 
     return Response.json({ success: true, message: `Subscribed to ${skill.name}` });
