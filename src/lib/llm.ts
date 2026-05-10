@@ -1,6 +1,6 @@
 import { FileMap, AppSpec, AgentConfig, defaultAgentConfig, ChatMessage } from "./types";
 import { MemoryContext } from "./memory-store";
-import { aiComplete, aiEmbed, aiStream } from "./ai";
+import { aiComplete, aiEmbed, aiStream, STAGE_PREFERRED_MODELS } from "./ai";
 import { llmCache } from "./llm-cache";
 import { logger } from "./logger";
 
@@ -264,6 +264,8 @@ Rules:
     { role: "user", content: `User request: ${prompt}\n\nGenerate the implementation details:` },
   ];
 
+  const preferredModel = STAGE_PREFERRED_MODELS["detailing-components"] || "kimi-k2.6";
+
   let lastError: Error | null = null;
   const detailStart = Date.now();
 
@@ -272,11 +274,13 @@ Rules:
       logger.debug("planSpecDetails attempt starting", {
         attempt,
         outlineName: outline.name,
+        preferredModel,
       });
       const content = await callLLM(messages, {
+        model: preferredModel,
         temperature: attempt === 1 ? 0.5 : 0.3,
-        maxTokens: 2048,
-        timeout: 25000,
+        maxTokens: 8192,
+        timeout: 120000,
       }, { cache: false });
 
       const parsed = robustParseJson<AppSpecDetails>(content);
