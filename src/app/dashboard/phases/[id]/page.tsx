@@ -16,7 +16,7 @@ import Link from "next/link";
 
 export default function PhasePage() {
   const { id } = useParams();
-  const phaseId = parseInt(id as string);
+  const phaseId = parseInt(id as string, 10);
   const phase = SOVEREIGN_PHASES.find(p => p.id === phaseId);
 
   const [loading, setLoading] = useState<string | null>(null);
