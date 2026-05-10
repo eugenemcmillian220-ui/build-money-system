@@ -207,10 +207,10 @@ Rules:
         promptLength: prompt.length,
       });
       const content = await callLLM(messages, {
-        model: STAGE_PREFERRED_MODELS["plan-outline"],
-        temperature: attempt === 1 ? 0.7 : 0.4,
+        model: STAGE_PREFERRED_MODELS["plan-outline"] || "deepseek-v4-flash",
+        temperature: 0.3,
         maxTokens: 2048,
-        timeout: 25000,
+        timeout: 10000,
       }, { cache: false });
 
       const parsed = robustParseJson<AppSpecOutline>(content);
@@ -250,22 +250,17 @@ export type AppSpecDetails = Pick<AppSpec, "components" | "schema" | "fileStruct
 
 export async function planSpecDetails(prompt: string, outline: AppSpecOutline): Promise<AppSpecDetails> {
   const outlineSummary = `${outline.name}: ${outline.features.join(", ")}. Pages: ${outline.pages.map(p => p.route).join(", ")}`;
-  const systemPrompt = `You are "The Architect" for Sovereign Forge OS. Given an outline, produce implementation details.
-
+  const systemPrompt = `Architect for Sovereign Forge. Given outline, produce implementation details.
 OUTLINE: ${outlineSummary}
-
-Rules:
-- shadcn/ui + Tailwind CSS v4. Include RLS in schema. 5-12 files max.
-- Keep component descriptions under 10 words. Schema as column names only, no full SQL.
-- Return ONLY valid JSON — no markdown fences:
-{"components":[{"name":"LoginForm","description":"Auth form","props":{}}],"schema":"users(id,email,role); projects(id,name)","fileStructure":["app/layout.tsx","app/page.tsx"]}`;
+Rules: shadcn/ui, Tailwind v4, RLS, 5-12 files. Return ONLY JSON:
+{"components":[{"name":"Comp","description":"desc","props":{}}],"schema":"table(cols)","fileStructure":["path"]}`;
 
   const messages: ChatMessage[] = [
     { role: "system", content: systemPrompt },
-    { role: "user", content: `User request: ${prompt}\n\nGenerate the implementation details:` },
+    { role: "user", content: `Prompt: ${prompt}\nDetails:` },
   ];
 
-  const preferredModel = STAGE_PREFERRED_MODELS["plan-details"] || "kimi-k2.5";
+  const preferredModel = STAGE_PREFERRED_MODELS["plan-details"] || "deepseek-v4-flash";
 
   let lastError: Error | null = null;
   const detailStart = Date.now();
@@ -279,10 +274,10 @@ Rules:
       });
       const content = await callLLM(messages, {
         model: preferredModel,
-        temperature: attempt === 1 ? 0.5 : 0.3,
-        maxTokens: 8192,
-        // Detail calls can be heavy; allow up to 50s per attempt within the 60s budget
-        timeout: 50000,
+        temperature: 0.2,
+        maxTokens: 4096,
+        // Aggressive timeout for serverless: 9s per attempt
+        timeout: 9000,
       }, { cache: false });
 
       const parsed = robustParseJson<AppSpecDetails>(content);
