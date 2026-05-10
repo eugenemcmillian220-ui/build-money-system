@@ -1,5 +1,5 @@
-import { callLLMJson } from "../llm";
 import { Project, heraldResultSchema } from "../types";
+import { runStandardAgent } from "./agent-wrapper";
 
 export interface SocialPost {
   platform: string;
@@ -45,22 +45,24 @@ export async function runHerald(project: Project): Promise<LaunchAssets> {
       ]
     }`;
 
-  try {
-    const parsed = await callLLMJson(
-      [
+  return runStandardAgent<Project, LaunchAssets>(
+    {
+      config: {
+        name: "Herald",
+        role: "Growth & Marketing Lead",
+        temperature: 0.7,
+      },
+      schema: heraldResultSchema,
+      buildMessages: () => [
         { role: "system", content: systemPrompt },
         { role: "user", content: "Generate launch assets." }
       ],
-      heraldResultSchema,
-      { temperature: 0.7 }
-    );
-    return parsed as LaunchAssets;
-  } catch (err) {
-    console.error("Herald parse failed, falling back to defaults.", err);
-    return {
-      socialThread: { hook: "Exciting new launch!", posts: ["Check it out!"] },
-      productHunt: { tagline: "Next-gen AI app", description: "Built with Build Money System", makerComment: "Hello world!" },
-      seoArticle: { title: "How to use AI", content: "AI is the future.", keywords: ["AI", "Tech"] }
-    };
-  }
+      fallback: {
+        socialThread: { hook: "Exciting new launch!", posts: ["Check it out!"] },
+        productHunt: { tagline: "Next-gen AI app", description: "Built with Build Money System", makerComment: "Hello world!" },
+        seoArticle: { title: "How to use AI", content: "AI is the future.", keywords: ["AI", "Tech"] }
+      },
+    },
+    project
+  );
 }

@@ -1,5 +1,5 @@
-import { callLLMJson } from "../llm";
 import { FileMap, securityResultSchema } from "../types";
+import { runStandardAgent } from "./agent-wrapper";
 
 export type SecurityAuditResult = {
   score: number;
@@ -55,21 +55,24 @@ export async function runSecurityAudit(files: FileMap): Promise<SecurityAuditRes
       }
     }`;
 
-  try {
-    return await callLLMJson(
-      [
+  return runStandardAgent<FileMap, SecurityAuditResult>(
+    {
+      config: {
+        name: "Security",
+        role: "Security & Compliance Lead",
+        temperature: 0.1,
+      },
+      schema: securityResultSchema,
+      buildMessages: () => [
         { role: "system", content: systemPrompt },
         { role: "user", content: "Perform deep security audit on the codebase." }
       ],
-      securityResultSchema,
-      { temperature: 0.1 }
-    ) as SecurityAuditResult;
-  } catch (err) {
-    console.error("Security parse failed, falling back to defaults.", err);
-    return {
-      score: 100,
-      vulnerabilities: [],
-      recommendations: ["Ensure all environment variables are correctly used."]
-    };
-  }
+      fallback: {
+        score: 100,
+        vulnerabilities: [],
+        recommendations: ["Ensure all environment variables are correctly used."]
+      },
+    },
+    files
+  );
 }

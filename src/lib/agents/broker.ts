@@ -1,5 +1,5 @@
-import { callLLMJson } from "../llm";
 import { Project, brokerResultSchema } from "../types";
+import { runStandardAgent } from "./agent-wrapper";
 
 export type BrokerResult = {
   mergerPotential: Array<{
@@ -43,20 +43,23 @@ Return JSON ONLY:
   "negotiationStrategy": "Define the diplomacy approach."
 }`;
 
-  try {
-    return await callLLMJson(
-      [
+  return runStandardAgent<{ project: Project; existingProjects: Project[] }, BrokerResult>(
+    {
+      config: {
+        name: "Broker",
+        role: "B2B Diplomat & M&A Specialist",
+        temperature: 0.4,
+      },
+      schema: brokerResultSchema,
+      buildMessages: () => [
         { role: "system", content: systemPrompt },
         { role: "user", content: "Identify M&A and vendor negotiation opportunities." }
       ],
-      brokerResultSchema,
-      { temperature: 0.4 }
-    );
-  } catch (err) {
-    console.error("Broker Agent failed:", err);
-    return {
-      mergerPotential: [],
-      negotiationStrategy: "Manual vendor audit required."
-    };
-  }
+      fallback: {
+        mergerPotential: [],
+        negotiationStrategy: "Manual vendor audit required."
+      },
+    },
+    { project, existingProjects }
+  );
 }

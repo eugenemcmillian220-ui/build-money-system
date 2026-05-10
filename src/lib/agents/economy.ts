@@ -1,5 +1,5 @@
-import { callLLMJson } from "../llm";
 import { Project, economyResultSchema } from "../types";
+import { runStandardAgent } from "./agent-wrapper";
 
 export type EconomyResult = {
   agentRoi: number;
@@ -38,22 +38,25 @@ export async function runEconomyAgent(project: Project): Promise<EconomyResult> 
       "exitStrategy": "Description of potential exit paths"
     }`;
 
-  try {
-    return await callLLMJson(
-      [
+  return runStandardAgent<Project, EconomyResult>(
+    {
+      config: {
+        name: "Economy",
+        role: "Financial & Tokenomics Lead",
+        temperature: 0.3,
+      },
+      schema: economyResultSchema,
+      buildMessages: () => [
         { role: "system", content: systemPrompt },
         { role: "user", content: "Analyze monetization and investment potential." }
       ],
-      economyResultSchema,
-      { temperature: 0.3 }
-    );
-  } catch (err) {
-    console.error("Economy Agent failed:", err);
-    return {
-      agentRoi: 1.0,
-      stakingAvailable: false,
-      suggestedStake: 0,
-      estimatedMonthlyRevenue: 0
-    };
-  }
+      fallback: {
+        agentRoi: 1.0,
+        stakingAvailable: false,
+        suggestedStake: 0,
+        estimatedMonthlyRevenue: 0
+      },
+    },
+    project
+  );
 }
