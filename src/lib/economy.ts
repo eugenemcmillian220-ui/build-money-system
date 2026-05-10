@@ -29,16 +29,27 @@ export interface Transaction {
 const MODEL_COST_TABLE: Record<string, number> = {
   // === OpenCode Zen Free-Tier ===
   "big-pickle": 0,
-  "glm-4.7-free": 0,
-  "kimi-k2.5-free": 0,
-  // === OpenCode Zen Paid-Tier ===
+  "minimax-m2.5-free": 0,
+  "gpt-5-nano": 0,
+  "nemotron-3-super-free": 0,
+  "hy3-preview-free": 0,
+  "ling-2.6-flash-free": 0,
+  "trinity-large-preview-free": 0,
+  // === OpenCode Zen Go-Tier (openai-compatible) ===
+  "glm-5": 0.0000022,
+  "glm-5.1": 0.0000022,
   "kimi-k2.5": 0.00003,
-  "kimi-k2": 0.0000025,
-  "kimi-k2-thinking": 0.0000025,
-  "glm-4.7": 0.0000022,
-  "glm-4.6": 0.0000022,
-  "minimax-m2.1": 0.0000012,
-  "qwen3-coder": 0.0000015,
+  "kimi-k2.6": 0.00003,
+  "deepseek-v4-pro": 0.000003,
+  "deepseek-v4-flash": 0.0000003,
+  "mimo-v2.5": 0.0000015,
+  "mimo-v2.5-pro": 0.000003,
+  "qwen3.5-plus": 0.0000015,
+  "qwen3.6-plus": 0.0000015,
+  "hy3-preview": 0.0000015,
+  // === OpenCode Zen Go-Tier (anthropic-compatible — MiniMax only) ===
+  "minimax-m2.5": 0.0000012,
+  "minimax-m2.7": 0.0000015,
 };
 
 /** Default rate when a model isn't in the table */

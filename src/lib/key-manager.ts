@@ -20,6 +20,8 @@ export type ProviderName =
   | "openai"
   | "openrouter"
   | "opencodezen"
+  | "opencodezen_go_openai"
+  | "opencodezen_go_anthropic"
   | "github"
   | "huggingface";
 
@@ -119,6 +121,14 @@ const PROVIDER_ENV_MAP: Record<ProviderName, { multi: string[]; single: string[]
     multi: ["OPENCODE_ZEN_API_KEYS"],
     single: ["OPENCODE_ZEN_API_KEY"],
   },
+  opencodezen_go_openai: {
+    multi: ["OPENCODE_ZEN_API_KEYS"],
+    single: ["OPENCODE_ZEN_API_KEY"],
+  },
+  opencodezen_go_anthropic: {
+    multi: ["OPENCODE_ZEN_API_KEYS"],
+    single: ["OPENCODE_ZEN_API_KEY"],
+  },
   github: {
     multi: ["GITHUB_MODELS_TOKENS"],
     single: ["GITHUB_TOKEN", "GITHUB_ACCESS_TOKEN"],
@@ -182,7 +192,7 @@ class KeyManager {
 
   /** Returns all providers that have at least one key configured. */
   getConfiguredProviders(): ProviderName[] {
-    const all: ProviderName[] = ["groq", "gemini", "openai", "openrouter", "opencodezen", "github", "huggingface"];
+    const all: ProviderName[] = ["groq", "gemini", "openai", "openrouter", "opencodezen", "opencodezen_go_openai", "opencodezen_go_anthropic", "github", "huggingface"];
     return all.filter((p) => this.isConfigured(p));
   }
 
