@@ -243,7 +243,10 @@ Rules:
 
 /**
  * Details half of planSpec: given the outline, produces the detailed
- * components, schema, and fileStructure. Smaller, focused JSON.
+ * components, schema, and fileStructure. Merges with outline into a full
+ * AppSpec. Uses a shorter per-call timeout (18 s) so slow/dead models are
+ * skipped faster within aiComplete's 50 s total budget, improving failover
+ * speed to the template fallback in stages.ts.
  */
 export type AppSpecDetails = Pick<AppSpec, "components" | "schema" | "fileStructure">;
 
@@ -273,10 +276,13 @@ Rules:
         attempt,
         outlineName: outline.name,
       });
+      // Use 18 s per-call timeout (vs 25 s for outline) so that non-responsive
+      // models are detected sooner and aiComplete can try more fallback models
+      // within its 50 s total budget before the stage falls back to a template.
       const content = await callLLM(messages, {
         temperature: attempt === 1 ? 0.5 : 0.3,
         maxTokens: 2048,
-        timeout: 25000,
+        timeout: 18000,
       }, { cache: false });
 
       const parsed = robustParseJson<AppSpecDetails>(content);

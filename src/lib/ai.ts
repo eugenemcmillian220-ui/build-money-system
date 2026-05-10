@@ -35,7 +35,9 @@ export const OPENROUTER_MODELS = [
 ];
 
 export const ZEN_FREE_MODELS = [
-  "deepseek-v4-flash",
+  // "deepseek-v4-flash" was removed — the model no longer exists on the
+  // OpenCode Zen API and returns HTTP 404, causing the detail stage to burn
+  // through the entire aiComplete budget (50 s) before the fallback fires.
   "glm-5",
   "mimo-v2.5",
   "qwen3.5-plus",
@@ -208,8 +210,8 @@ const MODEL_COSTS: Record<string, number> = {
   // OpenRouter free
   "meta-llama/llama-3.3-70b-instruct:free": 0,
   "deepseek/deepseek-chat-v3-0324:free": 0,
-  // ZEN free
-  "deepseek-v4-flash": 0, "glm-5": 0, "mimo-v2.5": 0,
+  // ZEN free (deepseek-v4-flash removed — model no longer exists)
+  "glm-5": 0, "mimo-v2.5": 0,
   "qwen3.5-plus": 0, "kimi-k2.5": 0, "minimax-m2.5": 0,
   // ZEN paid
   "kimi-k2.6": 0.00003, "glm-5.1": 0.00003,
