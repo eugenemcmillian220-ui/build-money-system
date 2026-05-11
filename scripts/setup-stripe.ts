@@ -270,7 +270,7 @@ async function setup() {
 
   console.log("\n\nWEBHOOK CONFIGURATION:");
   console.log("=".repeat(40));
-  console.log("Endpoint URL: https://build-money-system.vercel.app/api/billing/webhook");
+  console.log("Endpoint URL: https://build-money-system-omd8.vercel.app/api/billing/webhook");
   console.log("\nRequired Events:");
   console.log("  - checkout.session.completed");
   console.log("  - customer.subscription.updated");

@@ -11,7 +11,7 @@
 - **Economic Intelligence**: Agent ROI tracking, Surge Pricing, and Staking/RevShare infrastructure.
 - **Autonomous Lifecycle**: Real-time UI refinement (Sculptor), self-healing error diagnosis (Healer), and design-to-code (Figma).
 - **IP & Compliance**: Autonomous patent drafting and custom legal vault generation.
-- **Production**: https://build-money-system.vercel.app
+- **Production**: https://build-money-system-omd8.vercel.app
 - **GitHub**: https://github.com/eugenemcmillian220-ui/build-money-system
 - **Supabase Project**: `rgvjijiafpimfqbbyqtt` (ACTIVE_HEALTHY)
 - **Stripe Account**: `acct_1TIsThIYSZ7ijCe4` (sandbox/test mode)
@@ -166,7 +166,7 @@ SUPABASE_SERVICE_ROLE_KEY=...
 # Stripe
 STRIPE_SECRET_KEY=sk_test_51TIsThIYSZ7ijCe4...
 STRIPE_WEBHOOK_SECRET=whsec_...
-NEXT_PUBLIC_SITE_URL=https://build-money-system.vercel.app
+NEXT_PUBLIC_SITE_URL=https://build-money-system-omd8.vercel.app
 
 # LLM Keys (multi-key rotation pools)
 GROQ_KEYS=gsk_...,gsk_...
