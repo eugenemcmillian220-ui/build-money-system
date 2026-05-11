@@ -171,7 +171,6 @@ export async function runIntentArchitectStage(jobId: string, _baseUrl: string): 
     await setStage(jobId, "intent-architect", { status: "running" }, "Designing architecture plan...");
     const { runArchitectAgent } = await import("@/lib/agents/architect");
     const state = row.state as StageState;
-    const mode = state.mode as string;
     const protocol = state.protocol as string;
     const strategyMarkdown = state.strategyMarkdown as string;
     if (!strategyMarkdown) throw new Error("Intent-scout stage did not produce strategyMarkdown.");
@@ -395,11 +394,12 @@ export async function runGenerateBuildCodeStage(jobId: string, _baseUrl: string)
         "runDeveloperAgent",
       );
 
-      const gen = result as GenerationResult;
-      files = gen.files;
-      projectName = (gen.description || "Untitled").split("\n")[0].slice(0, 100);
-      projectDesc = gen.description || row.prompt;
-      genData = result as unknown as Record<string, unknown>;
+      const devResult = result as GenerationResult;
+      files = devResult.files;
+      projectName = (devResult.description || "Untitled").split("\n")[0].slice(0, 100);
+      projectDesc = devResult.description || row.prompt;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      genData = devResult as any;
     } catch (devErr) {
       logger.warn("Developer agent failed, using template fallback files", {
         jobId,
@@ -926,8 +926,7 @@ export async function runPersistStage(jobId: string, _baseUrl: string): Promise<
     const security = state.security as Record<string, unknown>;
     const economy = state.economy as Record<string, unknown>;
     const legal = state.legal as Record<string, unknown>;
-    const sentinel = state.sentinel as Record<string, unknown>;
-    const simulation = state.simulation as Record<string, unknown>;
+    // sentinel and simulation variables removed as they are unused in the persist stage.
     const broker = state.broker as Record<string, unknown>;
     const launch = state.launch as Record<string, unknown>;
     const qaResult = state.qaResult as OverseerResult | undefined;
@@ -943,12 +942,18 @@ export async function runPersistStage(jobId: string, _baseUrl: string): Promise<
         protocol,
         strategy: state.strategyMarkdown as string,
         visuals: state.visualTokens as ProjectManifest["visuals"],
-        docs: docs as ProjectManifest["docs"],
-        launch: launch as ProjectManifest["launch"],
-        security: security as ProjectManifest["security"],
-        economy: economy as ProjectManifest["economy"],
-        broker: broker as ProjectManifest["broker"],
-        legal: legal as ProjectManifest["legal"],
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        docs: docs as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        launch: launch as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        security: security as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        economy: economy as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        broker: broker as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        legal: legal as any,
         ...(qaResult
           ? {
               qa: {
