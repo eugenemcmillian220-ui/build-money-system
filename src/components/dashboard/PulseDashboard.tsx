@@ -1,19 +1,25 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Activity, AlertCircle, BarChart3, Clock, LayoutGrid, Zap } from "lucide-react";
-import { getErrorClusters, resolveCluster } from "@/lib/actions/pulse-actions";
+import { Activity, AlertCircle, BarChart3, Clock, LayoutGrid, Zap, Cpu } from "lucide-react";
+import { getErrorClusters, resolveCluster, getJobDiagnostics } from "@/lib/actions/pulse-actions";
 import type { ErrorCluster } from "@/lib/actions/pulse-actions.types";
+import type { JobDiagnostic } from "@/lib/actions/pulse-actions";
 
 
 export function PulseDashboard() {
   const [clusters, setClusters] = useState<ErrorCluster[]>([]);
+  const [jobs, setJobs] = useState<JobDiagnostic[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadData() {
-      const data = await getErrorClusters("00000000-0000-0000-0000-000000000000");
-      setClusters(data);
+      const [clusterData, jobData] = await Promise.all([
+        getErrorClusters("00000000-0000-0000-0000-000000000000"),
+        getJobDiagnostics(20),
+      ]);
+      setClusters(clusterData);
+      setJobs(jobData);
       setLoading(false);
     }
     loadData();
@@ -144,6 +150,66 @@ export function PulseDashboard() {
               <div className="text-2xl font-bold text-green-400">10.3%</div>
               <div className="text-xs text-zinc-500 uppercase tracking-widest">Global Manifestation Rate</div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Job Diagnostics Table */}
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold flex items-center gap-2">
+          <Cpu className="w-5 h-5 text-blue-400" />
+          Job Diagnostics
+        </h2>
+        <div className="bg-zinc-900/50 rounded-2xl border border-zinc-800 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-zinc-800 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+                  <th className="px-4 py-3">Job ID</th>
+                  <th className="px-4 py-3">Mode</th>
+                  <th className="px-4 py-3">Blueprint</th>
+                  <th className="px-4 py-3">Phase Reached</th>
+                  <th className="px-4 py-3">Duration</th>
+                  <th className="px-4 py-3">Outcome</th>
+                  <th className="px-4 py-3">Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr><td colSpan={7} className="px-4 py-8 text-center text-zinc-500">Loading...</td></tr>
+                ) : jobs.length === 0 ? (
+                  <tr><td colSpan={7} className="px-4 py-8 text-center text-zinc-500 italic">No job data yet.</td></tr>
+                ) : (
+                  jobs.map((job) => (
+                    <tr key={job.id} className="border-b border-zinc-800/50 hover:bg-zinc-900/50 transition-colors">
+                      <td className="px-4 py-3 font-mono text-xs text-zinc-300">{job.id.slice(0, 8)}</td>
+                      <td className="px-4 py-3">
+                        <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-zinc-800 text-zinc-300 border border-zinc-700">
+                          {job.mode}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-zinc-400 max-w-[150px] truncate">{job.blueprint}</td>
+                      <td className="px-4 py-3 text-xs font-mono text-zinc-400">{job.phaseReached}</td>
+                      <td className="px-4 py-3 text-xs font-mono text-zinc-400">
+                        {job.durationMs !== null ? `${(job.durationMs / 1000).toFixed(1)}s` : "—"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded border ${
+                          job.outcome === "success" ? "bg-emerald-900/50 text-emerald-400 border-emerald-800" :
+                          job.outcome === "fallback" ? "bg-amber-900/50 text-amber-400 border-amber-800" :
+                          job.outcome === "timeout" ? "bg-orange-900/50 text-orange-400 border-orange-800" :
+                          job.outcome === "failed" ? "bg-red-900/50 text-red-400 border-red-800" :
+                          "bg-blue-900/50 text-blue-400 border-blue-800"
+                        }`}>
+                          {job.outcome}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-zinc-500">{new Date(job.createdAt).toLocaleString()}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

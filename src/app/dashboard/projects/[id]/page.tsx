@@ -15,8 +15,11 @@ import {
   ChevronRight,
   TrendingUp,
   AlertCircle,
+  AlertTriangle,
+  XCircle,
   Users
 } from "lucide-react";
+import { evaluateLaunchReadiness } from "@/lib/launch-readiness";
 import Link from "next/link";
 
 export default function ProjectDetailsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -59,6 +62,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
   }
 
   const manifest = project.manifest;
+  const readiness = evaluateLaunchReadiness(project);
 
   const tabs = [
     { id: "strategy", name: "Strategy", icon: Globe },
@@ -90,8 +94,41 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
               <span className="px-3 py-1 bg-brand-500 text-black text-[10px] font-black uppercase tracking-widest rounded-full">
                 {manifest?.mode || "Standard"}
               </span>
+              <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-full border ${
+                readiness.status === "launch_ready"
+                  ? "bg-green-500/10 text-green-400 border-green-500/20"
+                  : readiness.status === "review_required"
+                    ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                    : "bg-red-500/10 text-red-400 border-red-500/20"
+              }`}>
+                {readiness.label}
+              </span>
             </div>
             <p className="text-xl text-muted-foreground font-bold italic max-w-2xl">{project.description}</p>
+            {readiness.reasons.length > 0 && (
+              <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4 max-w-2xl">
+                <p className="text-[10px] font-black uppercase tracking-widest text-amber-400 mb-2 flex items-center gap-2">
+                  {readiness.status === "not_launch_ready" ? <XCircle size={12} /> : <AlertTriangle size={12} />}
+                  Why not launch-ready?
+                </p>
+                <ul className="space-y-1">
+                  {readiness.reasons.map((r, i) => (
+                    <li key={i} className="text-xs text-amber-200/80 flex items-start gap-2">
+                      <span className="text-amber-400 mt-0.5">•</span>
+                      <span>
+                        {r}
+                        {r.includes("Security Score") && (
+                          <button onClick={() => setActiveTab("security")} className="ml-1 text-amber-400 hover:underline">View Security →</button>
+                        )}
+                        {r.includes("QA Audit") && (
+                          <button onClick={() => setActiveTab("qa")} className="ml-1 text-amber-400 hover:underline">View QA →</button>
+                        )}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
 
           <div className="flex gap-4">
@@ -105,14 +142,22 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                 <ChevronRight size={14} />
               </a>
             )}
-            <a 
-              href={project.githubRepo} 
-              target="_blank" 
-              className="px-6 py-3 bg-white/5 border border-white/10 text-white rounded-xl font-black uppercase text-xs tracking-widest hover:bg-white/10 transition-colors flex items-center gap-2"
-            >
-              <Code2 size={14} />
-              Repository
-            </a>
+            {project.githubRepo ? (
+              <a 
+                href={project.githubRepo} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="px-6 py-3 bg-white/5 border border-white/10 text-white rounded-xl font-black uppercase text-xs tracking-widest hover:bg-white/10 transition-colors flex items-center gap-2"
+              >
+                <Code2 size={14} />
+                Repository
+              </a>
+            ) : (
+              <div className="px-6 py-3 bg-white/5 border border-white/10 text-white/30 rounded-xl font-black uppercase text-xs tracking-widest flex items-center gap-2 cursor-not-allowed" title="Repository not yet generated — run the build pipeline to create it.">
+                <Code2 size={14} />
+                Repo Pending
+              </div>
+            )}
           </div>
         </header>
 
@@ -409,6 +454,11 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                       {manifest?.legal?.status || "Drafted"}
                     </span>
                   </div>
+                  {manifest?.legal?.patentDraft && manifest.legal.patentDraft.includes("[PLACEHOLDER]") && (
+                    <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-[10px] font-bold text-amber-300">
+                      This is a generated draft containing placeholder sections. Have it reviewed by a licensed attorney before filing.
+                    </div>
+                  )}
                   <div className="bg-black/40 rounded-2xl p-6 font-mono text-[10px] whitespace-pre-wrap text-white/60 border border-white/5 h-[300px] overflow-y-auto custom-scrollbar">
                     {manifest?.legal?.patentDraft || "Legal drafting in progress."}
                   </div>

@@ -931,12 +931,17 @@ export async function runPersistStage(jobId: string, _baseUrl: string): Promise<
     const launch = state.launch as Record<string, unknown>;
     const qaResult = state.qaResult as OverseerResult | undefined;
 
+    const usedFallback = state.usedFallback as boolean | undefined;
+    const existingProjectId = (state.projectId as string) || row.project_id;
+
     const projectData: Partial<Project> = {
+      ...(existingProjectId ? { id: existingProjectId } : {}),
       name: projectName,
       description: projectDesc,
       files,
       orgId: row.org_id ?? undefined,
       prompt: row.prompt,
+      metadata: usedFallback ? { specSource: "template_fallback" } : undefined,
       manifest: {
         mode,
         protocol,

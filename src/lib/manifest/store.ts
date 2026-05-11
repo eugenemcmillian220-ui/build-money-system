@@ -1,6 +1,8 @@
 import "server-only";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { ManifestLog } from "@/lib/types";
+import { saveProjectDB } from "@/lib/supabase/db";
+import type { Project } from "@/lib/types";
 
 export type ManifestStage =
   | "queued"
@@ -156,6 +158,44 @@ export async function failManifestation(id: string, message: string): Promise<vo
     }
   }
 
+  // If no project was created before the failure, create a draft project so the
+  // user always sees an entry on /projects. This ensures that even early-stage
+  // failures (e.g. plan-outline timeout) still produce a visible record.
+  let projectId = row?.project_id ?? null;
+  if (!projectId && row) {
+    try {
+      const state = (row.state ?? {}) as Record<string, unknown>;
+      const mode = (state.mode as string) || ((row.options as Record<string, unknown>)?.mode as string) || "universal";
+      const draftProject = await saveProjectDB({
+        id: crypto.randomUUID(),
+        files: (state.files as Record<string, string>) || {},
+        description: row.prompt,
+        prompt: row.prompt,
+        orgId: row.org_id ?? undefined,
+        createdAt: new Date().toISOString(),
+        manifest: {
+          mode,
+          protocol: (state.protocol as string) || "unknown",
+          strategy: (state.strategyMarkdown as string) || undefined,
+          specSource: "error_fallback",
+        },
+        metadata: { specSource: "error_fallback", failedAtStage: row.current_stage },
+      } as Project);
+      projectId = draftProject.id;
+      logs.push({
+        ts: new Date().toISOString(),
+        level: "info" as const,
+        text: `Draft project ${projectId} created despite pipeline failure.`,
+      });
+    } catch (projErr) {
+      logs.push({
+        ts: new Date().toISOString(),
+        level: "warn" as const,
+        text: `Failed to create draft project on error: ${(projErr as Error).message}`,
+      });
+    }
+  }
+
   await supabaseAdmin
     .from("manifestations")
     .update({
@@ -164,6 +204,7 @@ export async function failManifestation(id: string, message: string): Promise<vo
       error: message,
       logs,
       updated_at: new Date().toISOString(),
+      ...(projectId ? { project_id: projectId } : {}),
     })
     .eq("id", id);
 }

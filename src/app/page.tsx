@@ -107,7 +107,7 @@ const HOW_IT_WORKS = [
   {
     step: "02",
     title: "Swarm engineers it",
-    body: "Developer, SQL Forge, Sentinel and 20+ specialists build, harden and test every layer in parallel.",
+    body: "Developer, SQL Forge, Sentinel and 22+ specialists build, harden and test every layer in parallel.",
   },
   {
     step: "03",
@@ -118,7 +118,7 @@ const HOW_IT_WORKS = [
 
 const STATS = [
   { value: "25", label: "Autonomous Phases" },
-  { value: "22", label: "Specialised Agents" },
+  { value: "25", label: "Specialised Agents" },
   { value: "<60s", label: "First Production Build" },
   { value: "100%", label: "RLS & Security Audited" },
 ];

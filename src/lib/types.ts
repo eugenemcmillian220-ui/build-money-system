@@ -107,6 +107,7 @@ export interface ProjectManifest {
   mode: string;
   protocol: string;
   strategy?: string;
+  specSource?: "template_fallback" | "error_fallback" | "llm";
   docs?: ChroniclerResult;
   simulation?: PhantomResult;
   launch?: HeraldResult;

@@ -1,6 +1,8 @@
 "use client";
 
 import { Project } from "@/lib/types";
+import { evaluateLaunchReadiness } from "@/lib/launch-readiness";
+import { formatProjectDate } from "@/lib/format-date";
 import Link from "next/link";
 import {
 
@@ -9,7 +11,9 @@ import {
   Trash2, 
   TrendingUp,
   BarChart3,
-  ShieldCheck
+  ShieldCheck,
+  AlertTriangle,
+  XCircle,
 } from "lucide-react";
 
 interface ProjectListProps {
@@ -107,13 +111,32 @@ export function ProjectList({ projects, onDelete }: ProjectListProps) {
                   <span>QA: {project.manifest.qa.status}</span>
                 </div>
               )}
-              {project.manifest?.launch && (
-                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-brand-400">
-                  <TrendingUp size={12} />
-                  <span>Launch Ready</span>
-                </div>
-              )}
-              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{new Date(project.createdAt).toLocaleDateString()}</span>
+              {(() => {
+                const readiness = evaluateLaunchReadiness(project);
+                if (readiness.status === "launch_ready") {
+                  return (
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-green-400">
+                      <TrendingUp size={12} />
+                      <span>Launch Ready</span>
+                    </div>
+                  );
+                }
+                if (readiness.status === "review_required") {
+                  return (
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-amber-400" title={readiness.reasons.join(" ")}>
+                      <AlertTriangle size={12} />
+                      <span>Review Required</span>
+                    </div>
+                  );
+                }
+                return (
+                  <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-red-400" title={readiness.reasons.join(" ")}>
+                    <XCircle size={12} />
+                    <span>Not Launch Ready</span>
+                  </div>
+                );
+              })()}
+              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{formatProjectDate(project.createdAt)}</span>
             </div>
           </div>
         </div>
