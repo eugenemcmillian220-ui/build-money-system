@@ -1,6 +1,8 @@
 import "server-only";
 import { traced } from "@/lib/telemetry";
-import { Project } from "@/lib/types";
+import { Project, GenerationResult, type ProjectManifest } from "@/lib/types";
+import type { AppSpecOutline } from "@/lib/llm";
+import type { OverseerResult } from "@/lib/agents/overseer";
 import { saveProjectDB } from "@/lib/supabase/db";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { monetizationEngine } from "@/lib/monetization";
@@ -312,7 +314,7 @@ export async function runPlanDetailsStage(jobId: string, _baseUrl: string): Prom
     await setStage(jobId, "plan-details", { status: "running" }, "Generating component details...");
     const state = row.state as StageState;
     const finalPrompt = state.finalPrompt as string;
-    const outline = state.outline as any;
+    const outline = state.outline as AppSpecOutline;
     if (!outline) throw new Error("Plan-outline stage did not produce outline.");
 
     const stageStart = Date.now();
@@ -393,9 +395,10 @@ export async function runGenerateBuildCodeStage(jobId: string, _baseUrl: string)
         "runDeveloperAgent",
       );
 
-      files = (result as any).files;
-      projectName = ((result as any).description || "Untitled").split("\n")[0].slice(0, 100);
-      projectDesc = (result as any).description || row.prompt;
+      const gen = result as GenerationResult;
+      files = gen.files;
+      projectName = (gen.description || "Untitled").split("\n")[0].slice(0, 100);
+      projectDesc = gen.description || row.prompt;
       genData = result as unknown as Record<string, unknown>;
     } catch (devErr) {
       logger.warn("Developer agent failed, using template fallback files", {
@@ -521,7 +524,7 @@ export async function runGenerateBuildFixStage(jobId: string, _baseUrl: string):
         mode: (state.mode as string) || "universal",
         protocol: (state.protocol as string) || "unknown",
         strategy: state.strategyMarkdown as string,
-        visuals: state.visualTokens as any,
+        visuals: state.visualTokens as ProjectManifest["visuals"],
       },
     } as Project);
 
@@ -927,7 +930,7 @@ export async function runPersistStage(jobId: string, _baseUrl: string): Promise<
     const simulation = state.simulation as Record<string, unknown>;
     const broker = state.broker as Record<string, unknown>;
     const launch = state.launch as Record<string, unknown>;
-    const qaResult = state.qaResult as any;
+    const qaResult = state.qaResult as OverseerResult | undefined;
 
     const projectData: Partial<Project> = {
       name: projectName,
@@ -939,21 +942,21 @@ export async function runPersistStage(jobId: string, _baseUrl: string): Promise<
         mode,
         protocol,
         strategy: state.strategyMarkdown as string,
-        visuals: state.visualTokens as any,
-        docs: docs as any,
-        launch: launch as any,
-        security: security as any,
-        economy: economy as any,
-        broker: broker as any,
-        legal: legal as any,
+        visuals: state.visualTokens as ProjectManifest["visuals"],
+        docs: docs as ProjectManifest["docs"],
+        launch: launch as ProjectManifest["launch"],
+        security: security as ProjectManifest["security"],
+        economy: economy as ProjectManifest["economy"],
+        broker: broker as ProjectManifest["broker"],
+        legal: legal as ProjectManifest["legal"],
         ...(qaResult
           ? {
               qa: {
                 status: qaResult.status === "pass" ? "pass" : "fail",
                 lastRunAt: new Date().toISOString(),
                 errors: (qaResult.testSteps || [])
-                  .filter((s: any) => s.result === "failure")
-                  .map((s: any) => s.error || s.step || "unknown"),
+                  .filter((s: OverseerResult["testSteps"][number]) => s.result === "failure")
+                  .map((s: OverseerResult["testSteps"][number]) => s.error || s.step || "unknown"),
                 reportUrl: "/dashboard/qa/" + crypto.randomUUID(),
               },
             }
