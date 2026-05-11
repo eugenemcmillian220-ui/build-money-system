@@ -19,6 +19,9 @@ curl -s "https://api.supabase.com/v1/projects/<PROJECT_REF>/api-keys" \
   -H "Authorization: Bearer $SUPABASE_MANAGEMENT_TOKEN"
 ```
 
+### Production Deployment
+The production URL is `https://build-money-system-omd8.vercel.app`. The Supabase project ref is `rgvjijiafpimfqbbyqtt`. You can test against production without running a local dev server.
+
 ### Devin Secrets Needed
 - `SUPABASE_MANAGEMENT_TOKEN` — Supabase Management API token (for querying/creating tables)
 - At least one of: `OPENCODE_ZEN_API_KEY`, `GITHUB_TOKEN`, `HF_TOKEN`
@@ -76,7 +79,7 @@ First page load may take 20-30 seconds to compile.
 ## Testing Flow
 
 ### 1. Login
-- Navigate to `http://localhost:3000/login`
+- Navigate to `http://localhost:3000/login` (local) or `https://build-money-system-omd8.vercel.app/login` (production)
 - The middleware redirects `/dashboard` to `/login` if unauthenticated
 - Non-admin accounts: use password mode
 - Admin accounts (in `src/lib/admin-emails.ts`): forced to OTP mode, need user to provide code
@@ -112,48 +115,32 @@ First page load may take 20-30 seconds to compile.
 
 To confirm timeout changes are active:
 1. Submit a prompt and watch for the scout agent timeout message
-2. The timeout value in the message should match `AGENT_CALL_TIMEOUT_MS` in `src/lib/manifest/stages.ts`
-3. Example: "Scout agent failed (runScoutAgent timed out after 55000ms)" confirms `AGENT_CALL_TIMEOUT_MS = 55_000`
-4. The pipeline should recover gracefully using a fallback strategy
+2. The timeout value in the message should match `AGENT_CALL_TIMEOUT_MS` in your `.env.local`
+3. Default is 40000ms (40 seconds)
 
 ## Key Files
 
-| File | Purpose |
-|------|--------|
-| `src/app/api/manifest/start/route.ts` | Entry point for manifest pipeline |
-| `src/app/api/manifest/route.ts` | Main manifest route (maxDuration=280) |
-| `src/lib/manifest/stages.ts` | Stage budgets (STAGE_BUDGET_MS, AGENT_CALL_TIMEOUT_MS) |
-| `src/lib/pipeline-timeout.ts` | Default pipeline budget (DEFAULT_BUDGET_MS) |
-| `src/lib/jobs.ts` | Job tracking service (manifest_jobs table) |
-| `src/lib/with-timeout.ts` | Timeout utility with TimeoutError |
-| `src/lib/admin-emails.ts` | Admin email list (forces OTP login) |
-| `src/hooks/use-manifestation.ts` | Frontend hook that calls /api/manifest/start and polls status |
-| `src/components/dashboard/AiTerminal.tsx` | Terminal UI component |
-| `src/components/dashboard/ManifestWorkspace.tsx` | Workspace with code panel |
+- `src/lib/manifest/stages.ts` — Pipeline stage definitions with `AGENT_CALL_TIMEOUT_MS` and `REFRESH_INTERVAL_MS`
+- `src/lib/manifest/store.ts` — Zustand store for manifest state management
+- `src/app/api/manifest/route.ts` — Main manifest API endpoint
+- `src/app/api/jobs/[jobId]/status/route.ts` — Job status endpoint
+- `src/app/api/jobs/active/route.ts` — Active job endpoint
+- `src/lib/launch-readiness.ts` — Launch readiness evaluation logic
+- `src/lib/format-date.ts` — Safe date formatting utility
+- `src/components/dashboard/PulseDashboard.tsx` — Sovereign Pulse with Job Diagnostics table
+- `src/app/dashboard/qa/page.tsx` — QA Audit page with contextual empty states
 
-## Verifying Supabase Schema
+## Projects Table Schema
 
-```bash
-curl -s -X POST "https://api.supabase.com/v1/projects/<PROJECT_REF>/database/query" \
-  -H "Authorization: Bearer $SUPABASE_MANAGEMENT_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"query": "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '\''manifest_jobs'\'' ORDER BY ordinal_position;"}'
-```
+When inserting test data, the `projects` table requires these NOT NULL columns:
+- `id` (uuid) — use `gen_random_uuid()`
+- `name` (varchar)
+- `prompt` (text) — cannot be null
+- `files` (jsonb) — use `'{}'::jsonb`
+- `created_at` (timestamptz)
+- `updated_at` (timestamptz) — has default
 
-Expected: 11 columns (id, user_id, prompt, current_stage, progress, status, state_snapshot, resume_token, error_message, created_at, updated_at).
-
-## TypeScript Verification
-
-```bash
-npx tsc --noEmit  # Should exit 0 with no errors
-```
-
-## Tips
-
-- The app's first compile after `npm run dev` can take 20-30s per page — be patient
-- OpenTelemetry warnings during compilation are expected and harmless
-- The Codeac CI check might fail due to their service issues — not a code problem
-- To log out, click the LOGOUT link at the bottom of the left sidebar
-- When switching accounts, log out first then navigate to `/login`
-- The pipeline typically completes in 1-2 minutes locally for simple prompts
-- Admin accounts have unlimited credits and skip credit reservation
+Optional but important for testing:
+- `org_id` (uuid) — links to organization
+- `manifest` (jsonb) — contains security scores, QA status, legal data, etc.
+- `github_url` (text) — if set, the "Repository" button links to it; if null, shows "REPO PENDING"
