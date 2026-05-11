@@ -33,7 +33,7 @@ async function deploy() {
     files,
     projectName,
     {
-      NEXT_PUBLIC_SITE_URL: "https://build-money-system.vercel.app",
+      NEXT_PUBLIC_SITE_URL: "https://build-money-system-omd8.vercel.app",
     }
   );
 

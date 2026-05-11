@@ -7,7 +7,7 @@ const VERCEL_TEAM_ID = process.env.VERCEL_TEAM_ID;
 const PROJECT_NAME = "aetheris-ai-studio";
 
 const PLACEHOLDERS: Record<string, string> = {
-  NEXT_PUBLIC_SITE_URL: "https://aetheris-ai-studio.vercel.app",
+  NEXT_PUBLIC_SITE_URL: "https://build-money-system-omd8.vercel.app",
   NEXT_PUBLIC_SUPABASE_URL: "https://your-project.supabase.co",
   NEXT_PUBLIC_SUPABASE_ANON_KEY: "REPLACE_WITH_SUPABASE_ANON_KEY",
   SUPABASE_SERVICE_ROLE_KEY: "REPLACE_WITH_SUPABASE_SERVICE_ROLE_KEY",

@@ -157,7 +157,7 @@ export async function signup(formData: FormData) {
     email,
     password,
     options: {
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "https://build-money-system.vercel.app"}/auth/callback`,
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "https://build-money-system-omd8.vercel.app"}/auth/callback`,
     },
   });
 
