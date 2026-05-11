@@ -95,16 +95,46 @@ const PHASE_GROUPS: PhaseCategory[] = [
   },
 ];
 
+type JobIndicator = "running" | "error" | "complete" | null;
+
 export function Sidebar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
+  const [jobIndicator, setJobIndicator] = useState<JobIndicator>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setEmail(data.user?.email ?? null);
     });
+  }, []);
+
+  // Poll for active job status to show indicator
+  useEffect(() => {
+    let mounted = true;
+    async function checkActiveJob() {
+      try {
+        const res = await fetch("/api/jobs/active");
+        if (!res.ok || !mounted) return;
+        const data = await res.json();
+        if (!data || !mounted) { setJobIndicator(null); return; }
+        if (data.status === "pending" || data.status === "running") {
+          setJobIndicator("running");
+        } else if (data.status === "error") {
+          setJobIndicator("error");
+        } else if (data.status === "complete") {
+          setJobIndicator("complete");
+        } else {
+          setJobIndicator(null);
+        }
+      } catch {
+        if (mounted) setJobIndicator(null);
+      }
+    }
+    checkActiveJob();
+    const interval = setInterval(checkActiveJob, 5000);
+    return () => { mounted = false; clearInterval(interval); };
   }, []);
 
   const admin = isAdminEmail(email);
@@ -167,6 +197,7 @@ export function Sidebar() {
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href;
+                const showIndicator = item.name === "AI Terminal" && jobIndicator;
                 return (
                   <Link
                     key={item.name}
@@ -179,6 +210,16 @@ export function Sidebar() {
                   >
                     <Icon size={18} />
                     {item.name}
+                    {showIndicator && (
+                      <span
+                        className={`ml-auto w-2.5 h-2.5 rounded-full ${
+                          jobIndicator === "running" ? "bg-green-500 animate-pulse" :
+                          jobIndicator === "error" ? "bg-red-500" :
+                          "bg-blue-500"
+                        }`}
+                        title={jobIndicator === "running" ? "Job running" : jobIndicator === "error" ? "Job failed" : "Job complete"}
+                      />
+                    )}
                   </Link>
                 );
               })}

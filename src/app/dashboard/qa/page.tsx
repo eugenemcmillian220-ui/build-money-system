@@ -91,7 +91,18 @@ export default function QADashboard() {
           {projects.filter(p => p.manifest?.qa).length === 0 && (
             <div className="py-20 text-center bg-white/5 rounded-3xl border border-white/10">
               <ShieldCheck className="mx-auto text-white/20 mb-4" size={64} />
-              <p className="text-muted-foreground font-medium italic">No QA reports generated yet. Manifest a project to trigger The Overseer.</p>
+              {projects.length === 0 ? (
+                <p className="text-muted-foreground font-medium italic">No projects exist yet. Manifest a project to trigger The Overseer.</p>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-muted-foreground font-medium italic">
+                    {projects.length} project(s) found, but no QA reports have been generated yet.
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Run QA audits from each project&apos;s detail page to populate this dashboard.
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -61,7 +61,7 @@ export default function BlueprintsPage() {
               <span className="text-brand-400 font-black">03</span>
             </div>
             <h3 className="text-sm font-black uppercase tracking-widest">Manifest Empire</h3>
-            <p className="text-xs text-muted-foreground font-bold italic">Watch as 17 agents engineer, secure, and legalize your business in under 60 seconds.</p>
+            <p className="text-xs text-muted-foreground font-bold italic">Watch as 25 agents engineer, secure, and legalize your business in under 60 seconds.</p>
           </div>
         </section>
 
@@ -101,7 +101,7 @@ export default function BlueprintsPage() {
             </div>
             <div className="space-y-4">
               <p className="text-sm font-black text-brand-400 uppercase tracking-widest border-b border-brand-400/20 pb-2">Elite Mode</p>
-              <p className="text-xs text-muted-foreground italic font-bold">Maximum Dominance. Outcome includes billing engines, governance logs, IP vaults, and 17-agent hardening.</p>
+              <p className="text-xs text-muted-foreground italic font-bold">Maximum Dominance. Outcome includes billing engines, governance logs, IP vaults, and 25-agent hardening.</p>
               <ul className="text-[10px] space-y-1 text-white/60 font-mono">
                 <li>• Stripe / Crypto Billing</li>
                 <li>• Legal Patent Drafts</li>

@@ -31,12 +31,52 @@ interface StatusResponse {
 const POLL_INTERVAL_MS = 1500;
 const MAX_POLL_ATTEMPTS = 600;
 
+interface ActiveJobResponse {
+  jobId: string;
+  phase: string;
+  status: "pending" | "running" | "complete" | "error";
+  projectId: string | null;
+  error: string | null;
+  liveOutput: StatusLog[];
+  updatedAt: string;
+}
+
 export function ManifestWorkspace({ orgId }: ManifestWorkspaceProps) {
   const [files, setFiles] = useState<Record<string, string> | null>(null);
   const [currentStage, setCurrentStage] = useState("idle");
   const [spec, setSpec] = useState<{ name?: string; featureCount?: number } | null>(null);
   const [codeExpanded, setCodeExpanded] = useState(true);
+  const [_lastJobResult, setLastJobResult] = useState<{ status: "complete" | "error"; projectId: string | null; error: string | null } | null>(null);
   const pollingRef = useRef(false);
+  const restoredRef = useRef(false);
+
+  // Restore live panel state on mount from server
+  useEffect(() => {
+    if (restoredRef.current) return;
+    restoredRef.current = true;
+
+    async function restoreActiveJob() {
+      try {
+        const res = await fetch("/api/jobs/active");
+        if (!res.ok) return;
+        const data: ActiveJobResponse | null = await res.json();
+        if (!data) return;
+
+        if (data.status === "complete") {
+          setLastJobResult({ status: "complete", projectId: data.projectId, error: null });
+          setCurrentStage("complete");
+        } else if (data.status === "error") {
+          setLastJobResult({ status: "error", projectId: data.projectId, error: data.error });
+          setCurrentStage("error");
+        } else {
+          setCurrentStage(data.phase);
+        }
+      } catch {
+        // Failed to restore — stay idle
+      }
+    }
+    restoreActiveJob();
+  }, []);
 
   const pollForFiles = useCallback(async (
     jobId: string,

@@ -205,11 +205,13 @@ export function LiveCodePanel({ files, currentStage, spec }: LiveCodePanelProps)
         <p className="text-xs text-white/20 max-w-xs">
           {currentStage === "error"
             ? "Manifestation failed. Check the terminal for details."
-            : currentStage === "queued" || currentStage === "intent-classify" || currentStage === "intent-scout" || currentStage === "intent-architect" || currentStage === "intent" || currentStage === "plan-outline" || currentStage === "plan-details" || currentStage === "generate-plan"
-              ? `${stageLabel}... Code will appear here once generation begins.`
-              : currentStage === "generate-build-code" || currentStage === "generate-build-fix" || currentStage === "generate-build" || currentStage === "generate"
-                ? "Generating code... Files will appear here shortly."
-                : "Waiting for manifestation to start..."}
+            : currentStage === "complete"
+              ? "Last job completed. View in Projects."
+              : currentStage === "queued" || currentStage === "intent-classify" || currentStage === "intent-scout" || currentStage === "intent-architect" || currentStage === "intent" || currentStage === "plan-outline" || currentStage === "plan-details" || currentStage === "generate-plan"
+                ? `${stageLabel}... Code will appear here once generation begins.`
+                : currentStage === "generate-build-code" || currentStage === "generate-build-fix" || currentStage === "generate-build" || currentStage === "generate"
+                  ? "Generating code... Files will appear here shortly."
+                  : "Waiting for manifestation to start..."}
         </p>
         {spec?.name && (
           <p className="text-xs text-brand-400/60 mt-4 font-bold italic">
