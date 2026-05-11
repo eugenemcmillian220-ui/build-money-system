@@ -17,7 +17,7 @@ export interface Transaction {
  * Per-model cost rates (credits per token).
  * 
  * Pricing tiers:
- * - free:   0 credits (free-tier models on OpenRouter, Cloudflare)
+ * - free:   0 credits (free-tier models on OpenCode Zen, GitHub, Hugging Face)
  * - micro:  0.000005 credits/token (~$0.01/1M tokens equivalent)
  * - small:  0.00001  credits/token (~$0.02/1M tokens)
  * - medium: 0.00005  credits/token (~$0.10/1M tokens)

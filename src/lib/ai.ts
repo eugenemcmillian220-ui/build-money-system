@@ -15,36 +15,8 @@ import {
 } from "./providers";
 
 // ---------------------------------------------------------------------------
-// Model catalogues per provider
+// Model catalogues per provider (OpenCode Zen + GitHub + Hugging Face ONLY)
 // ---------------------------------------------------------------------------
-
-export const GROQ_MODELS = [
-  "llama-3.3-70b-versatile",
-  "llama-3.1-8b-instant",
-  "mixtral-8x7b-32768",
-  "gemma2-9b-it",
-];
-
-export const GEMINI_MODELS = [
-  "gemini-2.0-flash",
-  "gemini-2.5-flash-preview-04-17",
-  "gemini-1.5-flash",
-  "gemini-1.5-pro",
-];
-
-export const OPENAI_MODELS = [
-  "gpt-4o-mini",
-  "gpt-4.1-mini",
-  "gpt-4o",
-];
-
-export const OPENROUTER_MODELS = [
-  "meta-llama/llama-3.3-70b-instruct:free",
-  "deepseek/deepseek-chat-v3-0324:free",
-  "qwen/qwen3-8b:free",
-  "mistralai/mistral-7b-instruct:free",
-  "google/gemma-3-12b-it:free",
-];
 
 export { ZEN_FREE_MODELS_NEW as ZEN_FREE_MODELS_V2 };
 export { ZEN_GO_OPENAI_MODELS, ZEN_GO_ANTHROPIC_MODELS, ZEN_GO_ALL_MODELS };
@@ -95,10 +67,6 @@ export const HF_FREE_MODELS = [
 ];
 
 export const ALL_FREE_MODELS: Record<ProviderName, string[]> = {
-  groq: GROQ_MODELS,
-  gemini: GEMINI_MODELS,
-  openai: OPENAI_MODELS,
-  openrouter: OPENROUTER_MODELS,
   opencodezen: [...ZEN_FREE_MODELS],
   opencodezen_go_openai: [...ZEN_GO_OPENAI_MODELS],
   opencodezen_go_anthropic: [...ZEN_GO_ANTHROPIC_MODELS],
@@ -113,49 +81,13 @@ export const ALL_FREE_MODELS: Record<ProviderName, string[]> = {
 interface ProviderConfig {
   getUrl: (model?: string) => string;
   getHeaders: (apiKey: string) => Record<string, string>;
-  // Some providers (Gemini) use a different request body shape
   transformBody?: (body: Record<string, unknown>, model: string) => Record<string, unknown>;
-  // Some providers (Gemini) have a different response shape
   extractContent?: (data: Record<string, unknown>) => string | null;
   supportsStream: boolean;
+
 }
 
 const PROVIDER_CONFIGS: Record<ProviderName, ProviderConfig> = {
-  groq: {
-    getUrl: () => "https://api.groq.com/openai/v1/chat/completions",
-    getHeaders: (apiKey) => ({
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    }),
-    supportsStream: true,
-  },
-  gemini: {
-    getUrl: (/* model set below per-call */) =>
-      "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-    getHeaders: (apiKey) => ({
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    }),
-    supportsStream: true,
-  },
-  openai: {
-    getUrl: () => "https://api.openai.com/v1/chat/completions",
-    getHeaders: (apiKey) => ({
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    }),
-    supportsStream: true,
-  },
-  openrouter: {
-    getUrl: () => "https://openrouter.ai/api/v1/chat/completions",
-    getHeaders: (apiKey) => ({
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-      "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL || "https://build-money-system-omd8.vercel.app",
-      "X-Title": "Sovereign Forge OS",
-    }),
-    supportsStream: true,
-  },
   opencodezen: {
     getUrl: () =>
       process.env.OPENCODE_ZEN_API_URL || "https://opencode.ai/zen/v1/chat/completions",
@@ -231,20 +163,6 @@ export interface AIResult {
 }
 
 const MODEL_COSTS: Record<string, number> = {
-  // Groq (very cheap)
-  "llama-3.3-70b-versatile": 0.0000006,
-  "llama-3.1-8b-instant": 0.00000005,
-  "mixtral-8x7b-32768": 0.0000006,
-  // Gemini
-  "gemini-2.0-flash": 0.0000001,
-  "gemini-1.5-flash": 0.0000001,
-  "gemini-1.5-pro": 0.00000125,
-  // OpenAI
-  "gpt-4o-mini": 0.00000015,
-  "gpt-4.1-mini": 0.0000004,
-  // OpenRouter free
-  "meta-llama/llama-3.3-70b-instruct:free": 0,
-  "deepseek/deepseek-chat-v3-0324:free": 0,
   // ZEN free tier
   "big-pickle": 0, "minimax-m2.5-free": 0, "gpt-5-nano": 0,
   "nemotron-3-super-free": 0, "hy3-preview-free": 0,
@@ -302,12 +220,12 @@ function buildProviderOrder(preferred?: ProviderName): Array<{ provider: Provide
   const configured = keyManager.getConfiguredProviders();
   if (configured.length === 0) {
     throw new Error(
-      "No AI providers configured. Set at least one of: GROQ_API_KEY, GEMINI_API_KEY, OPENAI_API_KEY, OPENROUTER_API_KEY, OPENCODE_ZEN_API_KEY, GITHUB_TOKEN, or HF_TOKEN"
+      "No AI providers configured. Set at least one of: OPENCODE_ZEN_API_KEY, GITHUB_TOKEN, or HF_TOKEN"
     );
   }
 
-  // Preferred order for speed/cost: Groq (fastest) → Gemini flash → OpenAI mini → OpenRouter free → ZEN → GitHub → HF
-  const DEFAULT_PRIORITY: ProviderName[] = ["groq", "gemini", "openai", "openrouter", "opencodezen", "opencodezen_go_openai", "opencodezen_go_anthropic", "github", "huggingface"];
+  // Preferred order: OpenCode Zen Go (fastest) → Zen free → GitHub → HF
+  const DEFAULT_PRIORITY: ProviderName[] = ["opencodezen_go_openai", "opencodezen_go_anthropic", "opencodezen", "github", "huggingface"];
 
   const scored = configured.map((p) => {
     const s = getStats(p);
