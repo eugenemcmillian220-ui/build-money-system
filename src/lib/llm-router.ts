@@ -2,10 +2,6 @@ import { ChatMessage, AgentConfig } from "./types";
 import { keyManager, ProviderName } from "./key-manager";
 import {
   aiComplete,
-  GROQ_MODELS,
-  GEMINI_MODELS,
-  OPENAI_MODELS,
-  OPENROUTER_MODELS,
   ZEN_FREE_MODELS,
   GITHUB_FREE_MODELS,
   HF_FREE_MODELS,
@@ -27,10 +23,6 @@ export interface ProviderRequest {
 }
 
 export const FREE_MODELS: Record<LLMProvider, string[]> = {
-  groq: GROQ_MODELS,
-  gemini: GEMINI_MODELS,
-  openai: OPENAI_MODELS,
-  openrouter: OPENROUTER_MODELS,
   opencodezen: [...ZEN_FREE_MODELS],
   opencodezen_go_openai: [...ZEN_GO_OPENAI_MODELS],
   opencodezen_go_anthropic: [...ZEN_GO_ANTHROPIC_MODELS],
@@ -42,10 +34,6 @@ const ZEN_URL = process.env.OPENCODE_ZEN_API_URL || "https://opencode.ai/zen/v1/
 
 /** URL map for direct fetch calls (getFetchParams). Auto-selects configured provider. */
 const PROVIDER_URLS: Record<ProviderName, string> = {
-  groq: "https://api.groq.com/openai/v1/chat/completions",
-  gemini: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-  openai: "https://api.openai.com/v1/chat/completions",
-  openrouter: "https://openrouter.ai/api/v1/chat/completions",
   opencodezen: ZEN_URL,
   opencodezen_go_openai: "https://opencode.ai/zen/go/v1/chat/completions",
   opencodezen_go_anthropic: "https://opencode.ai/zen/go/v1/messages",
@@ -84,9 +72,9 @@ export class LLMRouter {
   }
 
   getFetchParams(req: { provider: string; model: string; messages: ChatMessage[]; config?: Partial<AgentConfig> }) {
-    const provider = (req.provider as ProviderName) || keyManager.getConfiguredProviders()[0] || "groq";
+    const provider = (req.provider as ProviderName) || keyManager.getConfiguredProviders()[0] || "opencodezen_go_openai";
     const apiKey = keyManager.getKey(provider) ?? "";
-    const url = PROVIDER_URLS[provider] ?? PROVIDER_URLS.groq;
+    const url = PROVIDER_URLS[provider] ?? PROVIDER_URLS.opencodezen;
 
     return {
       url,

@@ -34,8 +34,8 @@ const BASE_STACK: TechStack = {
 };
 
 const AI_STACK_ADDITIONS: Partial<TechStack> = {
-  backend: ['OpenRouter', 'LangChain'],
-  infrastructure: ['OpenAI API'],
+  backend: ['OpenCode Zen API', 'LangChain'],
+  infrastructure: ['GitHub Models API', 'Hugging Face Inference'],
 };
 
 const MARKETPLACE_ADDITIONS: Partial<TechStack> = {

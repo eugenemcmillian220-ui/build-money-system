@@ -2,11 +2,7 @@
  * Multi-Provider Key Rotation Manager
  *
  * Supports round-robin rotation across multiple API keys for:
- *   - Groq (primary fast inference)
- *   - Gemini (Google AI)
- *   - OpenAI
- *   - OpenRouter (multi-model gateway)
- *   - OpenCode Zen
+ *   - OpenCode Zen (free + paid Go tier)
  *   - GitHub Models (free tier via GitHub PAT)
  *   - Hugging Face Inference (free tier via HF token)
  *
@@ -15,10 +11,6 @@
  */
 
 export type ProviderName =
-  | "groq"
-  | "gemini"
-  | "openai"
-  | "openrouter"
   | "opencodezen"
   | "opencodezen_go_openai"
   | "opencodezen_go_anthropic"
@@ -101,22 +93,6 @@ function parseKeys(envValue: string | undefined): string[] {
 }
 
 const PROVIDER_ENV_MAP: Record<ProviderName, { multi: string[]; single: string[] }> = {
-  groq: {
-    multi: ["GROQ_API_KEYS"],
-    single: ["GROQ_API_KEY"],
-  },
-  gemini: {
-    multi: ["GEMINI_API_KEYS"],
-    single: ["GEMINI_API_KEY", "GOOGLE_AI_API_KEY"],
-  },
-  openai: {
-    multi: ["OPENAI_API_KEYS"],
-    single: ["OPENAI_API_KEY"],
-  },
-  openrouter: {
-    multi: ["OPENROUTER_API_KEYS"],
-    single: ["OPENROUTER_API_KEY"],
-  },
   opencodezen: {
     multi: ["OPENCODE_ZEN_API_KEYS"],
     single: ["OPENCODE_ZEN_API_KEY"],
@@ -174,7 +150,7 @@ class KeyManager {
     }
   }
 
-  getKey(provider: ProviderName = "groq"): string | null {
+  getKey(provider: ProviderName = "opencodezen"): string | null {
     return this.getPool(provider).getNext();
   }
 
@@ -192,7 +168,7 @@ class KeyManager {
 
   /** Returns all providers that have at least one key configured. */
   getConfiguredProviders(): ProviderName[] {
-    const all: ProviderName[] = ["groq", "gemini", "openai", "openrouter", "opencodezen", "opencodezen_go_openai", "opencodezen_go_anthropic", "github", "huggingface"];
+    const all: ProviderName[] = ["opencodezen", "opencodezen_go_openai", "opencodezen_go_anthropic", "github", "huggingface"];
     return all.filter((p) => this.isConfigured(p));
   }
 
