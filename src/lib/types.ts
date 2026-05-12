@@ -86,6 +86,7 @@ export interface ManifestOptions extends Record<string, unknown> {
   protocol?: string;
   theme?: string;
   primaryColor?: string;
+  builderType?: "automated" | "granular";
 }
 
 export interface ProjectStatus {
@@ -161,6 +162,14 @@ export interface ProjectManifest {
     errors?: string[];
     screenshotUrl?: string;
   };
+  builderType?: string;
+  sculptor?: Record<string, unknown>;
+  scrutinizer?: Record<string, unknown>;
+  visionary?: Record<string, unknown>;
+  diplomat?: Record<string, unknown>;
+  hiveMind?: Record<string, unknown>;
+  meshCoordinator?: Record<string, unknown>;
+  pulseMonitor?: Record<string, unknown>;
 }
 
 export interface Project extends GenerationResult {

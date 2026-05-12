@@ -46,7 +46,7 @@ export async function runIntentClassifyStage(jobId: string, _baseUrl: string): P
   try {
     await setStage(jobId, "intent-classify", { status: "running" }, "Classifying intent & reserving credits...");
     const { classifyIntent } = await import("@/lib/agents/classifier");
-    const opts = (row.options ?? {}) as { mode?: string; protocol?: string; theme?: string; primaryColor?: string };
+    const opts = (row.options ?? {}) as { mode?: string; protocol?: string; theme?: string; primaryColor?: string; builderType?: "automated" | "granular" };
 
     const classification = await traced(
       "agent.classifier",
@@ -96,13 +96,15 @@ export async function runIntentClassifyStage(jobId: string, _baseUrl: string): P
       }
     }
 
+    const builderType = opts.builderType || "automated";
     const nextState = mergeState(row, {
       mode,
       protocol,
       dynamicCost,
       creditsReserved,
+      builderType,
     });
-    await setStage(jobId, "intent-classify", { state: nextState }, "Classification complete → scouting strategy...");
+    await setStage(jobId, "intent-classify", { state: nextState }, `Classification complete (${builderType} mode) → scouting strategy...`);
   } catch (err) {
     await failManifestation(jobId, `Intent-classify stage failed: ${(err as Error).message}`);
     throw err;
@@ -173,6 +175,7 @@ export async function runIntentArchitectStage(jobId: string, _baseUrl: string): 
     const state = row.state as StageState;
     const protocol = state.protocol as string;
     const strategyMarkdown = state.strategyMarkdown as string;
+    const builderType = (state.builderType as "automated" | "granular") || "automated";
     if (!strategyMarkdown) throw new Error("Intent-scout stage did not produce strategyMarkdown.");
 
     const opts = (row.options ?? {}) as { theme?: string; primaryColor?: string };
@@ -182,8 +185,8 @@ export async function runIntentArchitectStage(jobId: string, _baseUrl: string): 
       architecture = await withTimeout(
         traced(
           "agent.architect",
-          { "agent.role": "Architect" },
-          () => runArchitectAgent(row.prompt, strategyMarkdown),
+          { "agent.role": "Architect", "builder.type": builderType },
+          () => runArchitectAgent(row.prompt, strategyMarkdown, builderType),
         ),
         AGENT_CALL_TIMEOUT_MS,
         "runArchitectAgent",
@@ -617,7 +620,7 @@ export async function runPolishAnalyzeStage(jobId: string, _baseUrl: string): Pr
       negotiationStrategy: isElite ? "Audit pending (no organization linked)." : "Audit skipped (non-elite mode).",
     };
 
-    const [docs, security, economy, legal, sentinel, simulation, broker] = await Promise.all([
+    const [docs, security, economy, legal, sentinel, simulation, broker, sculptor, scrutinizer, visionary, diplomatResult, hiveMind, meshCoordinator, pulseMonitor] = await Promise.all([
       safeAgent("Chronicler", jobId, null, async () => {
         const { runChroniclerAgent } = await import("@/lib/agents/chronicler");
         return traced("agent.chronicler", { "agent.role": "Chronicler" }, () => runChroniclerAgent(files));
@@ -670,10 +673,38 @@ export async function runPolishAnalyzeStage(jobId: string, _baseUrl: string): Pr
           });
         }
         return defaultBroker;
-      })()
+      })(),
+      safeAgent("Sculptor", jobId, undefined, async () => {
+        const { runSculptorAgent } = await import("@/lib/agents/sculptor");
+        return traced("agent.sculptor", { "agent.role": "Sculptor" }, () => runSculptorAgent(files));
+      }),
+      safeAgent("Scrutinizer", jobId, undefined, async () => {
+        const { runScrutinizerAgent } = await import("@/lib/agents/scrutinizer");
+        return traced("agent.scrutinizer", { "agent.role": "Scrutinizer" }, () => runScrutinizerAgent(files));
+      }),
+      safeAgent("Visionary", jobId, undefined, async () => {
+        const { runVisionaryAgent } = await import("@/lib/agents/visionary");
+        return traced("agent.visionary", { "agent.role": "Visionary" }, () => runVisionaryAgent(projectDesc));
+      }),
+      safeAgent("Diplomat", jobId, undefined, async () => {
+        const { runDiplomatAgent } = await import("@/lib/agents/diplomat");
+        return traced("agent.diplomat", { "agent.role": "Diplomat" }, () => runDiplomatAgent(projectDesc, ["Next.js", "Supabase", "Vercel"]));
+      }),
+      safeAgent("HiveMind", jobId, undefined, async () => {
+        const { runHiveMindAgent } = await import("@/lib/agents/hive-mind-agent");
+        return traced("agent.hivemind", { "agent.role": "HiveMind" }, () => runHiveMindAgent(projectName, projectDesc, [protocol]));
+      }),
+      safeAgent("MeshCoordinator", jobId, undefined, async () => {
+        const { runMeshCoordinatorAgent } = await import("@/lib/agents/mesh-coordinator");
+        return traced("agent.mesh", { "agent.role": "MeshCoordinator" }, () => runMeshCoordinatorAgent(projectName, ["code-gen", "security-audit", "deployment"]));
+      }),
+      safeAgent("PulseMonitor", jobId, undefined, async () => {
+        const { runPulseMonitorAgent } = await import("@/lib/agents/pulse-monitor");
+        return traced("agent.pulse", { "agent.role": "PulseMonitor" }, () => runPulseMonitorAgent(projectName, projectDesc));
+      }),
     ]);
 
-    await appendLog(jobId, "info", "Analysis agents complete — documented, audited, & analyzed.");
+    await appendLog(jobId, "info", "All 25 analysis agents complete — documented, audited, sculpted, & analyzed.");
 
     const nextState = mergeState(row, {
       docs,
@@ -683,6 +714,13 @@ export async function runPolishAnalyzeStage(jobId: string, _baseUrl: string): Pr
       sentinel,
       simulation,
       broker,
+      sculptor,
+      scrutinizer,
+      visionary,
+      diplomatResult,
+      hiveMind,
+      meshCoordinator,
+      pulseMonitor,
     });
     await setStage(jobId, "polish-analyze", { state: nextState }, "Analysis complete → launching...");
   } catch (err) {
@@ -798,9 +836,9 @@ export async function runPolishParallelStage(jobId: string, _baseUrl: string): P
       negotiationStrategy: isElite ? "Audit pending (no organization linked)." : "Audit skipped (non-elite mode).",
     };
 
-    // Phase 1: Run Chronicler + all independent agents in parallel.
+    // Phase 1: Run Chronicler + all 25 independent agents in parallel.
     // Chronicler is critical for Herald/Overseer, but all others have no deps.
-    const [docs, security, economy, legal, sentinel, simulation, broker] = await Promise.all([
+    const [docs, security, economy, legal, sentinel, simulation, broker, sculptor, scrutinizer, visionary, diplomatResult, hiveMind, meshCoordinator, pulseMonitor] = await Promise.all([
       // Chronicler: needed by Herald — runs in parallel with the others
       safeAgent("Chronicler", jobId, null, async () => {
         const { runChroniclerAgent } = await import("@/lib/agents/chronicler");
@@ -855,6 +893,34 @@ export async function runPolishParallelStage(jobId: string, _baseUrl: string): P
         }
         return defaultBroker;
       })(),
+      safeAgent("Sculptor", jobId, undefined, async () => {
+        const { runSculptorAgent } = await import("@/lib/agents/sculptor");
+        return traced("agent.sculptor", { "agent.role": "Sculptor" }, () => runSculptorAgent(files));
+      }),
+      safeAgent("Scrutinizer", jobId, undefined, async () => {
+        const { runScrutinizerAgent } = await import("@/lib/agents/scrutinizer");
+        return traced("agent.scrutinizer", { "agent.role": "Scrutinizer" }, () => runScrutinizerAgent(files));
+      }),
+      safeAgent("Visionary", jobId, undefined, async () => {
+        const { runVisionaryAgent } = await import("@/lib/agents/visionary");
+        return traced("agent.visionary", { "agent.role": "Visionary" }, () => runVisionaryAgent(projectDesc));
+      }),
+      safeAgent("Diplomat", jobId, undefined, async () => {
+        const { runDiplomatAgent } = await import("@/lib/agents/diplomat");
+        return traced("agent.diplomat", { "agent.role": "Diplomat" }, () => runDiplomatAgent(projectDesc, ["Next.js", "Supabase", "Vercel"]));
+      }),
+      safeAgent("HiveMind", jobId, undefined, async () => {
+        const { runHiveMindAgent } = await import("@/lib/agents/hive-mind-agent");
+        return traced("agent.hivemind", { "agent.role": "HiveMind" }, () => runHiveMindAgent(projectName, projectDesc, [protocol]));
+      }),
+      safeAgent("MeshCoordinator", jobId, undefined, async () => {
+        const { runMeshCoordinatorAgent } = await import("@/lib/agents/mesh-coordinator");
+        return traced("agent.mesh", { "agent.role": "MeshCoordinator" }, () => runMeshCoordinatorAgent(projectName, ["code-gen", "security-audit", "deployment"]));
+      }),
+      safeAgent("PulseMonitor", jobId, undefined, async () => {
+        const { runPulseMonitorAgent } = await import("@/lib/agents/pulse-monitor");
+        return traced("agent.pulse", { "agent.role": "PulseMonitor" }, () => runPulseMonitorAgent(projectName, projectDesc));
+      }),
     ]);
 
     // Phase 2: Run Herald + Overseer (depend on Docs from Chronicler).
@@ -884,7 +950,7 @@ export async function runPolishParallelStage(jobId: string, _baseUrl: string): P
         : Promise.resolve(null),
     ]);
 
-    await appendLog(jobId, "info", "All polish agents complete.");
+    await appendLog(jobId, "info", "All 25 polish agents complete.");
 
     const nextState = mergeState(row, {
       docs,
@@ -894,6 +960,13 @@ export async function runPolishParallelStage(jobId: string, _baseUrl: string): P
       sentinel,
       simulation,
       broker,
+      sculptor,
+      scrutinizer,
+      visionary,
+      diplomatResult,
+      hiveMind,
+      meshCoordinator,
+      pulseMonitor,
       launch,
       qaResult,
     });
@@ -928,6 +1001,13 @@ export async function runPersistStage(jobId: string, _baseUrl: string): Promise<
     const legal = state.legal as Record<string, unknown>;
     // sentinel and simulation variables removed as they are unused in the persist stage.
     const broker = state.broker as Record<string, unknown>;
+    const sculptor = state.sculptor as Record<string, unknown>;
+    const scrutinizer = state.scrutinizer as Record<string, unknown>;
+    const visionary = state.visionary as Record<string, unknown>;
+    const diplomatResult = state.diplomatResult as Record<string, unknown>;
+    const hiveMind = state.hiveMind as Record<string, unknown>;
+    const meshCoordinator = state.meshCoordinator as Record<string, unknown>;
+    const pulseMonitor = state.pulseMonitor as Record<string, unknown>;
     const launch = state.launch as Record<string, unknown>;
     const qaResult = state.qaResult as OverseerResult | undefined;
 
@@ -947,6 +1027,7 @@ export async function runPersistStage(jobId: string, _baseUrl: string): Promise<
         protocol,
         strategy: state.strategyMarkdown as string,
         visuals: state.visualTokens as ProjectManifest["visuals"],
+        builderType: (state.builderType as string) || "automated",
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         docs: docs as any,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -959,6 +1040,20 @@ export async function runPersistStage(jobId: string, _baseUrl: string): Promise<
         broker: broker as any,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         legal: legal as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        sculptor: sculptor as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        scrutinizer: scrutinizer as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        visionary: visionary as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        diplomat: diplomatResult as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        hiveMind: hiveMind as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        meshCoordinator: meshCoordinator as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        pulseMonitor: pulseMonitor as any,
         ...(qaResult
           ? {
               qa: {

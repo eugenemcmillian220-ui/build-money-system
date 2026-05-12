@@ -5,13 +5,19 @@ export const architectResultSchema = z.object({
   scaffolding: z.record(z.string()),
   coreLogicPlan: z.string(),
   fileStructure: z.array(z.string()),
-  databaseRequirements: z.array(z.string())
+  databaseRequirements: z.array(z.string()),
+  granularSpecs: z.array(z.object({
+    filePath: z.string(),
+    purpose: z.string(),
+    exports: z.array(z.string()),
+    dependencies: z.array(z.string()),
+    complexity: z.enum(["low", "medium", "high"]),
+  })).optional(),
 });
 
 export type ArchitectResult = z.infer<typeof architectResultSchema>;
 
-export async function runArchitectAgent(prompt: string, strategy: string): Promise<ArchitectResult> {
-  const systemPrompt = `You are "The Architect" for Sovereign Forge OS. Plan a Next.js 15 App Router application.
+const AUTOMATED_SYSTEM_PROMPT = `You are "The Architect" for Sovereign Forge OS. Plan a Next.js 15 App Router application.
 
 Keep responses SHORT — bullet points only, no prose. Target 5-12 files max.
 
@@ -28,6 +34,41 @@ Return JSON ONLY — no markdown fences:
   "databaseRequirements": ["users(id, email, role)", "projects(id, user_id, name)"]
 }`;
 
+const GRANULAR_SYSTEM_PROMPT = `You are "The Granular Architect" for Sovereign Forge OS. Produce a DETAILED per-file blueprint for a Next.js 15 App Router application.
+
+For EACH file, specify its exact purpose, exports, dependencies, and complexity level. Target 10-25 files for a complete production application.
+
+Define:
+1. File structure with granular per-file specifications
+2. Core logic plan with detailed implementation notes per module
+3. Database tables with full column specs and relationships
+4. Dependency graph between files
+
+Return JSON ONLY — no markdown fences:
+{
+  "scaffolding": { "path/file.ts": "Detailed purpose and responsibility" },
+  "coreLogicPlan": "- Module: path/file.ts → Detailed logic\\n- Module: path/other.ts → Detailed logic",
+  "fileStructure": ["src/app/page.tsx", "src/app/api/route.ts", "src/lib/db.ts"],
+  "databaseRequirements": ["users(id uuid PK, email text UNIQUE, role text, created_at timestamptz)"],
+  "granularSpecs": [
+    {
+      "filePath": "src/app/page.tsx",
+      "purpose": "Main landing page with hero, features, and CTA sections",
+      "exports": ["default Page"],
+      "dependencies": ["src/components/Hero.tsx", "src/components/Features.tsx"],
+      "complexity": "medium"
+    }
+  ]
+}`;
+
+export async function runArchitectAgent(
+  prompt: string,
+  strategy: string,
+  builderType: "automated" | "granular" = "automated",
+): Promise<ArchitectResult> {
+  const systemPrompt = builderType === "granular" ? GRANULAR_SYSTEM_PROMPT : AUTOMATED_SYSTEM_PROMPT;
+  const maxTokens = builderType === "granular" ? 4096 : 2048;
+
   try {
     return await callLLMJson(
       [
@@ -35,7 +76,7 @@ Return JSON ONLY — no markdown fences:
         { role: "user", content: `Intent: ${prompt}\nStrategy: ${strategy}` }
       ],
       architectResultSchema,
-      { temperature: 0.2, maxTokens: 2048, timeout: 25000 }
+      { temperature: 0.2, maxTokens, timeout: 25000 }
     );
   } catch (err) {
     console.error("Architect parse failed, falling back to defaults.", err);

@@ -1,5 +1,5 @@
-# 🧠 Sovereign Forge OS (v2.8.0)
-### Absolute Dominance: The World's First 25-Phase Autonomous AI Business Empire Engine
+# 🧠 Sovereign Forge OS (v3.0.0)
+### Absolute Dominance: The World's First 25-Phase, 25-Agent Autonomous AI Business Empire Engine
 
 Sovereign Forge OS is an elite, production-hardened platform that transforms natural language prompts into autonomous, revenue-generating SaaS empires. It doesn't just write code—it engineers, secures, legalizes, and manages entire business lifecycles using a swarm of 25 specialized AI agents.
 
@@ -20,10 +20,14 @@ Sovereign Forge OS is an elite, production-hardened platform that transforms nat
 | **19** | **Sovereign DAO** | Forge: User Governance Tokens (UGT) & Voting | ✅ |
 | **20** | **Lifecycle** | The Autonomous CEO: Portfolio Meta-Management | ✅ |
 | **21** | **Overseer** | **Autonomous QA Audit: E2E Browser & Visual Testing** | ✅ |
+| **22** | **Swarm Mesh** | Federation & Mesh Governance | ✅ |
+| **23** | **Sovereign Pulse** | Telemetry & Neural Observability | ✅ |
+| **24** | **Self-Evolution** | Autonomous Recursive Growth | ✅ |
+| **25** | **Neural Link** | Infrastructure Consolidation | ✅ |
 
 ---
 
-## 🤖 The Sovereign Agent Swarm (21 Specialized Units)
+## 🤖 The Sovereign Agent Swarm (25 Specialized Units)
 
 1.  **The Classifier**: Intent dispatcher & high-level tech stack selector.
 2.  **The Scout**: Pre-generation technical R&D and competitor analysis.
@@ -46,6 +50,19 @@ Sovereign Forge OS is an elite, production-hardened platform that transforms nat
 19. **The Diplomat**: B2B negotiation and vendor cost optimization.
 20. **The Scrutinizer**: Deep-code audit and architectural verification.
 21. **The Overseer**: Autonomous QA lead for E2E browser and visual drift audits.
+22. **The Mesh Coordinator**: Federation & cross-empire resource sharing orchestration.
+23. **The Pulse Monitor**: Telemetry analysis, anomaly detection, and predictive health.
+24. **The Trend Hunter**: Emerging tech scouting and alpha-tech verification.
+25. **The Agent Wrapper**: Meta-agent orchestration and swarm coordination layer.
+
+---
+
+## 🏗️ Builder Modes
+
+*   **Automated Builder**: One-shot manifestation — describe your vision in plain English and the full 25-agent pipeline executes autonomously.
+*   **Granular Architect**: Step-by-step architectural control — the Architect produces detailed per-file blueprints with dependency graphs, export maps, and complexity ratings before code generation begins.
+
+Toggle between modes in the Neural Terminal header. All 3 manifestation modes (**Elite**, **Universal**, **Nano**) work with both builder types.
 
 ---
 
@@ -135,4 +152,4 @@ npm run build
 Sovereign Forge OS is licensed under the MIT Elite License. See `LICENSE` for details.
 
 ---
-**Sovereign Forge OS v2.7.1** · *From Idea To Revenue. Autonomously.*
+**Sovereign Forge OS v3.0.0** · *25 Phases. 25 Agents. 3 Modes. From Idea To Revenue. Autonomously.*
