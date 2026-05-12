@@ -31,14 +31,14 @@ export const ZEN_GO_MODELS = [...ZEN_GO_ALL_MODELS];
 export const ZEN_PAID_MODELS = ZEN_GO_MODELS;
 
 export const STAGE_PREFERRED_MODELS: Record<string, string> = {
-  "plan-outline": "deepseek-v4-flash",
-  "plan-details": "deepseek-v4-flash",
-  "detailing-components": "deepseek-v4-flash",
-  "planSpecDetails": "deepseek-v4-flash",
+  "plan-outline": "qwen3.5-plus",
+  "plan-details": "qwen3.5-plus",
+  "detailing-components": "qwen3.5-plus",
+  "planSpecDetails": "qwen3.5-plus",
   "codegen": "deepseek-v4-pro",
-  "quick": "deepseek-v4-flash",
-  "outline": "deepseek-v4-flash",
-  "default": "deepseek-v4-flash",
+  "quick": "qwen3.5-plus",
+  "outline": "qwen3.5-plus",
+  "default": "qwen3.5-plus",
 };
 
 export const GITHUB_FREE_MODELS = [
@@ -170,7 +170,7 @@ const MODEL_COSTS: Record<string, number> = {
   // ZEN Go tier — openai-compatible
   "glm-5": 0.0000022, "glm-5.1": 0.0000022,
   "kimi-k2.5": 0.00003, "kimi-k2.6": 0.00003,
-  "deepseek-v4-pro": 0.000003, "deepseek-v4-flash": 0.0000003,
+  "deepseek-v4-pro": 0.000003, "qwen3.5-plus": 0.0000003,
   "mimo-v2.5": 0.0000015, "mimo-v2.5-pro": 0.000003,
   "qwen3.5-plus": 0.0000015, "qwen3.6-plus": 0.0000015,
   "hy3-preview": 0.0000015,
