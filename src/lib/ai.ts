@@ -9,8 +9,6 @@ import {
   GITHUB_MODELS as GITHUB_MODELS_NEW,
   HF_MODELS as HF_MODELS_NEW,
   STAGE_MODEL_MAP,
-  PROVIDERS,
-  getEndpointPath,
   extractResponseContent,
 } from "./providers";
 
@@ -67,11 +65,10 @@ export const HF_FREE_MODELS = [
 ];
 
 export const ALL_FREE_MODELS: Record<ProviderName, string[]> = {
-  opencodezen: [...ZEN_FREE_MODELS],
-  opencodezen_go_openai: [...ZEN_GO_OPENAI_MODELS],
-  opencodezen_go_anthropic: [...ZEN_GO_ANTHROPIC_MODELS],
-  github: GITHUB_FREE_MODELS,
-  huggingface: HF_FREE_MODELS,
+  "opencode-zen": [...ZEN_FREE_MODELS],
+  "opencode-go": [...ZEN_GO_OPENAI_MODELS],
+  "github-models": GITHUB_FREE_MODELS,
+  "huggingface": HF_FREE_MODELS,
 };
 
 // ---------------------------------------------------------------------------
@@ -88,7 +85,7 @@ interface ProviderConfig {
 }
 
 const PROVIDER_CONFIGS: Record<ProviderName, ProviderConfig> = {
-  opencodezen: {
+  "opencode-zen": {
     getUrl: () =>
       process.env.OPENCODE_ZEN_API_URL || "https://opencode.ai/zen/v1/chat/completions",
     getHeaders: (apiKey) => ({
@@ -97,8 +94,8 @@ const PROVIDER_CONFIGS: Record<ProviderName, ProviderConfig> = {
     }),
     supportsStream: true,
   },
-  opencodezen_go_openai: {
-    getUrl: () => `${PROVIDERS.opencodezen_go_openai.baseURL}${getEndpointPath("openai")}`,
+  "opencode-go": {
+    getUrl: () => "https://opencode.ai/zen/go/v1/chat/completions",
     getHeaders: (apiKey) => ({
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
@@ -106,16 +103,7 @@ const PROVIDER_CONFIGS: Record<ProviderName, ProviderConfig> = {
     extractContent: (data) => extractResponseContent(data, "openai"),
     supportsStream: true,
   },
-  opencodezen_go_anthropic: {
-    getUrl: () => `${PROVIDERS.opencodezen_go_anthropic.baseURL}${getEndpointPath("anthropic")}`,
-    getHeaders: (apiKey) => ({
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    }),
-    extractContent: (data) => extractResponseContent(data, "anthropic"),
-    supportsStream: true,
-  },
-  github: {
+  "github-models": {
     getUrl: () =>
       process.env.GITHUB_MODELS_API_URL || "https://models.github.ai/inference/chat/completions",
     getHeaders: (apiKey) => ({
@@ -125,7 +113,7 @@ const PROVIDER_CONFIGS: Record<ProviderName, ProviderConfig> = {
     }),
     supportsStream: true,
   },
-  huggingface: {
+  "huggingface": {
     getUrl: () =>
       process.env.HF_API_URL || "https://router.huggingface.co/v1/chat/completions",
     getHeaders: (apiKey) => ({
@@ -217,15 +205,16 @@ function recordFailure(provider: ProviderName): void {
 }
 
 function buildProviderOrder(preferred?: ProviderName): Array<{ provider: ProviderName; models: string[] }> {
-  const configured = keyManager.getConfiguredProviders();
+  const ALL_PROVIDERS: ProviderName[] = ["opencode-go", "opencode-zen", "github-models", "huggingface"];
+  const configured = ALL_PROVIDERS.filter((p) => keyManager.isConfigured(p));
   if (configured.length === 0) {
     throw new Error(
       "No AI providers configured. Set at least one of: OPENCODE_ZEN_API_KEY, GITHUB_TOKEN, or HF_TOKEN"
     );
   }
 
-  // Preferred order: OpenCode Zen Go (fastest) → Zen free → GitHub → HF
-  const DEFAULT_PRIORITY: ProviderName[] = ["opencodezen_go_openai", "opencodezen_go_anthropic", "opencodezen", "github", "huggingface"];
+  // Preferred order: OpenCode Go (fastest) → Zen → GitHub Models → HF
+  const DEFAULT_PRIORITY: ProviderName[] = ["opencode-go", "opencode-zen", "github-models", "huggingface"];
 
   const scored = configured.map((p) => {
     const s = getStats(p);
@@ -497,7 +486,7 @@ export async function* aiStream(options: AIOptions): AsyncIterable<string> {
 // ---------------------------------------------------------------------------
 
 export async function aiEmbed(text: string): Promise<number[]> {
-  const apiKey = keyManager.getKey("opencodezen");
+  const apiKey = keyManager.getKey("opencode-zen");
 
   if (!apiKey) {
     logger.warn("No OpenCode Zen key for embeddings, returning zero vector");
@@ -535,7 +524,8 @@ export async function aiEmbed(text: string): Promise<number[]> {
 // ---------------------------------------------------------------------------
 
 export function getProviderHealth(): Record<string, unknown> {
-  const configured = keyManager.getConfiguredProviders();
+  const ALL_PROVIDERS: ProviderName[] = ["opencode-go", "opencode-zen", "github-models", "huggingface"];
+  const configured = ALL_PROVIDERS.filter((p) => keyManager.isConfigured(p));
   const health: Record<string, unknown> = {};
 
   for (const p of configured) {
@@ -551,3 +541,4 @@ export function getProviderHealth(): Record<string, unknown> {
 
   return { providers: health, activeProviders: configured.length };
 }
+
