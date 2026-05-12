@@ -42,7 +42,7 @@ async function repairOrganization(): Promise<{ success: boolean; error?: string 
 }
 
 const DEFAULT_HISTORY: { type: "input" | "output" | "error"; text: string }[] = [
-  { type: "output", text: "Sovereign Forge OS v2.7.1 (Phase 21 Active)" },
+  { type: "output", text: "Sovereign Forge OS v3.0.0 (All 25 Phases Active — 25 Agents Online)" },
   { type: "output", text: "Type 'help' for commands, or describe what you want to build in plain English." },
 ];
 
@@ -227,7 +227,7 @@ export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
       try {
         await onManifest(
           cleanPrompt,
-          { mode: finalMode, protocol: finalProto },
+          { mode: finalMode, protocol: finalProto, builderType },
           (level, text) => addLine(level === "error" ? "error" : "output", text),
         );
         // Fallback completion notice. Callers that stream server logs via onLog
