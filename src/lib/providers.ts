@@ -72,7 +72,7 @@ export const ZEN_GO_OPENAI_MODELS = [
   "kimi-k2.5",
   "kimi-k2.6",
   "deepseek-v4-pro",
-  "deepseek-v4-flash",
+  // "deepseek-v4-flash" removed — returns HTTP 404 from OpenCode Zen API
   "mimo-v2.5",
   "mimo-v2.5-pro",
   "qwen3.5-plus",
@@ -117,19 +117,19 @@ export const STAGE_MODEL_MAP: Record<string, {
 }> = {
   "plan-outline": {
     provider: "opencodezen_go_openai",
-    model: "deepseek-v4-flash", // Fast, cheap, and reliable for high-level structure
+    model: "qwen3.5-plus", // Fast and reliable for high-level structure
   },
   "plan-details": {
     provider: "opencodezen_go_openai",
-    model: "deepseek-v4-flash", // Use flash for speed to avoid serverless stalls
+    model: "qwen3.5-plus", // Use for speed to avoid serverless stalls
   },
   "detailing-components": {
     provider: "opencodezen_go_openai",
-    model: "deepseek-v4-flash",
+    model: "qwen3.5-plus",
   },
   "planSpecDetails": {
     provider: "opencodezen_go_openai",
-    model: "deepseek-v4-flash",
+    model: "qwen3.5-plus",
   },
   "codegen": {
     provider: "opencodezen_go_openai",
@@ -137,15 +137,15 @@ export const STAGE_MODEL_MAP: Record<string, {
   },
   "quick": {
     provider: "opencodezen_go_openai",
-    model: "deepseek-v4-flash",
+    model: "qwen3.5-plus",
   },
   "outline": {
     provider: "opencodezen_go_openai",
-    model: "deepseek-v4-flash",
+    model: "qwen3.5-plus",
   },
   "default": {
     provider: "opencodezen_go_openai",
-    model: "deepseek-v4-flash",
+    model: "qwen3.5-plus",
   },
 };
 
