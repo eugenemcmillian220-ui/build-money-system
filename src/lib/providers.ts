@@ -2,10 +2,9 @@
 // Verified against official OpenCode Go docs — May 2026
 
 export type ProviderID =
-  | "opencodezen"
-  | "opencodezen_go_openai"   // /chat/completions — most Go models
-  | "opencodezen_go_anthropic" // /messages — MiniMax only
-  | "github"
+  | "opencode-zen"
+  | "opencode-go"
+  | "github-models"
   | "huggingface";
 
 export type FormatType = "openai" | "anthropic";
@@ -20,40 +19,32 @@ export interface ProviderConfig {
 
 // ── Provider registry ─────────────────────────────────────────
 export const PROVIDERS: Record<ProviderID, ProviderConfig> = {
-  // Free tier
-  opencodezen: {
-    id: "opencodezen",
+  // Primary: OpenCode Go tier ($10/mo)
+  "opencode-go": {
+    id: "opencode-go",
+    baseURL: "https://opencode.ai/zen/go/v1",
+    apiKeyEnvVar: "OPENCODE_GO_API_KEY",
+    format: "openai",   // → /chat/completions
+  },
+
+  // Secondary: OpenCode Zen (pay-as-you-go + free models)
+  "opencode-zen": {
+    id: "opencode-zen",
     baseURL: "https://opencode.ai/zen/v1",
     apiKeyEnvVar: "OPENCODE_ZEN_API_KEY",
     format: "openai",
   },
 
-  // Go tier — openai-compatible (most models)
-  opencodezen_go_openai: {
-    id: "opencodezen_go_openai",
-    baseURL: "https://opencode.ai/zen/go/v1",
-    apiKeyEnvVar: "OPENCODE_ZEN_API_KEY",
-    format: "openai",   // → /chat/completions
-  },
-
-  // Go tier — anthropic-compatible (MiniMax M2.5 and M2.7 ONLY)
-  opencodezen_go_anthropic: {
-    id: "opencodezen_go_anthropic",
-    baseURL: "https://opencode.ai/zen/go/v1",
-    apiKeyEnvVar: "OPENCODE_ZEN_API_KEY",
-    format: "anthropic", // → /messages
-  },
-
-  // Fallback: GitHub Models
-  github: {
-    id: "github",
+  // Tertiary: GitHub Models (free tier)
+  "github-models": {
+    id: "github-models",
     baseURL: "https://models.inference.ai.azure.com",
     apiKeyEnvVar: "GITHUB_MODELS_TOKEN",
     format: "openai",
   },
 
-  // Fallback: Hugging Face
-  huggingface: {
+  // Fallback: Hugging Face (free tier)
+  "huggingface": {
     id: "huggingface",
     baseURL: "https://router.huggingface.co/v1",
     apiKeyEnvVar: "HUGGINGFACE_API_KEY",
@@ -116,35 +107,35 @@ export const STAGE_MODEL_MAP: Record<string, {
   model: string;
 }> = {
   "plan-outline": {
-    provider: "opencodezen_go_openai",
+    provider: "opencode-go",
     model: "qwen3.5-plus", // Fast and reliable for high-level structure
   },
   "plan-details": {
-    provider: "opencodezen_go_openai",
+    provider: "opencode-go",
     model: "qwen3.5-plus", // Use for speed to avoid serverless stalls
   },
   "detailing-components": {
-    provider: "opencodezen_go_openai",
+    provider: "opencode-go",
     model: "qwen3.5-plus",
   },
   "planSpecDetails": {
-    provider: "opencodezen_go_openai",
+    provider: "opencode-go",
     model: "qwen3.5-plus",
   },
   "codegen": {
-    provider: "opencodezen_go_openai",
+    provider: "opencode-go",
     model: "deepseek-v4-pro",
   },
   "quick": {
-    provider: "opencodezen_go_openai",
+    provider: "opencode-go",
     model: "qwen3.5-plus",
   },
   "outline": {
-    provider: "opencodezen_go_openai",
+    provider: "opencode-go",
     model: "qwen3.5-plus",
   },
   "default": {
-    provider: "opencodezen_go_openai",
+    provider: "opencode-go",
     model: "qwen3.5-plus",
   },
 };
@@ -179,3 +170,4 @@ export function extractResponseContent(
   const content = data?.content as Array<{ text?: string }> | undefined;
   return content?.[0]?.text ?? "";
 }
+
