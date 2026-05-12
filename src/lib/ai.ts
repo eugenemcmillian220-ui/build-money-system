@@ -160,7 +160,7 @@ const MODEL_COSTS: Record<string, number> = {
   "kimi-k2.5": 0.00003, "kimi-k2.6": 0.00003,
   "deepseek-v4-pro": 0.000003, "qwen3.5-plus": 0.0000003,
   "mimo-v2.5": 0.0000015, "mimo-v2.5-pro": 0.000003,
-  "qwen3.5-plus": 0.0000015, "qwen3.6-plus": 0.0000015,
+  "qwen3.6-plus": 0.0000015,
   "hy3-preview": 0.0000015,
   // ZEN Go tier — anthropic-compatible (MiniMax)
   "minimax-m2.5": 0.0000012, "minimax-m2.7": 0.0000015,

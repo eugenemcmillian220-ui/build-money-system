@@ -316,6 +316,48 @@ class LLMRouter {
   }
 
   /**
+   * Execute a request with automatic provider failover.
+   * Tries providers in priority order until one succeeds.
+   */
+  async executeWithFailover(
+    messages: ChatMessage[],
+    useCase: keyof typeof AGENT_CONFIGS = "codegen",
+    modelTier: "heavy" | "balanced" | "fast" | "free" = "balanced"
+  ): Promise<{ content: string; provider: ProviderName; model: string }> {
+    const req = this.getNextRequest(messages, useCase, modelTier);
+    const { url, headers, body } = this.getFetchParams(req);
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      keyManager.reportError(req.provider, req.apiKey);
+      throw new Error(
+        `[llm-router] ${req.provider}/${req.model} returned ${response.status}: ${await response.text().catch(() => "unknown")}`
+      );
+    }
+
+    keyManager.reportSuccess(req.provider, req.apiKey);
+
+    const data = await response.json();
+
+    // Extract content based on endpoint format
+    let content: string;
+    if (req.endpoint.endsWith("/messages")) {
+      const parts = data?.content as Array<{ text?: string }> | undefined;
+      content = parts?.[0]?.text ?? "";
+    } else {
+      const choices = data?.choices as Array<{ message?: { content?: string } }> | undefined;
+      content = choices?.[0]?.message?.content ?? "";
+    }
+
+    return { content, provider: req.provider, model: req.model };
+  }
+
+  /**
    * Get a specific model explicitly by name, auto-resolving its endpoint.
    * Useful when an agent needs a particular model (e.g. Scout → fast model,
    * Codegen → heavy model).
