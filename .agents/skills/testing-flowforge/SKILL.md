@@ -16,6 +16,17 @@ FlowForge is a SaaS feature under `/flowforge/*` with 7 pages and 7 API routes u
 3. No `.env` file is needed for FlowForge pages — they are self-contained with mock data in API routes.
 4. First page load triggers compilation (~10s). Subsequent loads are fast.
 
+## Production URL
+
+The production domain is: `https://build-money-system-omd8.vercel.app`
+
+FlowForge pages are accessible without authentication on production:
+- `https://build-money-system-omd8.vercel.app/flowforge/dashboard`
+- `https://build-money-system-omd8.vercel.app/flowforge/nano`
+- etc.
+
+Vercel preview deployments return **401** (password-protected). Use production or local dev server.
+
 ## CSRF Middleware
 
 The app has CSRF protection in `src/middleware.ts`. Key behavior:
@@ -70,7 +81,7 @@ The app has CSRF protection in `src/middleware.ts`. Key behavior:
 
 ## Vercel Preview Access
 
-Vercel preview deployments for this repo may require password authentication (returns 401). If so, test against local dev server instead. The Vercel production URL pattern might differ from the preview URL — check the Vercel dashboard or CI output for the correct domain.
+Vercel preview deployments for this repo return 401 (password-protected). Test against the production URL (`https://build-money-system-omd8.vercel.app`) or local dev server instead.
 
 ## Devin Secrets Needed
 
