@@ -62,6 +62,11 @@ class KeyManager {
     return !!pool && pool.keys.length > 0;
   }
 
+  isAnyConfigured(): boolean {
+    const providers: ProviderName[] = ["opencode-go", "opencode-zen", "github-models", "huggingface"];
+    return providers.some((p) => this.isConfigured(p));
+  }
+
   getKey(provider: ProviderName): string | null {
     const pool = this.pools.get(provider);
     if (!pool || pool.keys.length === 0) return null;

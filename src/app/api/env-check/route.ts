@@ -24,8 +24,8 @@ export async function GET(): Promise<Response> {
       serviceRole: { configured: !!process.env.SUPABASE_SERVICE_ROLE_KEY },
     },
     aiProviders: {
-      opencodezen: {
-        configured: keyManager.isConfigured("opencodezen"),
+      "opencode-zen": {
+        configured: keyManager.isConfigured("opencode-zen"),
         keyCount:
           countKeys(process.env.OPENCODE_ZEN_API_KEYS) ||
           countKeys(process.env.OPENCODE_ZEN_API_KEY),
@@ -50,13 +50,13 @@ export async function GET(): Promise<Response> {
     },
   };
 
-  const aiConfigured = envStatus.aiProviders.opencodezen.configured;
+  const aiConfigured = envStatus.aiProviders["opencode-zen"].configured;
 
   return NextResponse.json({
     ...envStatus,
     ready: aiConfigured,
     message: aiConfigured
-      ? `OpenCode Zen configured with ${envStatus.aiProviders.opencodezen.keyCount} key(s).`
+      ? `OpenCode Zen configured with ${envStatus.aiProviders["opencode-zen"].keyCount} key(s).`
       : "OpenCode Zen not configured. Set OPENCODE_ZEN_API_KEY or OPENCODE_ZEN_API_KEYS.",
     note: "Only configuration status is exposed. Actual key values are never returned.",
   });

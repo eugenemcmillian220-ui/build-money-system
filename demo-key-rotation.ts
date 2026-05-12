@@ -18,7 +18,7 @@ console.log("   Keys: zen_key1, zen_key2, zen_key3\n");
 
 console.log("   First 10 requests:");
 for (let i = 0; i < 10; i++) {
-  const key = keyManager.getKey("opencodezen");
+  const key = keyManager.getKey("opencode-zen");
   console.log(`     Request ${i + 1}: ${key}`);
 }
 
@@ -27,28 +27,28 @@ console.log("\nError Tracking & Cooldown Demonstration:");
 console.log("   Using zen_key1 and simulating 3 errors...\n");
 
 const testKey = "zen_key1";
-keyManager.reportError("opencodezen", testKey);
+keyManager.reportError("opencode-zen", testKey);
 console.log("   Error 1 reported for zen_key1");
-keyManager.reportError("opencodezen", testKey);
+keyManager.reportError("opencode-zen", testKey);
 console.log("   Error 2 reported for zen_key1");
-keyManager.reportError("opencodezen", testKey);
+keyManager.reportError("opencode-zen", testKey);
 console.log("   Error 3 reported for zen_key1 - Key now in cooldown (60s)\n");
 
 console.log("   Next 5 requests (should skip zen_key1):");
 for (let i = 0; i < 5; i++) {
-  const key = keyManager.getKey("opencodezen");
+  const key = keyManager.getKey("opencode-zen");
   console.log(`     Request ${i + 1}: ${key}`);
 }
 
 // Demonstrate success reset
 console.log("\nSuccess Reset Demonstration:");
 console.log("   Reporting success for zen_key2...\n");
-keyManager.reportSuccess("opencodezen", "zen_key2");
+keyManager.reportSuccess("opencode-zen", "zen_key2");
 console.log("   Success reported - error count reset for zen_key2");
 
 // Show configuration status
 console.log("\nConfiguration Status:");
-const isConfigured = keyManager.isConfigured("opencodezen");
+const isConfigured = keyManager.isConfigured("opencode-zen");
 const status = isConfigured ? "Configured" : "Not configured";
 console.log(`   opencodezen  : ${status}`);
 

@@ -17,14 +17,14 @@ export async function GET(): Promise<Response> {
   const authResult = await requireAuth();
   if (isAuthError(authResult)) return authResult;
 
-  const aiAvailable = keyManager.isConfigured("opencodezen");
+  const aiAvailable = keyManager.isConfigured("opencode-zen");
 
   return NextResponse.json({
     status: "ok",
     timestamp: new Date().toISOString(),
     ai: {
       available: aiAvailable,
-      provider: "opencodezen",
+      provider: "opencode-zen",
       message: aiAvailable
         ? "OpenCode Zen AI is available"
         : "OpenCode Zen not configured. Set OPENCODE_ZEN_API_KEY.",
