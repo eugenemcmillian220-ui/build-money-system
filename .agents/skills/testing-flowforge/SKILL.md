@@ -52,21 +52,36 @@ The app has CSRF protection in `src/middleware.ts`. Key behavior:
 ### Dashboard (proves API integration works)
 - Stats should show: 5 Total Workflows, 3 Active, 1247 Executions, 96.8% Success Rate
 - If API is broken, these fall back to all zeros — this is the critical distinguishing test
+- Recent Workflows section shows 5 entries: AI Lead Scoring Pipeline (456 runs, active), Content Generation & Distribution (312 runs, active), AI Customer Support Bot (189 runs, active), Data ETL Pipeline (167 runs, paused), Instant Alert Trigger (123 runs, active)
 
 ### Workflow Builder
 - Node palette must show exactly 8 types: Trigger, Action, Condition, Transform, AI Agent, Webhook, Delay, Loop
 - Adding a node should show it in the canvas with a UUID in the properties panel
-- Execute should fire POST to `/api/flowforge/execute` and return `status: "completed"`
+- The Execute button fires POST to `/api/flowforge/execute` but does **not** show visible feedback in the UI — verify via curl or network tab instead
+- Execute API response format: `{execution: {id, status: "completed", duration_ms, credits_used: 5, output, node_results: [{node_id, status, error}]}}`
+- Save button fires POST to `/api/flowforge/workflows`
 
 ### Nano Triggers
-- 4 buttons initially at "0 taps"
-- Tapping increments the specific trigger's count; others must remain at 0 (isolation)
-- Feedback bar shows "Triggering <name>..." then "<name> executed!"
+- 4 buttons initially at "0 taps": Send Alert, Quick Email, Security Scan, System Pulse
+- Tapping increments the specific trigger's count; others must remain unchanged (isolation test)
+- Feedback bar shows "Triggering <name>..." then "<name> executed!" — clears after ~2 seconds
+- Footer shows "Total taps: N" and "4 triggers active"
+- The tapped button gets a green border + checkmark icon while active, then returns to normal icon
 
 ### Governance
-- Proposals tab: 2 sample proposals with specific vote counts (12/3 and 18/2)
-- Audit tab: 4 entries with actions like workflow.created, workflow.executed, member.invited, governance.vote
-- CSV Export button downloads `flowforge-audit-log.csv`
+- Proposals tab: 2 sample proposals:
+  - "Increase default workflow execution timeout to 120s" with 12 for / 3 against, status "active", Quorum: 10
+  - "Enable cross-org workflow sharing via Hive Mind" with 18 for / 2 against, status "passed", Quorum: 10
+- Audit tab: 4 entries with actions: workflow.created, workflow.executed, member.invited, governance.vote
+- CSV Export button downloads `flowforge-audit-log.csv` (~573 bytes) via browser blob download
+
+## Testing Tips
+
+- FlowForge pages load independently from the main Sovereign dashboard — no login required
+- The workflow builder's Execute button sends the request silently; to verify execution, either use curl with `Authorization: Bearer <any-value>` header or check the browser network tab
+- Nano trigger buttons are disabled briefly (~2s) after tapping to prevent double-taps
+- The governance CSV export uses `URL.createObjectURL` + programmatic anchor click — Chrome shows the download in the bottom bar
+- All FlowForge data is mock/hardcoded in the API routes under `src/app/api/flowforge/` — no database writes occur
 
 ## Vercel Preview Access
 
