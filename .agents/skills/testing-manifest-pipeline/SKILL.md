@@ -108,6 +108,25 @@ First page load may take 20-30 seconds to compile.
 - **500 errors**: Check dev server console for stack traces
 - **Full pipeline completion**: Terminal shows "Manifestation complete. Empire initialized in database." and a project card appears
 
+## Common Pipeline Failures & Troubleshooting
+
+### "Cannot read properties of undefined" in generate-build-code
+If the pipeline crashes at `generate-build-code` with errors like:
+- `Cannot read properties of undefined (reading 'replace')` — `spec.description` is undefined
+- `Cannot read properties of undefined (reading 'length')` — `spec.features` is undefined
+
+**Likely cause**: The `plan-details` stage might not be merging the outline (name, description, features, pages) with the details (components, schema, fileStructure) before storing as `state.spec`. The `generate-build-code` stage expects a full `AppSpec` with all fields.
+
+**How to diagnose**:
+1. Check `src/lib/manifest/stages.ts` — `runPlanDetailsStage` should merge `{ ...outline, ...spec }` before calling `mergeState`
+2. Check `src/lib/template-fallback.ts` — `fallbackFileMap()` accesses `spec.description`, `spec.features`, `spec.fileStructure` which must have null guards
+3. Check `src/lib/llm.ts` — `buildFromSpec()` logs `spec.features.length` which needs optional chaining
+
+**Key data flow**: outline (from plan-outline stage) → details (from plan-details stage) → merged into fullSpec → passed to generate-build-code → used by `buildFromSpec()` → may fall back to `fallbackFileMap()` in `template-fallback.ts`
+
+### Agent timeouts (non-fatal)
+Messages like "Scout agent failed (runScoutAgent timed out after 40000ms), using fallback strategy" or "Herald agent failed (non-fatal, 40001ms)" are expected when AI provider credits are depleted (e.g., HuggingFace 402 errors). The pipeline handles these gracefully with fallback strategies.
+
 ## Verifying Timeout Configuration
 
 To confirm timeout changes are active:
@@ -122,11 +141,14 @@ To confirm timeout changes are active:
 |------|--------|
 | `src/app/api/manifest/start/route.ts` | Entry point for manifest pipeline |
 | `src/app/api/manifest/route.ts` | Main manifest route (maxDuration=280) |
-| `src/lib/manifest/stages.ts` | Stage budgets (STAGE_BUDGET_MS, AGENT_CALL_TIMEOUT_MS) |
+| `src/lib/manifest/stages.ts` | Stage budgets (STAGE_BUDGET_MS, AGENT_CALL_TIMEOUT_MS), stage orchestration |
 | `src/lib/pipeline-timeout.ts` | Default pipeline budget (DEFAULT_BUDGET_MS) |
 | `src/lib/jobs.ts` | Job tracking service (manifest_jobs table) |
 | `src/lib/with-timeout.ts` | Timeout utility with TimeoutError |
 | `src/lib/admin-emails.ts` | Admin email list (forces OTP login) |
+| `src/lib/llm.ts` | LLM call interface, `buildFromSpec()` for code generation |
+| `src/lib/template-fallback.ts` | Fallback code generator when LLM fails — accesses spec fields directly |
+| `src/lib/types.ts` | AppSpec, AppSpecOutline, AppSpecDetails type definitions |
 | `src/hooks/use-manifestation.ts` | Frontend hook that calls /api/manifest/start and polls status |
 | `src/components/dashboard/AiTerminal.tsx` | Terminal UI component |
 | `src/components/dashboard/ManifestWorkspace.tsx` | Workspace with code panel |
@@ -157,3 +179,5 @@ npx tsc --noEmit  # Should exit 0 with no errors
 - When switching accounts, log out first then navigate to `/login`
 - The pipeline typically completes in 1-2 minutes locally for simple prompts
 - Admin accounts have unlimited credits and skip credit reservation
+- The Next.js dev overlay may appear at the bottom left — dismiss it with Escape before interacting with the terminal input
+- After pipeline completion, refresh the page to see updated Active Projects count and new project cards
