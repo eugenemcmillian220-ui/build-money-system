@@ -29,7 +29,9 @@ const serverEnvSchema = z.object({
   // Admin
   ADMIN_API_KEYS: z.string().optional(),
 
-  // AI providers — OpenCode Zen (free/paid) + GitHub Models (free) + Hugging Face (free)
+  // AI providers — OpenCode Go + Zen (free/paid) + GitHub Models (free) + Hugging Face (free)
+  OPENCODE_GO_API_KEY: z.string().optional(),
+  OPENCODE_GO_API_KEYS: z.string().optional(),
   OPENCODE_ZEN_API_KEY: z.string().optional(),
   OPENCODE_ZEN_API_KEYS: z.string().optional(),
   OPENCODE_ZEN_API_URL: z.string().optional(),
@@ -216,6 +218,8 @@ export function validateCriticalEnv(): { valid: boolean; missing: string[]; warn
   }
 
   const hasAiKey =
+    !!process.env.OPENCODE_GO_API_KEY ||
+    !!process.env.OPENCODE_GO_API_KEYS ||
     !!process.env.OPENCODE_ZEN_API_KEY ||
     !!process.env.OPENCODE_ZEN_API_KEYS ||
     !!process.env.GITHUB_TOKEN ||
@@ -226,7 +230,7 @@ export function validateCriticalEnv(): { valid: boolean; missing: string[]; warn
     !!process.env.HF_API_KEY ||
     !!process.env.HF_API_KEYS;
   if (!hasAiKey) {
-    warnings.push("No AI provider keys configured — set OPENCODE_ZEN_API_KEY, GITHUB_TOKEN, or HF_TOKEN");
+    warnings.push("No AI provider keys configured — set OPENCODE_GO_API_KEY, OPENCODE_ZEN_API_KEY, GITHUB_TOKEN, or HF_TOKEN");
   }
 
   return { valid: missing.length === 0, missing: [...missing], warnings };

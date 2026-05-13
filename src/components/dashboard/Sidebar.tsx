@@ -187,7 +187,7 @@ export function Sidebar() {
             {admin && (
               <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-brand-500/40 bg-brand-500/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.2em] text-brand-300">
                 <Crown size={10} />
-                Admin · Free
+                Admin · All Tiers
               </div>
             )}
           </div>
