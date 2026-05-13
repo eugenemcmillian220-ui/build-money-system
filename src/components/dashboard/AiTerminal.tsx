@@ -345,7 +345,7 @@ export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
         {isProcessing && (
           <div className="flex items-center gap-2 text-amber-400 italic">
             <Loader2 size={14} className="animate-spin" />
-            <span>Neural Link Active - Generating Codebase...</span>
+            <span className="animate-pulse">Neural Link Active - Synthesizing Advanced Codebase...</span>
           </div>
         )}
       </div>
@@ -355,7 +355,7 @@ export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder={builderType === "automated" ? "Describe your vision in plain English..." : "Enter granular tactical command..."}
+          placeholder={builderType === "automated" ? "What would you like to manifest today? (e.g., 'Build a high-frequency trading bot with a dashboard')" : "Enter precise architectural directives..."}
           className="flex-1 bg-transparent border-none outline-none text-white placeholder:text-white/20"
           disabled={isProcessing}
         />
