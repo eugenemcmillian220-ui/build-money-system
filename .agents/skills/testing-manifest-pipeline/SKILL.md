@@ -73,6 +73,11 @@ npm run dev
 
 First page load may take 20-30 seconds to compile.
 
+**Important:** The dev server defaults to port 3000. If port 3000 is occupied, it will use 3001, but the CSRF middleware only allows `http://localhost:3000` as a dev origin. Kill any process on port 3000 first:
+```bash
+fuser -k 3000/tcp 2>/dev/null; sleep 1
+```
+
 ## Testing Flow
 
 ### 1. Login
@@ -88,7 +93,29 @@ First page load may take 20-30 seconds to compile.
 - System Sovereignty panel shows health status (Neural Link, Sovereign DB, etc.)
 - CEO Strategic Briefing appears with empire health analysis
 
-### 3. Submitting a Manifest Prompt
+### 3. Builder Type Toggle
+The terminal header has two toggle buttons: "Automated Builder" (default) and "Granular Architect".
+
+**Testing the toggle:**
+1. Verify "Automated Builder" is highlighted (bg-brand-500) by default
+2. Click "Granular Architect" — it should gain active styling, and the input placeholder changes to "Enter granular tactical command..."
+3. Click "Automated Builder" again — it should switch back, placeholder returns to "Describe your vision in plain English..."
+
+**Verifying builderType is wired through the API:**
+1. Open browser DevTools → Network tab
+2. Clear network log
+3. Select builder mode (Automated or Granular)
+4. Type a prompt and submit
+5. Click the "start" request in the Network tab → Payload → "view source"
+6. Verify the raw JSON contains `"builderType":"automated"` or `"builderType":"granular"` in options
+7. Terminal logs should confirm: `"Classification complete (automated mode)"` or `"Classification complete (granular mode)"`
+
+**Testing mode + builder combinations:**
+- Use `--mode elite` prefix with Granular Architect selected
+- Verify payload contains both `"mode":"elite"` AND `"builderType":"granular"`
+- Terminal should show `"Initiating Manifestation: ELITE | Sovereign-Forge-v1"`
+
+### 4. Submitting a Manifest Prompt
 - Type a prompt in the AiTerminal input field ("Describe your vision in plain English...")
 - Press Enter to submit
 - The terminal will show:
@@ -99,7 +126,7 @@ First page load may take 20-30 seconds to compile.
   - Stage-by-stage progress logs
 - On success: Active Projects count increments, project card appears in "Manifested Empires"
 
-### 4. What to Watch For
+### 5. What to Watch For
 - **Timeout errors**: Messages like "timed out after Xms" indicate timeout config values
   - `AGENT_CALL_TIMEOUT_MS` can be verified from scout agent timeout messages (e.g., "runScoutAgent timed out after 55000ms")
   - The scout agent may time out on LLM calls; this is expected and the pipeline uses a fallback strategy
@@ -107,6 +134,7 @@ First page load may take 20-30 seconds to compile.
 - **Credits**: Non-admin shows "Reserved N credits for manifestation"; admin shows "Admin account — credit reservation skipped"
 - **500 errors**: Check dev server console for stack traces
 - **Full pipeline completion**: Terminal shows "Manifestation complete. Empire initialized in database." and a project card appears
+- **Developer agent build failure**: The Developer agent may fail with `Cannot read properties of undefined (reading 'replace')`. This is a known issue in the code generation stage — it does not indicate problems with the builder toggle or mode wiring.
 
 ## Verifying Timeout Configuration
 
@@ -128,8 +156,10 @@ To confirm timeout changes are active:
 | `src/lib/with-timeout.ts` | Timeout utility with TimeoutError |
 | `src/lib/admin-emails.ts` | Admin email list (forces OTP login) |
 | `src/hooks/use-manifestation.ts` | Frontend hook that calls /api/manifest/start and polls status |
-| `src/components/dashboard/AiTerminal.tsx` | Terminal UI component |
+| `src/components/dashboard/AiTerminal.tsx` | Terminal UI component with builder toggle |
 | `src/components/dashboard/ManifestWorkspace.tsx` | Workspace with code panel |
+| `src/lib/agents/architect.ts` | Architect agent with dual system prompts for automated/granular |
+| `src/lib/types.ts` | ManifestOptions type including builderType field |
 
 ## Verifying Supabase Schema
 
@@ -157,3 +187,6 @@ npx tsc --noEmit  # Should exit 0 with no errors
 - When switching accounts, log out first then navigate to `/login`
 - The pipeline typically completes in 1-2 minutes locally for simple prompts
 - Admin accounts have unlimited credits and skip credit reservation
+- When testing Network tab payloads, clear the log between submissions to isolate requests
+- The browser session persists between page reloads — no need to re-login after refreshing
+- Elite mode reserves 100 credits vs 50 for universal — useful for confirming mode parsed correctly
