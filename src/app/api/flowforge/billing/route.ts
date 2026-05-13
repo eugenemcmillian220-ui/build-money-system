@@ -73,6 +73,7 @@ export async function GET(request: NextRequest) {
       next_billing_date: new Date(Date.now() + 30 * 86400000).toISOString(),
       is_admin: adminFree,
       all_plans_free: adminFree,
+      all_tiers_unlocked: adminFree,
     },
     usage: {
       credits_used_this_month: 5450,

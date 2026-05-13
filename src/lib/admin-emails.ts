@@ -2,9 +2,11 @@
  * Centralized list of privileged admin emails.
  *
  * Accounts that match this list get:
- *   1. Free admin access — `admin_free` billing tier, elite-equivalent gating.
+ *   1. Free admin access — `admin_free` billing tier, full access to ALL
+ *      tiers and features (basic, elite, lifetime, on-prem).
  *   2. Email-OTP (6-digit code) based auth — password auth disabled, a fresh
  *      verification code is required for every sign-up AND every sign-in.
+ *   3. Unlimited credits and zero billing — all credit checks bypassed.
  *
  * Keep this list short; each entry grants full unrestricted platform access.
  */
@@ -38,10 +40,18 @@ export const ELITE_EQUIVALENT_TIERS: readonly string[] = [
   "elite_pro",
   "elite_enterprise",
   "pro",
+  "basic_mini",
+  "basic_starter",
+  "basic_pro",
+  "basic_premium",
+  "lifetime_starter",
+  "lifetime_pro",
+  "onprem_perpetual",
   ADMIN_FREE_TIER,
 ] as const;
 
 export function isEliteTier(tier: string | null | undefined): boolean {
   if (!tier) return false;
+  if (tier === ADMIN_FREE_TIER) return true;
   return ELITE_EQUIVALENT_TIERS.includes(tier);
 }

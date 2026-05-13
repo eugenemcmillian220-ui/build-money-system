@@ -107,7 +107,7 @@ export const BILLING_TIERS: Record<string, BillingTier> = {
     features: ["Phases 1-3 Access", "Custom Templates", "Early Feature Access", "7,000 Credits/mo"],
   },
 
-  // --- Elite Empire (Phases 1-20) ---
+  // --- Elite Empire (Phases 1-25) ---
   "elite_starter": {
     id: "elite_starter",
     name: "Elite Starter",
@@ -118,7 +118,7 @@ export const BILLING_TIERS: Record<string, BillingTier> = {
     yearlyPriceEffective: 79,
     creditsPerMonth: 10000,
     keyFocus: "Governance & Edge",
-    features: ["Full Phases 1-20 Access", "Autonomous Governance (HITL)", "Edge Scale Orchestration", "Global CDN Deployment", "10,000 Credits/mo"],
+    features: ["Full Phases 1-25 Access", "Autonomous Governance (HITL)", "Edge Scale Orchestration", "Global CDN Deployment", "10,000 Credits/mo"],
   },
   "elite_pro": {
     id: "elite_pro",
@@ -130,7 +130,7 @@ export const BILLING_TIERS: Record<string, BillingTier> = {
     yearlyPriceEffective: 199,
     creditsPerMonth: 35000,
     keyFocus: "VC & Diplomacy",
-    features: ["Full Phases 1-20 Access", "Autonomous VC Investment Engine", "Agentic B2B Diplomacy", "Revenue Share Intelligence", "35,000 Credits/mo"],
+    features: ["Full Phases 1-25 Access", "Autonomous VC Investment Engine", "Agentic B2B Diplomacy", "Revenue Share Intelligence", "35,000 Credits/mo"],
   },
   "elite_enterprise": {
     id: "elite_enterprise",
@@ -142,7 +142,7 @@ export const BILLING_TIERS: Record<string, BillingTier> = {
     yearlyPriceEffective: 799,
     creditsPerMonth: 150000,
     keyFocus: "Legal, Hive & M&A",
-    features: ["Full Phases 1-20 Access", "Sovereign Forge Engine", "Phantom UX Simulation", "Herald Viral Launch Agent", "Hive Mind Intelligence", "Autonomous M&A Engine", "150,000 Credits/mo"],
+    features: ["Full Phases 1-25 Access", "Sovereign Forge Engine", "Phantom UX Simulation", "Herald Viral Launch Agent", "Hive Mind Intelligence", "Autonomous M&A Engine", "150,000 Credits/mo"],
   },
 };
 
@@ -162,7 +162,7 @@ export const LIFETIME_LICENSES: Record<string, LifetimeLicense> = {
     priceId: serverEnv.STRIPE_LIFETIME_PRO_PRICE_ID || "price_1TJK8iIYSZ7ijCe4SQkiEsRY",
     price: 2390,
     description: "One-time payment, lifetime access to Elite features",
-    features: ["Phases 1-20 Lifetime Access", "5,000 Credits/mo Forever", "All Elite Features", "Priority Support Forever"],
+    features: ["Phases 1-25 Lifetime Access", "5,000 Credits/mo Forever", "All Elite Features", "Priority Support Forever"],
   },
   "onprem_perpetual": {
     id: "onprem_perpetual",

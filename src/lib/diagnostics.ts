@@ -15,6 +15,7 @@ export async function runDiagnostics() {
       github: !!(serverEnv.GITHUB_ACCESS_TOKEN || serverEnv.GITHUB_TOKEN),
       vercel: !!(serverEnv.VERCEL_ACCESS_TOKEN || serverEnv.VERCEL_TOKEN),
       llm: {
+        opencodego: !!serverEnv.OPENCODE_GO_API_KEY || !!serverEnv.OPENCODE_GO_API_KEYS,
         opencodezen: !!serverEnv.OPENCODE_ZEN_API_KEY || !!serverEnv.OPENCODE_ZEN_API_KEYS,
         github: !!serverEnv.GITHUB_TOKEN || !!serverEnv.GITHUB_ACCESS_TOKEN,
         huggingface: !!serverEnv.HF_TOKEN || !!serverEnv.HUGGINGFACE_TOKEN,

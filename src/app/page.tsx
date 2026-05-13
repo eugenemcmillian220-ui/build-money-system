@@ -168,7 +168,7 @@ export default function LandingPage() {
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-500 opacity-75" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-500" />
           </span>
-          v2.8 · 25-Phase Sovereign AI Empire
+          v3.0.0 · 25-Phase Sovereign AI Empire
         </div>
 
         <h1 className="mx-auto max-w-5xl text-6xl font-black tracking-tight sm:text-8xl lg:text-9xl">
@@ -227,7 +227,7 @@ export default function LandingPage() {
               The 25-Phase Sovereign Lifecycle
             </h3>
             <span className="hidden text-[10px] font-black uppercase tracking-[0.25em] text-brand-400 sm:inline">
-              All phases live in v2.8
+              All phases live in v3.0.0
             </span>
           </div>
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-5 lg:grid-cols-5 xl:grid-cols-5">
