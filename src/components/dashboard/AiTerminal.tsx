@@ -165,20 +165,18 @@ export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
     setCommandHistory(newCmdHistory);
     localStorage.setItem(COMMAND_HISTORY_KEY, JSON.stringify(newCmdHistory));
 
-    const baseCmd = cmd.toLowerCase().split(" ")[0];
+    let baseCmd = cmd.toLowerCase().split(" ")[0];
     const isNaturalLanguage = !KNOWN_COMMANDS.includes(baseCmd);
 
-    // Smarter Intent Recognition
+    // Smarter Intent Recognition — remap natural language to known commands
     if (isNaturalLanguage && cmd.length > 5) {
       const lowerCmd = cmd.toLowerCase();
       if (lowerCmd.includes("status") || lowerCmd.includes("health") || lowerCmd.includes("how are you")) {
-        return handleCommand({ preventDefault: () => {}, target: { value: "status" } } as any);
-      }
-      if (lowerCmd.includes("clear") || lowerCmd.includes("wipe")) {
-        return handleCommand({ preventDefault: () => {}, target: { value: "clear" } } as any);
-      }
-      if (lowerCmd.includes("help") || lowerCmd.includes("what can you do")) {
-        return handleCommand({ preventDefault: () => {}, target: { value: "help" } } as any);
+        baseCmd = "status";
+      } else if (lowerCmd.includes("clear") || lowerCmd.includes("wipe")) {
+        baseCmd = "clear";
+      } else if (lowerCmd.includes("help") || lowerCmd.includes("what can you do")) {
+        baseCmd = "help";
       }
     }
 
