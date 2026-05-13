@@ -352,7 +352,7 @@ Rules:
         attempt,
         maxRetries: MAX_BUILD_RETRIES,
         specName: spec.name,
-        featureCount: spec.features.length,
+        featureCount: spec.features?.length ?? 0,
       });
       const content = await callLLM(messages, {
         temperature: attempt === 1 ? 0.7 : 0.5,
