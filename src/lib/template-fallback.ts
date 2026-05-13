@@ -83,7 +83,7 @@ export function fallbackFileMap(spec: AppSpec): FileMap {
 
   logger.warn("Using fallback file-map generator", {
     name: spec.name,
-    fileCount: spec.fileStructure.length,
+    fileCount: spec.fileStructure?.length ?? 0,
   });
 
   const files: FileMap = {};
@@ -96,7 +96,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "${spec.name}",
-  description: "${spec.description.replace(/"/g, '\\"').slice(0, 120)}",
+  description: "${(spec.description ?? "").replace(/"/g, '\\"').slice(0, 120)}",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -128,7 +128,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 .text-foreground { color: var(--foreground); }
 `;
 
-  const featureCards = spec.features
+  const featureCards = (spec.features ?? [])
     .slice(0, 6)
     .map(
       (f) => `<div className="rounded-3xl border border-white/5 bg-white/5 p-8 space-y-4">
@@ -147,7 +147,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <div className="max-w-3xl w-full text-center space-y-8">
         <h1 className="text-6xl font-black tracking-tighter italic uppercase mb-4">${spec.name}</h1>
         <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed">
-          ${spec.description.slice(0, 160)}
+          ${(spec.description ?? "").slice(0, 160)}
         </p>
         <div className="flex flex-wrap justify-center gap-4">
           <a

@@ -343,8 +343,9 @@ export async function runPlanDetailsStage(jobId: string, _baseUrl: string): Prom
 
     await appendLog(jobId, "info", `Details complete — ${spec.components.length} components specified.`);
 
+    const fullSpec: import("@/lib/types").AppSpec = { ...outline, ...spec };
     const nextState = mergeState(row, {
-      spec,
+      spec: fullSpec,
       usedFallback,
     });
     await setStage(jobId, "plan-details", { state: nextState }, "Planning complete → building code...");
