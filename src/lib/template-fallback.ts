@@ -128,6 +128,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 .text-foreground { color: var(--foreground); }
 `;
 
+  const featureCards = spec.features
+    .slice(0, 6)
+    .map(
+      (f) => `<div className="rounded-3xl border border-white/5 bg-white/5 p-8 space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center">
+              <div className="w-3 h-3 rounded-full bg-primary animate-pulse" />
+            </div>
+            <h3 className="font-black uppercase tracking-tight text-lg">${f}</h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">Advanced ${f} integration powered by Sovereign Forge.</p>
+          </div>`,
+    )
+    .join("\n          ");
+
   files["src/app/page.tsx"] = `export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-8 bg-background text-foreground">
@@ -152,18 +165,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </a>
         </div>
         <section className="mt-24 grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
-          ${spec.features
-            .slice(0, 6)
-            .map(
-              (f) => \`<div className="rounded-3xl border border-white/5 bg-white/5 p-8 space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center">
-              <div className="w-3 h-3 rounded-full bg-primary animate-pulse" />
-            </div>
-            <h3 className="font-black uppercase tracking-tight text-lg">\${f}</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">Advanced \${f} integration powered by Sovereign Forge.</p>
-          </div>\`,
-            )
-            .join("\n          ")}
+          ${featureCards}
         </section>
       </div>
     </main>
@@ -171,7 +173,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 }
 `;
 
-  files["src/app/loading.tsx"] = \`export default function Loading() {
+  files["src/app/loading.tsx"] = `export default function Loading() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-black">
       <div className="text-center space-y-4">
@@ -180,17 +182,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </div>
     </div>
   );
-}\`;
+}`;
 
-  files["src/lib/utils.ts"] = \`import { type ClassValue, clsx } from "clsx";
+  files["src/lib/utils.ts"] = `import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
-}\`;
+}`;
 
   // Keep other files mostly same but adjust paths to src/
-  files["src/app/login/page.tsx"] = \`"use client";
+  files["src/app/login/page.tsx"] = `"use client";
 import { useState } from "react";
 
 export default function LoginPage() {
@@ -234,9 +236,9 @@ export default function LoginPage() {
     </main>
   );
 }
-\`;
+`;
 
-  files["src/app/dashboard/page.tsx"] = \`export default function DashboardPage() {
+  files["src/app/dashboard/page.tsx"] = `export default function DashboardPage() {
   return (
     <main className="p-8 md:p-12 lg:p-16 bg-black min-h-screen space-y-12">
       <header className="flex justify-between items-end">
@@ -263,9 +265,9 @@ export default function LoginPage() {
     </main>
   );
 }
-\`;
+`;
 
-  files["src/lib/supabase/client.ts"] = \`import { createBrowserClient } from "@supabase/ssr";
+  files["src/lib/supabase/client.ts"] = `import { createBrowserClient } from "@supabase/ssr";
 
 export function createClient() {
   return createBrowserClient(
@@ -273,9 +275,9 @@ export function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   );
 }
-\`;
+`;
 
-  files["src/lib/supabase/server.ts"] = \`import { createServerClient } from "@supabase/ssr";
+  files["src/lib/supabase/server.ts"] = `import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
 export async function createClient() {
@@ -297,7 +299,7 @@ export async function createClient() {
     },
   );
 }
-\`;
+`;
 
   return files;
 }
