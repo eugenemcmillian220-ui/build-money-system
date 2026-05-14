@@ -3,7 +3,7 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { BILLING_TIERS, LIFETIME_LICENSES, CREDIT_PACKS, BillingTier, LifetimeLicense } from "@/lib/stripe-config";
+import { BILLING_TIERS, LIFETIME_LICENSES, BillingTier, LifetimeLicense } from "@/lib/stripe-config";
 
 interface PricingTableProps {
   orgId: string;
@@ -97,18 +97,6 @@ export function PricingTable({
       });
     } catch (err) {
       console.error("Checkout failed:", err);
-      setError(err instanceof Error ? err.message : "Failed to start checkout. Please try again.");
-    } finally {
-      setLoading(null);
-    }
-  };
-
-  const handleTopUp = async (packId: string) => {
-    setLoading(packId);
-    try {
-      await checkout({ orgId, type: "topup", packId });
-    } catch (err) {
-      console.error("Top-up failed:", err);
       setError(err instanceof Error ? err.message : "Failed to start checkout. Please try again.");
     } finally {
       setLoading(null);
