@@ -11,6 +11,14 @@ const nextConfig: NextConfig = {
   webpack: (config, { isServer }) => {
     config.parallelism = 3;
 
+    config.resolve = {
+      ...config.resolve,
+      alias: {
+        ...(config.resolve?.alias ?? {}),
+        punycode: require.resolve("punycode/"),
+      },
+    };
+
     config.optimization = {
       ...config.optimization,
       moduleIds: "deterministic",
