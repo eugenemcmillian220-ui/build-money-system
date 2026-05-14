@@ -34,7 +34,7 @@ class KeyManager {
     this.initPool("opencode-go",    this.readKeys("OPENCODE_GO_API_KEYS", "OPENCODE_GO_API_KEY"));
     this.initPool("opencode-zen",   this.readKeys("OPENCODE_ZEN_API_KEYS", "OPENCODE_ZEN_API_KEY"));
     this.initPool("github-models",  this.readKeys("GITHUB_TOKEN", "GITHUB_MODELS_TOKEN"));
-    this.initPool("huggingface",    this.readKeys("HF_TOKEN", "HUGGINGFACE_TOKEN"));
+    this.initPool("huggingface",    this.readKeys("HUGGINGFACE_API_KEY", "HF_TOKEN", "HUGGINGFACE_TOKEN"));
   }
 
   private readKeys(...envVars: string[]): string[] {
@@ -123,7 +123,7 @@ class KeyManager {
         case "github-models":
           return this.readKeys("GITHUB_TOKEN", "GITHUB_MODELS_TOKEN");
         case "huggingface":
-          return this.readKeys("HF_TOKEN", "HUGGINGFACE_TOKEN");
+          return this.readKeys("HUGGINGFACE_API_KEY", "HF_TOKEN", "HUGGINGFACE_TOKEN");
       }
     })();
     this.initPool(provider, keys);
