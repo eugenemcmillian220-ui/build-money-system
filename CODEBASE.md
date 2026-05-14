@@ -189,6 +189,12 @@ GITHUB_TOKEN=ghp_...
 
 ---
 
+
+## 🧭 Vercel Hobby Execution Plan
+For the canonical 7-stage timeout-safe pipeline breakdown, read `SOVEREIGN_FORGE_OS_VERCEL_HOBBY_BREAKDOWN.md`.
+
+---
+
 ## ⚠️ Known Constraints
 - `/api/project/[id]` is **removed** — use `/api/projects/[id]`
 - All LLM calls go through `callLLM()` in `llm.ts` — do not call providers directly
