@@ -25,7 +25,7 @@
 | Database | Supabase (PostgreSQL) |
 | Auth | Supabase Auth |
 | Payments | Stripe (Checkout, Webhooks, Subscriptions) |
-| AI / LLM | Multi-provider rotation: Groq, Gemini, OpenRouter, OpenAI |
+| AI / LLM | OpenCode Go (paid, primary) → OpenCode Zen (free) → GitHub Models (free) → Hugging Face (free) |
 | Observability | Arize AI (OTel via @vercel/otel) + Sentry |
 | Analytics | PostHog |
 | Deployment | Vercel (project: `prj_IWU7CvE5WyYuKCaEqxRwPY2H00Xn`) |
@@ -63,7 +63,7 @@ src/
     billing-engine.ts      ← Webhook-side billing logic (credit grants on payment events)
     economy.ts             ← AgentEconomy: credit balance, transactions, agent hiring
     llm.ts                 ← callLLM(), planSpec(), buildFromSpec() — instrumented with Arize OTel
-    llm-router.ts          ← LLMRouter: provider rotation (Groq→Gemini→OpenRouter→OpenAI)
+    llm-router.ts          ← LLMRouter: paid→free fallback (OpenCode Go→Zen→GitHub Models→Hugging Face)
     key-manager.ts         ← Multi-key rotation pool management
     telemetry.ts           ← Arize AI / OTel span wrapper (startSpan, traced)
     types.ts               ← Shared TypeScript types (Project, FileMap, AppSpec, etc.)
@@ -168,11 +168,14 @@ STRIPE_SECRET_KEY=sk_test_51TIsThIYSZ7ijCe4...
 STRIPE_WEBHOOK_SECRET=whsec_...
 NEXT_PUBLIC_SITE_URL=https://build-money-system-omd8.vercel.app
 
-# LLM Keys (multi-key rotation pools)
-GROQ_KEYS=gsk_...,gsk_...
-GEMINI_KEYS=AIza...,AIza...
-OPENROUTER_KEYS=sk-or-v1-...,sk-or-v1-...
-OPENAI_KEYS=sk-proj-...,sk-proj-...
+# LLM Providers (OpenAI-compatible, raw HTTP via axios)
+OPENCODE_GO_API_KEY=...          # Paid primary
+OPENCODE_ZEN_API_KEY=...         # Free fallback 1
+OPENCODE_BASE_URL=https://api.opencode.ai/v1
+GITHUB_MODELS_TOKEN=ghp_...      # Free fallback 2
+GITHUB_MODELS_BASE_URL=https://models.inference.ai.azure.com
+HUGGINGFACE_API_KEY=hf_...       # Free fallback 3
+HUGGINGFACE_BASE_URL=https://router.huggingface.co/v1
 
 # Arize AI (OTel)
 ARIZE_SPACE_ID=U3BhY2U6NDIwNTM6c2kyQw==

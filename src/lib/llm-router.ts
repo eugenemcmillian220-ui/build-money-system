@@ -2,13 +2,10 @@
  * llm-router.ts
  * Provider priority: opencode-go → opencode-zen → github-models → huggingface
  *
- * Endpoints (from official OpenCode docs, May 2026):
- *   Go:            https://opencode.ai/zen/go/v1/chat/completions
- *   Zen:           https://opencode.ai/zen/v1/chat/completions   (OpenAI-compat models)
- *                  https://opencode.ai/zen/v1/messages           (Anthropic-compat models)
- *                  https://opencode.ai/zen/v1/responses          (OpenAI Responses API models)
- *   GitHub Models: https://models.github.ai/inference/chat/completions
- *   HuggingFace:   https://router.huggingface.co/v1/chat/completions
+ * Endpoints (OpenAI-compatible via raw HTTP):
+ *   OpenCode:      ${OPENCODE_BASE_URL}/chat/completions
+ *   GitHub Models: ${GITHUB_MODELS_BASE_URL}/chat/completions
+ *   HuggingFace:   ${HUGGINGFACE_BASE_URL}/chat/completions
  */
 
 import { keyManager, type ProviderName } from "./key-manager";
@@ -186,7 +183,7 @@ class LLMRouter {
         return {
           provider: "opencode-go",
           model,
-          endpoint: "https://opencode.ai/zen/go/v1/chat/completions",
+          endpoint: `${process.env.OPENCODE_BASE_URL ?? "https://api.opencode.ai/v1"}/chat/completions`,
           messages,
           config,
           apiKey: key,
@@ -215,12 +212,12 @@ class LLMRouter {
       const key = keyManager.getKey("github-models");
       if (key) {
         const model = modelTier === "heavy" || modelTier === "balanced"
-          ? "deepseek/DeepSeek-V3-0324"
-          : "openai/gpt-4.1-nano";
+          ? "gpt-4o-mini"
+          : "gpt-4o-mini";
         return {
           provider: "github-models",
           model,
-          endpoint: "https://models.github.ai/inference/chat/completions",
+          endpoint: `${process.env.GITHUB_MODELS_BASE_URL ?? "https://models.inference.ai.azure.com"}/chat/completions`,
           messages,
           config,
           apiKey: key,
@@ -233,12 +230,12 @@ class LLMRouter {
       const key = keyManager.getKey("huggingface");
       if (key) {
         const model = modelTier === "heavy" || modelTier === "balanced"
-          ? "deepseek-ai/DeepSeek-V3-0324"
-          : "meta-llama/Llama-3.1-8B-Instruct";
+          ? "mistralai/Mistral-7B-Instruct-v0.3"
+          : "mistralai/Mistral-7B-Instruct-v0.3";
         return {
           provider: "huggingface",
           model,
-          endpoint: "https://router.huggingface.co/v1/chat/completions",
+          endpoint: `${process.env.HUGGINGFACE_BASE_URL ?? "https://router.huggingface.co/v1"}/chat/completions`,
           messages,
           config,
           apiKey: key,
@@ -248,7 +245,7 @@ class LLMRouter {
 
     throw new Error(
       "[llm-router] No providers configured. Set at least one of: " +
-      "OPENCODE_GO_API_KEY, OPENCODE_ZEN_API_KEY, GITHUB_TOKEN, HF_TOKEN"
+      "OPENCODE_GO_API_KEY, OPENCODE_ZEN_API_KEY, GITHUB_MODELS_TOKEN, HUGGINGFACE_API_KEY"
     );
   }
 
@@ -297,22 +294,12 @@ class LLMRouter {
     }
   }
 
-  private pickZenModel(tier: "heavy" | "balanced" | "fast" | "free"): {
+  private pickZenModel(_tier: "heavy" | "balanced" | "fast" | "free"): {
     model: string;
     endpoint: string;
   } {
-    const base = "https://opencode.ai/zen/v1";
-    switch (tier) {
-      case "heavy":
-        return { model: "claude-opus-4-6", endpoint: `${base}/messages` };
-      case "balanced":
-        return { model: "kimi-k2.6", endpoint: `${base}/chat/completions` };
-      case "fast":
-        return { model: "qwen3.5-plus", endpoint: `${base}/chat/completions` };
-      case "free":
-      default:
-        return { model: "big-pickle", endpoint: `${base}/chat/completions` };
-    }
+    const base = process.env.OPENCODE_BASE_URL ?? "https://api.opencode.ai/v1";
+    return { model: "opencode-zen", endpoint: `${base}/chat/completions` };
   }
 
   /**
@@ -381,7 +368,7 @@ class LLMRouter {
       return {
         provider: "opencode-go",
         model: modelId,
-        endpoint: "https://opencode.ai/zen/go/v1/chat/completions",
+        endpoint: `${process.env.OPENCODE_BASE_URL ?? "https://api.opencode.ai/v1"}/chat/completions`,
         messages, config, apiKey: key,
       };
     }
@@ -393,7 +380,7 @@ class LLMRouter {
 
     if (keyManager.isConfigured("opencode-zen")) {
       const key = keyManager.getKey("opencode-zen")!;
-      const base = "https://opencode.ai/zen/v1";
+      const base = process.env.OPENCODE_BASE_URL ?? "https://api.opencode.ai/v1";
 
       if (zenOpenAIModels.includes(modelId)) {
         return { provider: "opencode-zen", model: modelId, endpoint: `${base}/chat/completions`, messages, config, apiKey: key };
