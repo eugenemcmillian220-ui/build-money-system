@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Terminal as TerminalIcon, Send, Loader2, Sparkles, Command, Shield, Zap } from "lucide-react";
 import { ManifestOptions } from "@/lib/types";
 
@@ -32,7 +32,7 @@ const DEFAULT_HISTORY: { type: "input" | "output" | "error"; text: string }[] = 
   { type: "output", text: "Type 'help' for tactical commands, or use Natural Language for manifestation." },
 ];
 
-export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
+export function AiTerminal({ onManifest, orgId: _orgId }: AiTerminalProps) {
   const [input, setInput] = useState("");
   const [history, setHistory] = useState<{ type: "input" | "output" | "error"; text: string }[]>(DEFAULT_HISTORY);
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
@@ -45,8 +45,8 @@ export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const initializedRef = useRef(false);
 
-  const [mode, setMode] = useState<"elite" | "universal" | "nano">("universal");
-  const [protocol, setProtocol] = useState("Sovereign-Forge-v1");
+  const [mode] = useState<"elite" | "universal" | "nano">("universal");
+  const [protocol] = useState("Sovereign-Forge-v1");
   const [builderType, setBuilderType] = useState<"automated" | "granular">("automated");
   const [credits, setCredits] = useState<number | string>("...");
 
