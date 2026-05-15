@@ -99,12 +99,71 @@ export function triggerStage(
         }
       );
       if (!res.ok) {
-        console.warn(
-          `[manifest/chain] trigger ${stage} returned HTTP ${res.status} for job ${jobId}`,
+        const errorBody = await res.text().catch(() => "No error body");
+        console.error(
+          `[manifest/chain] trigger ${stage} returned HTTP ${res.status} for job ${jobId}. Body: ${errorBody}`,
         );
+        // Fallback to direct call if fetch fails (e.g., DNS or routing issues)
+        console.info(`[manifest/chain] attempting fallback direct call for stage ${stage} (job ${jobId})`);
+        const stages = await import("./stages");
+        const RUNNERS: Record<StageName, (id: string, base: string) => Promise<void>> = {
+          "intent-classify": stages.runIntentClassifyStage,
+          "intent-scout": stages.runIntentScoutStage,
+          "intent-architect": stages.runIntentArchitectStage,
+          intent: stages.runIntentStage,
+          generate: stages.runGenerateStage,
+          "generate-plan": stages.runGeneratePlanStage,
+          "plan-outline": stages.runPlanOutlineStage,
+          "plan-details": stages.runPlanDetailsStage,
+          "generate-build-code": stages.runGenerateBuildCodeStage,
+          "generate-build-fix": stages.runGenerateBuildFixStage,
+          "generate-build": stages.runGenerateBuildStage,
+          "polish-analyze": stages.runPolishAnalyzeStage,
+          "polish-launch": stages.runPolishLaunchStage,
+          polish: stages.runPolishStage,
+          "polish-parallel": stages.runPolishParallelStage,
+          persist: stages.runPersistStage,
+        };
+        const runner = RUNNERS[stage];
+        if (runner) {
+          await runner(jobId, baseUrl);
+          const next = stages.nextStage[stage];
+          if (next) triggerStage(baseUrl, next, jobId);
+        }
       }
     } catch (err) {
-      console.warn(`[manifest/chain] trigger ${stage} failed for job ${jobId}:`, err);
+      console.error(`[manifest/chain] trigger ${stage} failed for job ${jobId}:`, err);
+      // Even on fetch error, try fallback
+      try {
+        console.info(`[manifest/chain] fetch error, attempting fallback direct call for stage ${stage} (job ${jobId})`);
+        const stages = await import("./stages");
+        const RUNNERS: Record<StageName, (id: string, base: string) => Promise<void>> = {
+          "intent-classify": stages.runIntentClassifyStage,
+          "intent-scout": stages.runIntentScoutStage,
+          "intent-architect": stages.runIntentArchitectStage,
+          intent: stages.runIntentStage,
+          generate: stages.runGenerateStage,
+          "generate-plan": stages.runGeneratePlanStage,
+          "plan-outline": stages.runPlanOutlineStage,
+          "plan-details": stages.runPlanDetailsStage,
+          "generate-build-code": stages.runGenerateBuildCodeStage,
+          "generate-build-fix": stages.runGenerateBuildFixStage,
+          "generate-build": stages.runGenerateBuildStage,
+          "polish-analyze": stages.runPolishAnalyzeStage,
+          "polish-launch": stages.runPolishLaunchStage,
+          polish: stages.runPolishStage,
+          "polish-parallel": stages.runPolishParallelStage,
+          persist: stages.runPersistStage,
+        };
+        const runner = RUNNERS[stage];
+        if (runner) {
+          await runner(jobId, baseUrl);
+          const next = stages.nextStage[stage];
+          if (next) triggerStage(baseUrl, next, jobId);
+        }
+      } catch (fallbackErr) {
+        console.error(`[manifest/chain] fallback also failed for stage ${stage} (job ${jobId}):`, fallbackErr);
+      }
     }
   });
 }

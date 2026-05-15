@@ -33,11 +33,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const { nextStage } = await import("@/lib/manifest/stages");
+    const next_stage = nextStage[row.current_stage as keyof typeof nextStage] || (row.status === "pending" ? "intent-classify" : null);
+
     return NextResponse.json({
       id: row.id,
       status: row.status,
       current_stage: row.current_stage,
+      next_stage,
       error: row.error,
+      last_error: row.error, // explicitly labeled as requested
       updated_at: row.updated_at,
       created_at: row.created_at,
       logs: row.logs,
@@ -45,7 +50,9 @@ export async function GET(request: NextRequest) {
       result: row.result,
       env_check: {
         has_worker_secret: !!process.env.WORKER_SHARED_SECRET,
+        worker_secret_configured: !!process.env.WORKER_SHARED_SECRET,
         node_env: process.env.NODE_ENV,
+        is_production: process.env.NODE_ENV === "production",
       }
     });
   } catch (err) {

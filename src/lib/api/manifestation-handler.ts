@@ -63,11 +63,22 @@ export async function handleManifestationRequest(
 
   const baseUrl = new URL(request.url).origin;
   // Fire-and-forget: first stage runs in its own serverless invocation.
-  if (!process.env.WORKER_SHARED_SECRET && process.env.NODE_ENV === "production") {
-    console.error("[manifest/handler] WORKER_SHARED_SECRET is not set. Inter-stage calls will fail.");
-    // Optionally, return an error response or fallback to a different mechanism
+  const workerSecret = process.env.WORKER_SHARED_SECRET;
+  const isProd = process.env.NODE_ENV === "production";
+
+  if (!workerSecret && isProd) {
+    const errorMsg = "[manifest/handler] CRITICAL: WORKER_SHARED_SECRET is missing in production. Manifestation will fail to progress.";
+    console.error(errorMsg);
+    // We still call triggerStage, but it will log its own error. 
+    // The debug endpoint will now also show this.
   }
-  triggerStage(baseUrl, "intent-classify", row.id);
+
+  console.info(`[manifest/handler] Initiating manifestation pipeline for job ${row.id} at ${baseUrl}`);
+  try {
+    triggerStage(baseUrl, "intent-classify", row.id);
+  } catch (err) {
+    console.error(`[manifest/handler] Failed to trigger initial stage for job ${row.id}:`, err);
+  }
 
   const response: Record<string, unknown> = {
     jobId: row.id,

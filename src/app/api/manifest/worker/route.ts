@@ -52,11 +52,14 @@ export async function POST(request: NextRequest) {
   const secret = request.headers.get("x-worker-secret");
   const expected = process.env.WORKER_SHARED_SECRET;
   if (!expected) {
-    console.error("[manifest/worker] WORKER_SHARED_SECRET env var is not set — all worker calls will be rejected.");
-    return NextResponse.json({ error: "Worker misconfigured" }, { status: 503 });
+    const msg = "[manifest/worker] WORKER_SHARED_SECRET env var is not set. All worker calls will be rejected.";
+    console.error(msg);
+    Sentry.captureMessage(msg, "error");
+    return NextResponse.json({ error: "Worker misconfigured: missing secret" }, { status: 503 });
   }
   if (secret !== expected) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    console.warn(`[manifest/worker] Unauthorized attempt with secret: ${secret?.slice(0, 3)}...`);
+    return NextResponse.json({ error: "Forbidden: invalid secret" }, { status: 403 });
   }
 
   const stage = new URL(request.url).searchParams.get("stage") as StageName | null;
