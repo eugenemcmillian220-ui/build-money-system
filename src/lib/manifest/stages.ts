@@ -327,7 +327,7 @@ export async function runPlanDetailsStage(jobId: string, _baseUrl: string): Prom
       const { planSpecDetails } = await import("@/lib/llm");
       spec = await withTimeout(
         planSpecDetails(finalPrompt, outline),
-        AGENT_CALL_TIMEOUT_MS * 1.5, // Detailed planning needs more time
+        AGENT_CALL_TIMEOUT_MS * 2, // Detailed planning needs more time, increase to 80s
         "planSpecDetails",
       );
     } catch (llmErr) {

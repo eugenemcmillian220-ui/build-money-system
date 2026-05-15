@@ -354,11 +354,14 @@ Rules:
         specName: spec.name,
         featureCount: spec.features?.length ?? 0,
       });
-      const content = await callLLM(messages, {
+      let content = "";
+      for await (const chunk of streamLLM(messages, {
         temperature: attempt === 1 ? 0.7 : 0.5,
         maxTokens: 8192,
         timeout: options.timeout ?? 25_000,
-      });
+      })) {
+        content += chunk;
+      }
       const parsed = parseMultiFileJson(content);
       logger.info("buildFromSpec succeeded", {
         attempt,

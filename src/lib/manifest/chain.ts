@@ -1,6 +1,8 @@
 import "server-only";
 import { after } from "next/server";
 import type { StageName } from "./stages";
+import { withStageTimeout } from "@/lib/pipeline-timeout";
+
 
 /**
  * Fire-and-forget the next stage using Next.js's `after()` primitive so the
@@ -74,14 +76,28 @@ export function triggerStage(
         console.error(`[manifest/chain] WORKER_SHARED_SECRET is not set — stage "${stage}" for job ${jobId} will not run in production!`);
         return;
       }
-      const res = await fetch(`${baseUrl}/api/manifest/worker?stage=${stage}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Worker-Secret": process.env.WORKER_SHARED_SECRET ?? "",
-        },
-        body: JSON.stringify({ jobId }),
-      });
+
+      const res = await withStageTimeout(
+        () => fetch(`${baseUrl}/api/manifest/worker?stage=${stage}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Worker-Secret": process.env.WORKER_SHARED_SECRET ?? "",
+          },
+          body: JSON.stringify({ jobId }),
+        }),
+        {
+          stage: `triggerStage-${stage}`,
+          budgetMs: 5_000, // Give the worker route 5 seconds to respond
+          maxRetries: 3, // Retry 3 times
+          retryBaseMs: 500, // Start with 500ms delay
+          onAttempt: (attempt, err) => {
+            if (err) {
+              console.warn(`[manifest/chain] triggerStage-${stage} attempt ${attempt} failed: ${err.message}`);
+            }
+          },
+        }
+      );
       if (!res.ok) {
         console.warn(
           `[manifest/chain] trigger ${stage} returned HTTP ${res.status} for job ${jobId}`,

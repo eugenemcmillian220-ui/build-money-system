@@ -63,6 +63,10 @@ export async function handleManifestationRequest(
 
   const baseUrl = new URL(request.url).origin;
   // Fire-and-forget: first stage runs in its own serverless invocation.
+  if (!process.env.WORKER_SHARED_SECRET && process.env.NODE_ENV === "production") {
+    console.error("[manifest/handler] WORKER_SHARED_SECRET is not set. Inter-stage calls will fail.");
+    // Optionally, return an error response or fallback to a different mechanism
+  }
   triggerStage(baseUrl, "intent-classify", row.id);
 
   const response: Record<string, unknown> = {

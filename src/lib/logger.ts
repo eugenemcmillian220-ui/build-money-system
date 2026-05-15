@@ -1,3 +1,5 @@
+import * as Sentry from "@sentry/nextjs";
+
 /**
  * Structured Logger for Production
  * 
@@ -5,7 +7,7 @@
  * Outputs human-readable logs in development.
  * 
  * Usage:
- *   import { logger } from "@/lib/logger";
+ *   
  *   logger.info("User created", { userId: "abc", orgId: "xyz" });
  *   logger.error("Payment failed", { error: err, stripeSessionId: "sess_123" });
  */
@@ -58,6 +60,18 @@ function formatContext(context?: Record<string, unknown>): Record<string, unknow
 }
 
 function log(level: LogLevel, message: string, context?: Record<string, unknown>): void {
+  if (level === "error" || level === "warn") {
+    Sentry.withScope((scope) => {
+      if (context) {
+        scope.setExtras(context);
+      }
+      if (level === "error") {
+        Sentry.captureMessage(message, "error");
+      } else {
+        Sentry.captureMessage(message, "warning");
+      }
+    });
+  }
   if (!shouldLog(level)) return;
 
   const isProduction = process.env.NODE_ENV === "production";
