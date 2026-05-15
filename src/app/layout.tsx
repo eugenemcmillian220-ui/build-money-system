@@ -1,22 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
 import { headers } from "next/headers";
 import { whiteLabelManager } from "@/lib/white-label";
 import { PHProvider } from "@/components/providers/ph-provider";
 import PostHogPageView from "@/components/providers/posthog-page-view";
 import "./globals.css";
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-sans",
-  display: "swap",
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: {
@@ -47,7 +34,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${jetbrainsMono.variable} dark`}
+      className="dark"
       suppressHydrationWarning
     >
       <body className="bg-background text-foreground selection:bg-brand-500/30">
