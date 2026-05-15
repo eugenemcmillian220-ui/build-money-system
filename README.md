@@ -71,7 +71,7 @@ Toggle between modes in the Neural Terminal header. All 3 manifestation modes (*
 *   **Neural Credits & Surge Pricing**: Dynamic manifestation costs based on system load and build complexity.
 *   **User Governance Tokens (UGT)**: Earn 1 UGT per 1,000 credits topped up. UGT grants voting power in the **Sovereign DAO**.
 *   **Sovereign DAO**: A fully decentralized governance hub where token holders can propose and vote on the future of the Forge OS.
-*   **Multi-Key Rotation Pool**: Unstoppable intelligence via round-robin rotation across Groq, Gemini, OpenAI, DeepSeek, and OpenRouter.
+*   **Multi-Key Rotation Pool**: Unstoppable intelligence via round-robin rotation across OpenCode Go, OpenCode Zen, GitHub Models, and Hugging Face.
 *   **Hardened Monitoring**: Real-time telemetry via **Slack Command Center**, Sentry error tracking, and Arize AI observability.
 
 ---
@@ -94,7 +94,7 @@ Toggle between modes in the Neural Terminal header. All 3 manifestation modes (*
 *   Node.js 22.x (LTS)
 *   Supabase Account (Service Role Key required)
 *   Stripe Account (Secret Key & Webhook Secret required)
-*   LLM Keys (At least one: Groq, Gemini, OpenAI, or OpenRouter)
+*   LLM Keys (at least one from: OpenCode Go, OpenCode Zen, GitHub Models, Hugging Face)
 *   Arize AI Keys (For Phase 21 Observability)
 
 ### 2. Configuration
@@ -114,8 +114,10 @@ cp .env.example .env.local
 ### 3. Intelligence Pool Setup
 Forge OS supports **Multi-Key Rotation**. Provide multiple keys separated by commas:
 ```bash
-OPENROUTER_API_KEYS=sk-or-v1-key1,sk-or-v1-key2
-GROQ_API_KEYS=gsk_key1,gsk_key2
+OPENCODE_GO_API_KEYS=sk-go-key1,sk-go-key2
+OPENCODE_ZEN_API_KEYS=sk-zen-key1,sk-zen-key2
+GITHUB_MODELS_TOKEN=ghp_your_token
+HUGGINGFACE_API_KEY=hf_your_token
 ```
 
 ### 4. Manifest the Empire
