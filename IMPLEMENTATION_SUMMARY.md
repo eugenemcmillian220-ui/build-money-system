@@ -2,7 +2,7 @@
 
 ## Overview
 
-Successfully implemented a comprehensive multi-key rotation system for the AI App Builder that supports automatic rotation, error tracking, and failover across 7 LLM providers (Groq, Gemini, OpenAI, OpenRouter, DeepSeek, Cerebras, Cloudflare).
+Successfully implemented a comprehensive multi-key rotation system for the AI App Builder that supports automatic rotation, error tracking, and failover across 7 LLM providers (OpenCode Zen, GitHub Models, Hugging Face, OpenCode Go, DeepSeek, Cerebras, Cloudflare).
 
 ## Changes Made
 
@@ -35,8 +35,8 @@ OPENCODE_ZEN_API_KEYS=key1,key2,key3
 GITHUB_MODELS_TOKENS=key1,key2,key3
 HUGGINGFACE_API_KEYS=key1,key2,key3
 OPENCODE_GO_API_KEYS=key1,key2,key3
-DEEPSEEK_API_KEYS=key1,key2
-CEREBRAS_API_KEYS=key1,key2
+# DEEPSEEK_API_KEY (legacy)S=key1,key2
+# CEREBRAS_API_KEY (legacy)S=key1,key2
 CLOUDFLARE_API_KEYS=key1,key2
 
 # Single key (fallback)
@@ -100,9 +100,9 @@ Request 4 → key1 (cycles)
 ### 2. Error Tracking & Cooldown
 ```typescript
 // After 3 consecutive errors:
-keyManager.reportError("groq", "key1");
-keyManager.reportError("groq", "key1");
-keyManager.reportError("groq", "key1");
+keyManager.reportError("opencode_zen", "key1");
+keyManager.reportError("opencode_zen", "key1");
+keyManager.reportError("opencode_zen", "key1");
 // → key1 enters 60-second cooldown
 
 // Subsequent requests skip to next available key
@@ -111,7 +111,7 @@ keyManager.reportError("groq", "key1");
 ### 3. Success Reset
 ```typescript
 // Reset error count on success
-keyManager.reportSuccess("groq", "key1");
+keyManager.reportSuccess("opencode_zen", "key1");
 // → Key fully recovered, error count cleared
 ```
 
@@ -171,16 +171,16 @@ npx tsx demo-key-rotation.ts
 import { keyManager } from "@/lib/key-manager";
 
 // Get next available key
-const key = keyManager.getKey("groq");
+const key = keyManager.getKey("opencode_zen");
 
 // Check if configured
-const isConfigured = keyManager.isConfigured("groq");
+const isConfigured = keyManager.isConfigured("opencode_zen");
 
 // Report error (triggers cooldown after 3 errors)
-keyManager.reportError("groq", key);
+keyManager.reportError("opencode_zen", key);
 
 // Report success (resets error count)
-keyManager.reportSuccess("groq", key);
+keyManager.reportSuccess("opencode_zen", key);
 ```
 
 ### With LLM Router
@@ -241,10 +241,10 @@ HUGGINGFACE_API_KEY=sk-proj-single-key
 - No breaking changes to API
 
 ### Provider Support
-- ✅ Groq
-- ✅ Gemini
-- ✅ OpenAI
-- ✅ OpenRouter
+- ✅ OpenCode Zen
+- ✅ GitHub Models
+- ✅ Hugging Face
+- ✅ OpenCode Go
 - ✅ DeepSeek
 - ✅ Cerebras
 - ✅ Cloudflare

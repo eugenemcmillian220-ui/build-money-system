@@ -14,8 +14,8 @@ HUGGINGFACE_API_KEYS=sk-proj-key1,sk-proj-key2,sk-proj-key3
 OPENCODE_GO_API_KEYS=sk-or-v1-key1,sk-or-v1-key2,sk-or-v1-key3
 
 # Optional: Add more providers
-DEEPSEEK_API_KEYS=deepseek-key1,deepseek-key2
-CEREBRAS_API_KEYS=cerebras-key1,cerebras-key2
+# # DEEPSEEK_API_KEY (legacy)S removed from current stack
+# # CEREBRAS_API_KEY (legacy)S removed from current stack
 CLOUDFLARE_API_KEYS=cf-key1,cf-key2
 CLOUDFLARE_ACCOUNT_ID=your-account-id
 ```
@@ -78,13 +78,13 @@ Expected output:
 
 ```typescript
 // After 3 errors, key enters 60s cooldown
-keyManager.reportError("groq", "key1");
-keyManager.reportError("groq", "key1");
-keyManager.reportError("groq", "key1");
+keyManager.reportError("opencode_zen", "key1");
+keyManager.reportError("opencode_zen", "key1");
+keyManager.reportError("opencode_zen", "key1");
 // → key1 is skipped for 60 seconds
 
 // Success resets error count
-keyManager.reportSuccess("groq", "key1");
+keyManager.reportSuccess("opencode_zen", "key1");
 // → key1 is fully usable again
 ```
 
@@ -104,10 +104,10 @@ Providers without keys are automatically skipped.
 import { keyManager } from "@/lib/key-manager";
 
 // Get next available key
-const key = keyManager.getKey("groq");
+const key = keyManager.getKey("opencode_zen");
 
 // Check if configured
-const isConfigured = keyManager.isConfigured("groq");
+const isConfigured = keyManager.isConfigured("opencode_zen");
 ```
 
 ### 2. With LLM Router
@@ -130,12 +130,12 @@ const { url, headers, body, apiKey } = llmRouter.getFetchParams(req);
 try {
   const response = await fetch(url, { headers, body });
   if (!response.ok) {
-    keyManager.reportError("groq", apiKey);
+    keyManager.reportError("opencode_zen", apiKey);
     throw new Error("API error");
   }
-  keyManager.reportSuccess("groq", apiKey);
+  keyManager.reportSuccess("opencode_zen", apiKey);
 } catch (error) {
-  keyManager.reportError("groq", apiKey);
+  keyManager.reportError("opencode_zen", apiKey);
   throw error;
 }
 ```
@@ -146,12 +146,12 @@ try {
 
 | Provider | Single Key | Multi-Key |
 |----------|-----------|-----------|
-| Groq | `OPENCODE_ZEN_API_KEY` | `OPENCODE_ZEN_API_KEYS` |
-| Gemini | `GITHUB_MODELS_TOKEN` | `GITHUB_MODELS_TOKENS` |
-| OpenAI | `HUGGINGFACE_API_KEY` | `HUGGINGFACE_API_KEYS` |
-| OpenRouter | `OPENCODE_GO_API_KEY` | `OPENCODE_GO_API_KEYS` |
-| DeepSeek | `DEEPSEEK_API_KEY` | `DEEPSEEK_API_KEYS` |
-| Cerebras | `CEREBRAS_API_KEY` | `CEREBRAS_API_KEYS` |
+| OpenCode Zen | `OPENCODE_ZEN_API_KEY` | `OPENCODE_ZEN_API_KEYS` |
+| GitHub Models | `GITHUB_MODELS_TOKEN` | `GITHUB_MODELS_TOKENS` |
+| Hugging Face | `HUGGINGFACE_API_KEY` | `HUGGINGFACE_API_KEYS` |
+| OpenCode Go | `OPENCODE_GO_API_KEY` | `OPENCODE_GO_API_KEYS` |
+| DeepSeek | `# DEEPSEEK_API_KEY (legacy)` | `# DEEPSEEK_API_KEY (legacy)S` |
+| Cerebras | `# CEREBRAS_API_KEY (legacy)` | `# CEREBRAS_API_KEY (legacy)S` |
 | Cloudflare | `CLOUDFLARE_API_KEY` | `CLOUDFLARE_API_KEYS` |
 
 ### Priority Order
@@ -229,8 +229,8 @@ echo $OPENCODE_ZEN_API_KEY
 
 **Solution**: Verify configuration
 ```typescript
-keyManager.isConfigured("groq");  // Should return true
-const key = keyManager.getKey("groq");  // Should return a key
+keyManager.isConfigured("opencode_zen");  // Should return true
+const key = keyManager.getKey("opencode_zen");  // Should return a key
 ```
 
 ## Performance Tips
@@ -251,7 +251,7 @@ const key = keyManager.getKey("groq");  // Should return a key
 
 ```typescript
 // Check all providers
-const providers = ["groq", "gemini", "openai", "openrouter"];
+const providers = ["opencode_zen", "github_models", "huggingface", "opencode_go"];
 providers.forEach(p => {
   const configured = keyManager.isConfigured(p as any);
   const key = keyManager.getKey(p as any);
