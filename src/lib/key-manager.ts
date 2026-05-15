@@ -1,3 +1,4 @@
+// Legacy providers (Groq/Gemini/OpenAI/OpenRouter) have been fully removed.
 /**
  * key-manager.ts
  * Multi-key rotation pool for approved providers only:
