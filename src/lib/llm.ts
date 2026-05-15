@@ -1,3 +1,4 @@
+// Legacy providers (Groq/Gemini/OpenAI/OpenRouter) have been fully removed.
 import { FileMap, AppSpec, AgentConfig, defaultAgentConfig, ChatMessage } from "./types";
 import { MemoryContext } from "./memory-store";
 import { aiComplete, aiEmbed, aiStream, STAGE_PREFERRED_MODELS } from "./ai";

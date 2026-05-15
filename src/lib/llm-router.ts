@@ -1,3 +1,4 @@
+// Legacy providers (Groq/Gemini/OpenAI/OpenRouter) have been fully removed.
 /**
  * llm-router.ts
  * Provider priority: opencode-go → opencode-zen → github-models → huggingface
@@ -53,7 +54,7 @@ export const ZEN_MODELS = {
     "ring-2.6-1t-free",
     "nemotron-3-super-free",
   ],
-  openai_compat: [  // endpoint: /zen/v1/chat/completions
+  chat_completions: [  // endpoint: /zen/v1/chat/completions
     "qwen3.6-plus",
     "qwen3.5-plus",
     "minimax-m2.7",
@@ -74,7 +75,7 @@ export const ZEN_MODELS = {
     "claude-sonnet-4-5",
     "claude-haiku-4-5",
   ],
-  openai_responses: [  // endpoint: /zen/v1/responses
+  responses_api: [  // endpoint: /zen/v1/responses
     "gpt-5.5",
     "gpt-5.5-pro",
     "gpt-5.4",
@@ -85,10 +86,6 @@ export const ZEN_MODELS = {
     "gpt-5.2",
     "gpt-5.1",
     "gpt-5-nano",
-  ],
-  google_compat: [  // endpoint: /zen/v1/models/<model-id>
-    "gemini-3.1-pro",
-    "gemini-3-flash",
   ],
 } as const;
 
@@ -211,9 +208,7 @@ class LLMRouter {
     if (keyManager.isConfigured("github-models")) {
       const key = keyManager.getKey("github-models");
       if (key) {
-        const model = modelTier === "heavy" || modelTier === "balanced"
-          ? "gpt-4o-mini"
-          : "gpt-4o-mini";
+        const model = modelTier === "fast" ? GITHUB_MODELS[1] : GITHUB_MODELS[0];
         return {
           provider: "github-models",
           model,
@@ -229,9 +224,7 @@ class LLMRouter {
     if (keyManager.isConfigured("huggingface")) {
       const key = keyManager.getKey("huggingface");
       if (key) {
-        const model = modelTier === "heavy" || modelTier === "balanced"
-          ? "mistralai/Mistral-7B-Instruct-v0.3"
-          : "mistralai/Mistral-7B-Instruct-v0.3";
+        const model = modelTier === "fast" ? HF_MODELS[4] : HF_MODELS[0];
         return {
           provider: "huggingface",
           model,
@@ -294,12 +287,15 @@ class LLMRouter {
     }
   }
 
-  private pickZenModel(_tier: "heavy" | "balanced" | "fast" | "free"): {
+  private pickZenModel(tier: "heavy" | "balanced" | "fast" | "free"): {
     model: string;
     endpoint: string;
   } {
     const base = process.env.OPENCODE_BASE_URL ?? "https://api.opencode.ai/v1";
-    return { model: "opencode-zen", endpoint: `${base}/chat/completions` };
+    if (tier === "free") return { model: ZEN_MODELS.free[0], endpoint: `${base}/chat/completions` };
+    if (tier === "heavy") return { model: ZEN_MODELS.chat_completions[0], endpoint: `${base}/chat/completions` };
+    if (tier === "fast") return { model: ZEN_MODELS.chat_completions[3], endpoint: `${base}/chat/completions` };
+    return { model: ZEN_MODELS.chat_completions[1], endpoint: `${base}/chat/completions` };
   }
 
   /**
@@ -374,15 +370,15 @@ class LLMRouter {
     }
 
     // Check Zen models
-    const zenOpenAIModels = ZEN_MODELS.openai_compat as readonly string[];
+    const zenChatModels = ZEN_MODELS.chat_completions as readonly string[];
     const zenAnthropicModels = ZEN_MODELS.anthropic_compat as readonly string[];
-    const zenResponseModels = ZEN_MODELS.openai_responses as readonly string[];
+    const zenResponseModels = ZEN_MODELS.responses_api as readonly string[];
 
     if (keyManager.isConfigured("opencode-zen")) {
       const key = keyManager.getKey("opencode-zen")!;
       const base = process.env.OPENCODE_BASE_URL ?? "https://api.opencode.ai/v1";
 
-      if (zenOpenAIModels.includes(modelId)) {
+      if (zenChatModels.includes(modelId)) {
         return { provider: "opencode-zen", model: modelId, endpoint: `${base}/chat/completions`, messages, config, apiKey: key };
       }
       if (zenAnthropicModels.includes(modelId)) {
