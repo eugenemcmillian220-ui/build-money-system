@@ -24,6 +24,9 @@ export async function GET() {
       ? "All critical env vars present"
       : `Missing: ${envResult.missing.join(", ")}`,
   };
+  if (envResult.warnings.length > 0) {
+    checks["env"].message = `${checks["env"].message} | Warnings: ${envResult.warnings.join(" | ")}`;
+  }
 
   // 2. Supabase connectivity
   try {
