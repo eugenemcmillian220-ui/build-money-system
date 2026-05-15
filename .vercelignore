@@ -1,0 +1,5 @@
+# Exclude large planning/blueprint docs from deployment upload
+PHASE_*_BLUEPRINT.md
+docs/PHASE_*.md
+*.log
+coverage/

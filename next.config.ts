@@ -46,9 +46,10 @@ const nextConfig: NextConfig = {
   output: "standalone",
   productionBrowserSourceMaps: false,
   experimental: {
+    webpackMemoryOptimizations: true,
     workerThreads: false,
     cpus: 1,
-    optimizePackageImports: ["@supabase/supabase-js", "openai", "stripe", "zod"],
+    optimizePackageImports: ["@ai-sdk/*", "ai", "@supabase/supabase-js", "openai", "stripe", "zod"],
   },
 };
 
