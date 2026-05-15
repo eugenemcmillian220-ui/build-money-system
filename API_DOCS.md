@@ -38,7 +38,7 @@ GET /api/health
   "environment": "production",
   "services": {
     "database": true,
-    "openrouter": true,
+    "opencode_go": true,
     "vercel": true,
     "github": true,
     "stripe": true
