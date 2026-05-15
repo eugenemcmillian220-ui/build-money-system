@@ -31,19 +31,19 @@ Successfully implemented a comprehensive multi-key rotation system for the AI Ap
 **Environment Variables Supported:**
 ```bash
 # Multi-key (recommended)
-GROQ_API_KEYS=key1,key2,key3
-GEMINI_API_KEYS=key1,key2,key3
-OPENAI_API_KEYS=key1,key2,key3
-OPENROUTER_API_KEYS=key1,key2,key3
+OPENCODE_ZEN_API_KEYS=key1,key2,key3
+GITHUB_MODELS_TOKENS=key1,key2,key3
+HUGGINGFACE_API_KEYS=key1,key2,key3
+OPENCODE_GO_API_KEYS=key1,key2,key3
 DEEPSEEK_API_KEYS=key1,key2
 CEREBRAS_API_KEYS=key1,key2
 CLOUDFLARE_API_KEYS=key1,key2
 
 # Single key (fallback)
-GROQ_API_KEY=key1
-GEMINI_API_KEY=key1
-OPENAI_API_KEY=key1
-OPENROUTER_API_KEY=key1
+OPENCODE_ZEN_API_KEY=key1
+GITHUB_MODELS_TOKEN=key1
+HUGGINGFACE_API_KEY=key1
+OPENCODE_GO_API_KEY=key1
 ```
 
 ### 3. Documentation
@@ -117,7 +117,7 @@ keyManager.reportSuccess("groq", "key1");
 
 ### 4. Provider Priority Chain
 ```
-Groq → Gemini → OpenRouter → OpenAI → Cerebras → DeepSeek → Cloudflare
+OpenCode Go → OpenCode Zen → GitHub Models → Hugging Face
 ```
 
 ### 5. Flexible Configuration
@@ -201,18 +201,18 @@ const { url, headers, body, apiKey } = llmRouter.getFetchParams(req);
 ### Production Setup
 ```bash
 # .env.local
-GROQ_API_KEYS=gsk_abc123,gsk_def456,gsk_ghi789,gsk_jkl012,gsk_mno345
-GEMINI_API_KEYS=AIza-key1,AIza-key2,AIza-key3
-OPENAI_API_KEYS=sk-proj-key1,sk-proj-key2,sk-proj-key3
-OPENROUTER_API_KEYS=sk-or-v1-key1,sk-or-v1-key2,sk-or-v1-key3
+OPENCODE_ZEN_API_KEYS=gsk_abc123,gsk_def456,gsk_ghi789,gsk_jkl012,gsk_mno345
+GITHUB_MODELS_TOKENS=AIza-key1,AIza-key2,AIza-key3
+HUGGINGFACE_API_KEYS=sk-proj-key1,sk-proj-key2,sk-proj-key3
+OPENCODE_GO_API_KEYS=sk-or-v1-key1,sk-or-v1-key2,sk-or-v1-key3
 ```
 
 ### Development Setup
 ```bash
 # .env.local
-GROQ_API_KEY=gsk_single_key  # No rotation for dev
-GEMINI_API_KEY=AIza_single_key
-OPENAI_API_KEY=sk-proj-single-key
+OPENCODE_ZEN_API_KEY=gsk_single_key  # No rotation for dev
+GITHUB_MODELS_TOKEN=AIza_single_key
+HUGGINGFACE_API_KEY=sk-proj-single-key
 ```
 
 ## Files Modified
