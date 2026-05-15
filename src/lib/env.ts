@@ -202,6 +202,11 @@ export function validateCriticalEnv(): { valid: boolean; missing: string[]; warn
     "SUPABASE_SERVICE_ROLE_KEY",
   ] as const;
 
+  // Level 1b: Manifest pipeline runtime — without this production worker chain rejects all calls
+  const pipelineCritical = [
+    "WORKER_SHARED_SECRET",
+  ] as const;
+
   // Level 2: Billing — payments will fail without these
   const billingCritical = [
     "STRIPE_SECRET_KEY",
@@ -209,6 +214,7 @@ export function validateCriticalEnv(): { valid: boolean; missing: string[]; warn
   ] as const;
 
   const missing = coreCritical.filter((key) => !process.env[key]);
+  const missingPipeline = pipelineCritical.filter((key) => !process.env[key]);
   const warnings: string[] = [];
 
   // Check billing vars
@@ -231,6 +237,10 @@ export function validateCriticalEnv(): { valid: boolean; missing: string[]; warn
     !!process.env.HF_API_KEYS;
   if (!hasAiKey) {
     warnings.push("No AI provider keys configured — set OPENCODE_GO_API_KEY, OPENCODE_ZEN_API_KEY, GITHUB_TOKEN, or HF_TOKEN");
+  }
+
+  if (missingPipeline.length > 0) {
+    warnings.push(`Manifest pipeline disabled in production: missing ${missingPipeline.join(", ")}`);
   }
 
   return { valid: missing.length === 0, missing: [...missing], warnings };
