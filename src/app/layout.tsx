@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { whiteLabelManager } from "@/lib/white-label";
 import { PHProvider } from "@/components/providers/ph-provider";
 import PostHogPageView from "@/components/providers/posthog-page-view";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -49,6 +50,7 @@ export default async function RootLayout({
           )}
           {children}
         </PHProvider>
+        <Analytics />
       </body>
     </html>
   );
