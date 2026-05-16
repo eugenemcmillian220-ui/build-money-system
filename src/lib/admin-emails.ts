@@ -12,7 +12,6 @@
  */
 export const ADMIN_EMAILS: readonly string[] = [
   "eugenemcmillian9@gmail.com",
-  "eugenemcmillian301@gmail.com",
 ] as const;
 
 export const ADMIN_FREE_TIER = "admin_free" as const;
