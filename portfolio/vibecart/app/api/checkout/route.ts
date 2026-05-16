@@ -16,7 +16,7 @@ async function getServerPrice(productId: string): Promise<number> {
 export const runtime = 'nodejs';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? 'sk_test_placeholder', {
-  apiVersion: '2024-06-20',
+  apiVersion: '2024-12-18.acacia',
   typescript: true,
 });
 
@@ -34,15 +34,15 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     // Validate & build Stripe line items
-    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] =
-      body.items.map((item) => ({
+    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = await Promise.all(
+      body.items.map(async (item) => ({
         quantity: item.quantity,
         price_data: {
           currency: (item.product.currency ?? 'usd').toLowerCase(),
-          unit_amount: Math.round(item.product.price * 100), // cents
+          unit_amount: await getServerPrice(item.product.id),
           product_data: {
             name: item.product.name,
-            description: item.product.description.slice(0, 500),
+            description: (item.product.description ?? '').slice(0, 500),
             images: [item.product.imageUrl],
             metadata: {
               productId: item.product.id,
@@ -51,7 +51,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             },
           },
         },
-      }));
+      }))
+    );
 
     const successUrl = `${APP_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${APP_URL}/results`;
