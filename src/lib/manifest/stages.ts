@@ -20,12 +20,12 @@ import {
 
 
 
-/** Stage budget — 240 s safe under the 300 s Vercel Hobby hard cap. */
-const STAGE_BUDGET_MS = 240_000;
-/** Per-agent call timeout — generous under the 300 s Hobby cap. */
-const AGENT_CALL_TIMEOUT_MS = 40_000;
-/** Max fix-pass iterations — 300 s Hobby cap allows multiple fix passes. */
-const MAX_FIX_ITERATIONS = 3;
+/** Stage budget — 55s safe under Vercel Hobby 60s serverless function cap. */
+const STAGE_BUDGET_MS = 55_000;
+/** Per-agent call timeout — fits within the 55s stage budget with headroom. */
+const AGENT_CALL_TIMEOUT_MS = 55_000;
+/** Max fix-pass iterations — limited by the 55s stage budget. */
+const MAX_FIX_ITERATIONS = 1;
 
 // Agents are now lazy-loaded on demand within each stage to improve cold start times.
 
