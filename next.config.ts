@@ -60,9 +60,10 @@ const nextConfig: NextConfig = {
     };
 
     // Disable source maps entirely (major memory saver)
-    if (!isServer) {
-      config.devtool = false;
-    }
+    config.devtool = false;
+
+    // Disable persistent cache to reduce peak memory on constrained build machines
+    config.cache = false;
 
     return config;
   },
@@ -81,6 +82,9 @@ const nextConfig: NextConfig = {
       "zod",
       "axios",
       "lucide-react",
+      "@sentry/nextjs",
+      "@opentelemetry/api",
+      "highlight.js",
     ],
   },
   
