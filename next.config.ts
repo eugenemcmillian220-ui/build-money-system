@@ -71,6 +71,17 @@ const nextConfig: NextConfig = {
   output: "standalone",
   productionBrowserSourceMaps: false,
   
+  // Externalize heavy server packages to prevent webpack from bundling them
+  // @sentry/nextjs pulls in @sentry/node which bundles OpenTelemetry instrumentations
+  // for prisma, redis, mysql2, mongoose, knex, lru-memoizer — none needed here
+  serverExternalPackages: [
+    "@sentry/nextjs",
+    "@sentry/node",
+    "@opentelemetry/api",
+    "@opentelemetry/instrumentation",
+    "@vercel/otel",
+  ],
+  
   // Experimental memory optimizations
   experimental: {
     webpackMemoryOptimizations: true,
