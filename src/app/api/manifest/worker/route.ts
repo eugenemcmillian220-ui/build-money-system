@@ -22,11 +22,11 @@ import {
 import { triggerStage } from "@/lib/manifest/chain";
 import * as Sentry from "@sentry/nextjs";
 
-export const runtime = "edge";
 export const dynamic = "force-dynamic";
 // Each stage gets its own fresh serverless invocation budget.
-// Vercel Hobby 300 s cap — 280 s safe budget leaves headroom for DB writes.
-export const maxDuration = 9; // Per-stage budget, aligned with Vercel Hobby's 10s cap
+// Vercel Hobby plan: 60s max for Node.js serverless functions.
+// 55s safe budget leaves headroom for DB writes and response flush.
+export const maxDuration = 55;
 
 const RUNNERS: Record<StageName, (id: string, baseUrl: string) => Promise<void>> = {
   "intent-classify": runIntentClassifyStage,
