@@ -2,10 +2,12 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   eslint: {
-    ignoreDuringBuilds: false // SECURITY FIX: Do not skip ESLint during builds,
+    // Lint runs in CI separately; skip during build to reduce peak memory on Vercel Hobby (8 GB)
+    ignoreDuringBuilds: true,
   },
   typescript: {
-    ignoreBuildErrors: false // SECURITY FIX: Do not ship broken TypeScript to production,
+    // Typecheck runs in CI separately; skip during build to reduce peak memory on Vercel Hobby (8 GB)
+    ignoreBuildErrors: true,
   },
   
   // CRITICAL: Memory optimization for Vercel OOM prevention
@@ -71,13 +73,12 @@ const nextConfig: NextConfig = {
   output: "standalone",
   productionBrowserSourceMaps: false,
   
-  // Externalize heavy server packages to prevent webpack from bundling them
-  // @sentry/nextjs pulls in @sentry/node which bundles OpenTelemetry instrumentations
-  // for prisma, redis, mysql2, mongoose, knex, lru-memoizer — none needed here
+  // Externalize heavy server packages to prevent webpack from bundling them.
+  // @sentry/node bundles OpenTelemetry instrumentations for prisma, redis, mysql2,
+  // mongoose, knex, lru-memoizer — none used here.
+  // NOTE: @sentry/nextjs and @opentelemetry/api are auto-transpiled and CANNOT be listed here.
   serverExternalPackages: [
-    "@sentry/nextjs",
     "@sentry/node",
-    "@opentelemetry/api",
     "@opentelemetry/instrumentation",
     "@vercel/otel",
   ],
