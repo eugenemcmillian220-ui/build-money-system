@@ -13,8 +13,7 @@
     }
   },
   "include": [
-    "src/worker/**/*",
-    "src/lib/**/*"
+    "src/worker/**/*"
   ],
   "exclude": [
     "node_modules",
