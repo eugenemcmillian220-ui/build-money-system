@@ -19,6 +19,7 @@
   "exclude": [
     "node_modules",
     ".next",
-    "src/app/**/*"
+    "src/app/**/*",
+    "src/lib/stripe.ts"
   ]
 }
