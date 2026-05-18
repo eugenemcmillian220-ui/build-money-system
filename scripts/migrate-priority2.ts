@@ -1,4 +1,29 @@
-import * as http from 'http'
+#!/usr/bin/env tsx
+/**
+ * scripts/migrate-priority2.ts
+ * =====================================================================
+ * Sovereign Forge OS — Priority 2 Railway Migration
+ *
+ * Extends the Priority 1 scaffold by upgrading the worker server to:
+ * - require shared-secret auth for non-health endpoints
+ * - support a lightweight /run-manifest job endpoint
+ * - expose /ready probe with dependency checks
+ * =====================================================================
+ */
+
+import fs from 'fs'
+import path from 'path'
+
+const ROOT = process.cwd()
+
+function write(filePath: string, content: string) {
+  const abs = path.join(ROOT, filePath)
+  fs.mkdirSync(path.dirname(abs), { recursive: true })
+  fs.writeFileSync(abs, content, 'utf-8')
+  console.log(`✅ wrote ${filePath}`)
+}
+
+write('src/worker/server.ts', `import * as http from 'http'
 import { URL } from 'url'
 
 const PORT = parseInt(process.env.PORT ?? '8080', 10)
@@ -54,7 +79,7 @@ async function runManifestJob(input: unknown) {
 
 const server = http.createServer(async (req, res) => {
   const method = req.method ?? 'GET'
-  const url = new URL(req.url ?? '/', `http://localhost:${PORT}`)
+  const url = new URL(req.url ?? '/', \`http://localhost:\${PORT}\`)
 
   if (url.pathname === '/health') {
     return json(res, 200, { status: 'healthy', timestamp: new Date().toISOString() })
@@ -90,5 +115,8 @@ const server = http.createServer(async (req, res) => {
 })
 
 server.listen(PORT, () => {
-  console.log(`🚂 Railway worker listening on :${PORT}`)
+  console.log(\`🚂 Railway worker listening on :\${PORT}\`)
 })
+`)
+
+console.log('\n✨ Priority 2 migration scaffold applied.')
