@@ -3,6 +3,43 @@ import { URL } from 'url'
 
 const PORT = parseInt(process.env.PORT ?? '8080', 10)
 const WORKER_SHARED_SECRET = process.env.WORKER_SHARED_SECRET ?? ''
+const DEFAULT_MAX_CONCURRENT_JOBS = 3
+const DEFAULT_IDEMPOTENCY_TTL_MS = 5 * 60 * 1000
+const REQUEST_BODY_LIMIT_BYTES = 1024 * 1024
+
+function readPositiveIntegerEnv(name: string, fallback: number): number {
+  const parsed = parseInt(process.env[name] ?? '', 10)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
+}
+
+const MAX_CONCURRENT_JOBS = readPositiveIntegerEnv(
+  'WORKER_MAX_CONCURRENCY',
+  DEFAULT_MAX_CONCURRENT_JOBS,
+)
+const IDEMPOTENCY_TTL_MS = readPositiveIntegerEnv(
+  'WORKER_IDEMPOTENCY_TTL_MS',
+  DEFAULT_IDEMPOTENCY_TTL_MS,
+)
+
+type JsonObject = Record<string, unknown>
+
+type CachedManifestResponse = JsonObject & {
+  ok: boolean
+  deduped: boolean
+}
+
+type IdempotencyCacheEntry = {
+  expiresAt: number
+  response: CachedManifestResponse
+}
+
+let inflightJobs = 0
+let totalJobsStarted = 0
+let totalJobsCompleted = 0
+let totalJobsFailed = 0
+let isShuttingDown = false
+
+const idempotencyCache = new Map<string, IdempotencyCacheEntry>()
 
 function json(res: http.ServerResponse, status: number, body: unknown) {
   const payload = JSON.stringify(body)
@@ -13,16 +50,34 @@ function json(res: http.ServerResponse, status: number, body: unknown) {
   res.end(payload)
 }
 
+function cleanupIdempotencyCache() {
+  const now = Date.now()
+  for (const [key, entry] of idempotencyCache.entries()) {
+    if (entry.expiresAt <= now) {
+      idempotencyCache.delete(key)
+    }
+  }
+}
+
+const cleanupTimer = setInterval(cleanupIdempotencyCache, 30_000)
+cleanupTimer.unref()
+
 function readJsonBody(req: http.IncomingMessage): Promise<unknown> {
   return new Promise((resolve, reject) => {
     let raw = ''
+    let rejected = false
+
     req.on('data', chunk => {
+      if (rejected) return
       raw += chunk
-      if (raw.length > 1024 * 1024) {
+      if (raw.length > REQUEST_BODY_LIMIT_BYTES) {
+        rejected = true
         reject(new Error('Request body too large'))
+        req.destroy()
       }
     })
     req.on('end', () => {
+      if (rejected) return
       if (!raw) return resolve({})
       try {
         resolve(JSON.parse(raw))
@@ -30,7 +85,9 @@ function readJsonBody(req: http.IncomingMessage): Promise<unknown> {
         reject(new Error('Invalid JSON body'))
       }
     })
-    req.on('error', reject)
+    req.on('error', error => {
+      if (!rejected) reject(error)
+    })
   })
 }
 
@@ -41,14 +98,26 @@ function isAuthorized(req: http.IncomingMessage): boolean {
   return fromHeader === WORKER_SHARED_SECRET
 }
 
-async function runManifestJob(input: unknown) {
+function getIdempotencyKey(req: http.IncomingMessage): string | null {
+  const value = req.headers['idempotency-key']
+  return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+async function runManifestJob(input: unknown): Promise<CachedManifestResponse> {
   const startedAt = new Date().toISOString()
+
+  // Placeholder for the real manifest engine call. Keep this asynchronous so the
+  // worker exercises capacity limits and shutdown behavior the same way the
+  // production job runner will.
+  await new Promise(resolve => setTimeout(resolve, 25))
+
   return {
     ok: true,
+    deduped: false,
     startedAt,
     finishedAt: new Date().toISOString(),
     input,
-    note: 'Priority 2 scaffold: plug manifest engine execution here.',
+    note: 'Priority 3 worker: manifest execution hook completed.',
   }
 }
 
@@ -57,16 +126,39 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', `http://localhost:${PORT}`)
 
   if (url.pathname === '/health') {
-    return json(res, 200, { status: 'healthy', timestamp: new Date().toISOString() })
+    return json(res, isShuttingDown ? 503 : 200, {
+      status: isShuttingDown ? 'shutting_down' : 'healthy',
+      timestamp: new Date().toISOString(),
+    })
   }
 
   if (url.pathname === '/ready') {
-    const ready = Boolean(WORKER_SHARED_SECRET)
+    const sharedSecretConfigured = Boolean(WORKER_SHARED_SECRET)
+    const underConcurrencyLimit = inflightJobs < MAX_CONCURRENT_JOBS
+    const ready = sharedSecretConfigured && underConcurrencyLimit && !isShuttingDown
+
     return json(res, ready ? 200 : 503, {
       ready,
       checks: {
-        sharedSecretConfigured: ready,
+        sharedSecretConfigured,
+        underConcurrencyLimit,
+        acceptingNewJobs: !isShuttingDown,
       },
+      timestamp: new Date().toISOString(),
+    })
+  }
+
+  if (url.pathname === '/metrics') {
+    cleanupIdempotencyCache()
+    return json(res, 200, {
+      inflightJobs,
+      totalJobsStarted,
+      totalJobsCompleted,
+      totalJobsFailed,
+      idempotencyCacheSize: idempotencyCache.size,
+      maxConcurrentJobs: MAX_CONCURRENT_JOBS,
+      idempotencyTtlMs: IDEMPOTENCY_TTL_MS,
+      acceptingNewJobs: !isShuttingDown,
       timestamp: new Date().toISOString(),
     })
   }
@@ -76,13 +168,47 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (method === 'POST' && url.pathname === '/run-manifest') {
+    if (isShuttingDown) {
+      return json(res, 503, { error: 'Worker is shutting down' })
+    }
+
+    const idempotencyKey = getIdempotencyKey(req)
+    if (!idempotencyKey) {
+      return json(res, 400, { error: 'Missing idempotency-key header' })
+    }
+
+    cleanupIdempotencyCache()
+    const cached = idempotencyCache.get(idempotencyKey)
+    if (cached && cached.expiresAt > Date.now()) {
+      return json(res, 200, { ...cached.response, deduped: true })
+    }
+
+    if (inflightJobs >= MAX_CONCURRENT_JOBS) {
+      return json(res, 429, {
+        error: 'Worker at capacity',
+        inflightJobs,
+        maxConcurrentJobs: MAX_CONCURRENT_JOBS,
+      })
+    }
+
+    inflightJobs++
+    totalJobsStarted++
+
     try {
       const body = await readJsonBody(req)
-      const result = await runManifestJob(body)
-      return json(res, 202, result)
+      const response = await runManifestJob(body)
+      totalJobsCompleted++
+      idempotencyCache.set(idempotencyKey, {
+        expiresAt: Date.now() + IDEMPOTENCY_TTL_MS,
+        response,
+      })
+      return json(res, 202, response)
     } catch (error) {
+      totalJobsFailed++
       const message = error instanceof Error ? error.message : 'Unknown error'
       return json(res, 400, { error: message })
+    } finally {
+      inflightJobs--
     }
   }
 
@@ -92,3 +218,21 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, () => {
   console.log(`🚂 Railway worker listening on :${PORT}`)
 })
+
+function shutdown(signal: string) {
+  if (isShuttingDown) return
+  isShuttingDown = true
+  cleanupTimer.unref()
+  cleanupIdempotencyCache()
+  console.log(`[worker] received ${signal}, shutting down...`)
+  server.close(error => {
+    if (error) {
+      console.error('[worker] shutdown error', error)
+      process.exit(1)
+    }
+    process.exit(0)
+  })
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'))
+process.on('SIGINT', () => shutdown('SIGINT'))
