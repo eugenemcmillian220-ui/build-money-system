@@ -6,6 +6,7 @@ const WORKER_SHARED_SECRET = process.env.WORKER_SHARED_SECRET ?? ''
 const DEFAULT_MAX_CONCURRENT_JOBS = 3
 const DEFAULT_IDEMPOTENCY_TTL_MS = 5 * 60 * 1000
 const REQUEST_BODY_LIMIT_BYTES = 1024 * 1024
+const DEFAULT_STAGE_CALLBACK_TIMEOUT_MS = 55 * 1000
 
 function readPositiveIntegerEnv(name: string, fallback: number): number {
   const parsed = parseInt(process.env[name] ?? '', 10)
@@ -20,6 +21,10 @@ const IDEMPOTENCY_TTL_MS = readPositiveIntegerEnv(
   'WORKER_IDEMPOTENCY_TTL_MS',
   DEFAULT_IDEMPOTENCY_TTL_MS,
 )
+const STAGE_CALLBACK_TIMEOUT_MS = readPositiveIntegerEnv(
+  'WORKER_STAGE_CALLBACK_TIMEOUT_MS',
+  DEFAULT_STAGE_CALLBACK_TIMEOUT_MS,
+)
 
 type JsonObject = Record<string, unknown>
 
@@ -31,6 +36,12 @@ type CachedManifestResponse = JsonObject & {
 type IdempotencyCacheEntry = {
   expiresAt: number
   response: CachedManifestResponse
+}
+
+type ManifestJobInput = {
+  baseUrl: string
+  jobId: string
+  stage: string
 }
 
 let inflightJobs = 0
@@ -103,21 +114,79 @@ function getIdempotencyKey(req: http.IncomingMessage): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
+function normalizeBaseUrl(rawBaseUrl: string): string {
+  const trimmed = rawBaseUrl.trim().replace(/\/+$/, '')
+  const parsed = new URL(trimmed)
+
+  if (!['http:', 'https:'].includes(parsed.protocol)) {
+    throw new Error('baseUrl must use http or https')
+  }
+
+  return parsed.toString().replace(/\/+$/, '')
+}
+
+function parseManifestJobInput(input: unknown): ManifestJobInput {
+  if (!input || typeof input !== 'object') {
+    throw new Error('Request body must be an object')
+  }
+
+  const body = input as Record<string, unknown>
+  const baseUrl = typeof body.baseUrl === 'string' ? normalizeBaseUrl(body.baseUrl) : ''
+  const jobId = typeof body.jobId === 'string' ? body.jobId.trim() : ''
+  const stage = typeof body.stage === 'string' ? body.stage.trim() : ''
+
+  if (!baseUrl) throw new Error('baseUrl is required')
+  if (!jobId) throw new Error('jobId is required')
+  if (!stage) throw new Error('stage is required')
+
+  return { baseUrl, jobId, stage }
+}
+
 async function runManifestJob(input: unknown): Promise<CachedManifestResponse> {
   const startedAt = new Date().toISOString()
+  const job = parseManifestJobInput(input)
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), STAGE_CALLBACK_TIMEOUT_MS)
 
-  // Placeholder for the real manifest engine call. Keep this asynchronous so the
-  // worker exercises capacity limits and shutdown behavior the same way the
-  // production job runner will.
-  await new Promise(resolve => setTimeout(resolve, 25))
+  try {
+    const response = await fetch(`${job.baseUrl}/api/manifest/worker?stage=${encodeURIComponent(job.stage)}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Worker-Secret': WORKER_SHARED_SECRET,
+      },
+      body: JSON.stringify({ jobId: job.jobId }),
+      signal: controller.signal,
+    })
 
-  return {
-    ok: true,
-    deduped: false,
-    startedAt,
-    finishedAt: new Date().toISOString(),
-    input,
-    note: 'Priority 3 worker: manifest execution hook completed.',
+    const responseText = await response.text().catch(() => '')
+
+    if (!response.ok) {
+      throw new Error(
+        `Manifest stage callback failed with HTTP ${response.status}${responseText ? `: ${responseText}` : ''}`,
+      )
+    }
+
+    let callback: unknown = responseText
+    if (responseText) {
+      try {
+        callback = JSON.parse(responseText)
+      } catch {
+        callback = responseText
+      }
+    }
+
+    return {
+      ok: true,
+      deduped: false,
+      startedAt,
+      finishedAt: new Date().toISOString(),
+      job,
+      callback,
+      note: 'Priority 4 worker: manifest stage callback completed.',
+    }
+  } finally {
+    clearTimeout(timeout)
   }
 }
 
@@ -158,6 +227,7 @@ const server = http.createServer(async (req, res) => {
       idempotencyCacheSize: idempotencyCache.size,
       maxConcurrentJobs: MAX_CONCURRENT_JOBS,
       idempotencyTtlMs: IDEMPOTENCY_TTL_MS,
+      stageCallbackTimeoutMs: STAGE_CALLBACK_TIMEOUT_MS,
       acceptingNewJobs: !isShuttingDown,
       timestamp: new Date().toISOString(),
     })
