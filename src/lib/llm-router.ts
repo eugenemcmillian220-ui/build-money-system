@@ -1,26 +1,34 @@
 /**
  * src/lib/llm-router.ts
  * Sovereign Forge OS — LLM Router
- *
- * Public API used by all agents and API routes.
- * Wraps llm.ts and adds OTel spans.
- *
- * NOTE: Multi-key pool rotation removed.
- * One key per provider, set via single env var.
- *
- * Provider chain: OpenCode Go (paid) → Zen → GitHub Models → HuggingFace
  */
 
 import {
-  llmChat,
-  llmPrompt,
-  llmHealthCheck,
-  type LLMMessage,
-  type LLMOptions,
-  type LLMResult,
-} from './llm'
+  callLLM as coreCallLLM,
+  } from './llm'
+import type { ChatMessage } from './types'
 
-// ─── OTel span wrapper ───────────────────────────────────────────────────────
+export type LLMMessage = ChatMessage
+
+export interface LLMOptions {
+  maxTokens?: number
+  temperature?: number
+  model?: string
+  timeoutMs?: number
+}
+
+export interface LLMResult {
+  text: string
+  provider: string
+  model: string
+}
+
+interface HealthStatus {
+  provider: string
+  ok: boolean
+  latencyMs: number
+  error?: string
+}
 
 async function withSpan<T>(
   name: string,
@@ -35,12 +43,41 @@ async function withSpan<T>(
   }
 }
 
-// ─── Core routed call ─────────────────────────────────────────────────────────
+export async function llmChat(messages: LLMMessage[], opts: LLMOptions = {}): Promise<LLMResult> {
+  const text = await coreCallLLM(messages, {
+    model: opts.model,
+    temperature: opts.temperature,
+    maxTokens: opts.maxTokens,
+    timeout: opts.timeoutMs,
+  })
 
-export async function routedChat(
-  messages: LLMMessage[],
-  opts: LLMOptions & { spanName?: string; spanAttrs?: Record<string, string> } = {}
-): Promise<LLMResult> {
+  return {
+    text,
+    provider: opts.model ? 'configured-model' : 'auto-router',
+    model: opts.model ?? 'auto',
+  }
+}
+
+export async function llmPrompt(prompt: string, opts: LLMOptions & { systemPrompt?: string } = {}): Promise<LLMResult> {
+  const messages: LLMMessage[] = [
+    ...(opts.systemPrompt ? [{ role: 'system' as const, content: opts.systemPrompt }] : []),
+    { role: 'user', content: prompt },
+  ]
+
+  return llmChat(messages, opts)
+}
+
+export async function llmHealthCheck(): Promise<HealthStatus[]> {
+  const start = Date.now()
+  try {
+    await coreCallLLM([{ role: 'user', content: 'Respond with exactly: ok' }], { maxTokens: 8, timeout: 12_000 })
+    return [{ provider: 'auto-router', ok: true, latencyMs: Date.now() - start }]
+  } catch (error) {
+    return [{ provider: 'auto-router', ok: false, latencyMs: Date.now() - start, error: error instanceof Error ? error.message : String(error) }]
+  }
+}
+
+export async function routedChat(messages: LLMMessage[], opts: LLMOptions & { spanName?: string; spanAttrs?: Record<string, string> } = {}): Promise<LLMResult> {
   const { spanName = 'llm.chat', spanAttrs = {}, ...llmOpts } = opts
   return withSpan(spanName, {
     'llm.messages': String(messages.length),
@@ -49,18 +86,7 @@ export async function routedChat(
   }, () => llmChat(messages, llmOpts))
 }
 
-// ─── Legacy API (used by all existing agents + API routes) ───────────────────
-
-export async function callLLM(
-  prompt: string,
-  opts: {
-    systemPrompt?: string
-    maxTokens?: number
-    temperature?: number
-    model?: string
-    timeoutMs?: number
-  } = {}
-): Promise<string> {
+export async function callLLM(prompt: string, opts: { systemPrompt?: string; maxTokens?: number; temperature?: number; model?: string; timeoutMs?: number } = {}): Promise<string> {
   const r = await withSpan('llm.callLLM', {
     'llm.prompt_length': String(prompt.length),
     'llm.has_system': String(!!opts.systemPrompt),
@@ -68,54 +94,36 @@ export async function callLLM(
   return r.text
 }
 
-export async function planSpec(
-  userPrompt: string,
-  context?: string
-): Promise<string> {
+export async function planSpec(userPrompt: string, context?: string): Promise<string> {
   const messages: LLMMessage[] = [
-    {
-      role: 'system',
-      content: `You are The Classifier for Sovereign Forge OS. Return ONLY valid JSON (no markdown):
-{ "intent": string, "mode": "saas"|"agent"|"api"|"landing"|"dashboard", "stack": string[], "phases": number[], "complexity": "low"|"medium"|"high"|"sovereign", "estimatedCredits": number, "outline": string[] }`,
-    },
-    {
-      role: 'user',
-      content: context ? `Context:\n${context}\n\nPrompt:\n${userPrompt}` : userPrompt,
-    },
+    { role: 'system', content: 'Return valid JSON only.' },
+    { role: 'user', content: context ? `Context:\n${context}\n\nPrompt:\n${userPrompt}` : userPrompt },
   ]
-  const r = await withSpan('llm.planSpec', { 'llm.agent': 'classifier' }, () =>
-    llmChat(messages, { maxTokens: 1024, temperature: 0.3 })
-  )
+  const r = await withSpan('llm.planSpec', { 'llm.agent': 'classifier' }, () => llmChat(messages, { maxTokens: 1024, temperature: 0.3 }))
   return r.text
 }
 
 export async function buildFromSpec(spec: string, ctx?: string): Promise<string> {
   const messages: LLMMessage[] = [
-    {
-      role: 'system',
-      content: `You are The Developer for Sovereign Forge OS. Generate Next.js 15/TS/Tailwind v4 code. Dark terminal aesthetic: #00ff88, JetBrains Mono. No free tiers. Return FileMap JSON: { "path": "content" }. ONLY valid JSON.`,
-    },
-    {
-      role: 'user',
-      content: ctx ? `Spec:\n${spec}\n\nContext:\n${ctx}` : `Spec:\n${spec}`,
-    },
+    { role: 'system', content: 'Generate code as JSON file map only.' },
+    { role: 'user', content: ctx ? `Spec:\n${spec}\n\nContext:\n${ctx}` : `Spec:\n${spec}` },
   ]
-  const r = await withSpan('llm.buildFromSpec', { 'llm.agent': 'developer' }, () =>
-    llmChat(messages, { maxTokens: 8192, temperature: 0.4, timeoutMs: 25_000 })
-  )
+  const r = await withSpan('llm.buildFromSpec', { 'llm.agent': 'developer' }, () => llmChat(messages, { maxTokens: 8192, temperature: 0.4, timeoutMs: 25_000 }))
   return r.text
 }
-
-// ─── Health ───────────────────────────────────────────────────────────────────
-
-export { llmHealthCheck }
-export type { LLMMessage, LLMOptions, LLMResult }
 
 export async function getProviderStatus() {
   const results = await llmHealthCheck()
   return {
-    chain: results.map(r => r.provider),
-    healthy: results.filter(r => r.ok).map(r => ({ provider: r.provider, latencyMs: r.latencyMs })),
-    degraded: results.filter(r => !r.ok).map(r => `${r.provider}: ${r.error ?? 'unknown'}`),
+    chain: results.map((r) => r.provider),
+    healthy: results.filter((r) => r.ok).map((r) => ({ provider: r.provider, latencyMs: r.latencyMs })),
+    degraded: results.filter((r) => !r.ok).map((r) => `${r.provider}: ${r.error ?? 'unknown'}`),
   }
+}
+
+export const llmRouter = {
+  async executeWithFailover(messages: LLMMessage[], opts: LLMOptions = {}) {
+    const result = await llmChat(messages, opts)
+    return { content: result.text, provider: result.provider, model: result.model }
+  },
 }
