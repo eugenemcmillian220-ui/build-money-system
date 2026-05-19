@@ -12,7 +12,7 @@ async function callProvider(provider: (typeof CHAIN)[number], input: Input): Pro
   const key = process.env[keyEnv];
   if (!key) throw new Error(`${keyEnv} missing`);
 
-  const model = input.model ?? (provider === 'opencodeGo' ? 'qwen3.5-plus' : 'gpt-4o-mini');
+  const model = input.model ?? (provider === 'opencodeGo' ? 'minimax-m2.5' : 'gpt-4o-mini');
   const baseUrl = PROVIDERS[provider].baseUrl;
 
   const anthropic = provider === 'opencodeGo' && GO_ANTHROPIC_MODELS.has(model);
@@ -30,7 +30,7 @@ async function callProvider(provider: (typeof CHAIN)[number], input: Input): Pro
 export async function callLLM(input: Input): Promise<string> {
   let last: unknown;
   for (const p of CHAIN) {
-    try { return await withRetry(() => callProvider(p, input), 1, 300); } catch (e) { last = e; }
+    try { return await withRetry(() => callProvider(p, input), 2, 500); } catch (e) { last = e; }
   }
   throw new Error(`All providers failed: ${String(last)}`);
 }
