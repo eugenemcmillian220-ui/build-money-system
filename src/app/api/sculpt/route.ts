@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { ok, fail } from "@/lib/api/response";
 import { loadProjectDB, saveProjectDB } from "@/lib/supabase/db";
 import { callLLM, parseMultiFileJson } from "@/lib/llm";
 import { traced } from "@/lib/telemetry";
@@ -20,11 +21,11 @@ export async function POST(request: NextRequest) {
       const { projectId, refinementPrompt } = await request.json();
 
       if (!projectId || !refinementPrompt) {
-        return NextResponse.json({ error: "projectId and refinementPrompt required" }, { status: 400 });
+        return fail("VALIDATION_ERROR", "projectId and refinementPrompt required", 400);
       }
 
       const project = await loadProjectDB(projectId);
-      if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
+      if (!project) return fail("PROJECT_NOT_FOUND", "Project not found", 404);
 
       span.attributes["project.id"] = projectId;
       span.attributes["refinement.prompt"] = refinementPrompt;
@@ -56,11 +57,11 @@ Maintain the existing architecture and style. Update only what is necessary.`;
 
       await saveProjectDB(updatedProject);
 
-      return NextResponse.json({ success: true, project: updatedProject });
+      return ok({ project: updatedProject });
 
     } catch (error) {
       console.error("[Sculptor] Refinement failed:", error);
-      return NextResponse.json({ error: (error as Error).message }, { status: 500 });
+      return fail("SCULPTOR_FAILED", (error as Error).message, 500);
     }
   });
 }
