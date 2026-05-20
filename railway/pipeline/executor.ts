@@ -12,7 +12,31 @@ export async function executePipeline({ jobId, userId, spec }: PipelineInput) {
   const completedPhases: number[] = Array.isArray(job?.completed_phases) ? job!.completed_phases : [];
   const startPhase = completedPhases.length ? Math.max(...completedPhases) + 1 : 0;
 
-  await supabase.from('pipeline_jobs').update({ status: 'running', started_at: new Date().toISOString() }).eq('id', jobId);
+  const { data: claimedJob } = await supabase
+    .from('pipeline_jobs')
+    .update({ status: 'running', started_at: new Date().toISOString() })
+    .eq('id', jobId)
+    .neq('status', 'running')
+    .neq('status', 'complete')
+    .select('id')
+    .maybeSingle();
+  if (!claimedJob) return;
+
+  await supabase
+    .from('pipeline_phases')
+    .delete()
+    .eq('job_id', jobId)
+    .gte('phase_index', startPhase);
+
+  const { data: priorPhaseRows } = await supabase
+    .from('pipeline_phases')
+    .select('output')
+    .eq('job_id', jobId)
+    .lt('phase_index', startPhase)
+    .order('phase_index', { ascending: true })
+    .order('agent_index', { ascending: true });
+
+  const priorPhaseOutputs = (priorPhaseRows ?? []).map((row) => row.output);
 
   const { data: priorPhaseRows } = await supabase
     .from('pipeline_phases')
