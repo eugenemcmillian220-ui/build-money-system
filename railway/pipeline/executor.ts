@@ -14,14 +14,26 @@ export async function executePipeline({ jobId, userId, spec }: PipelineInput) {
 
   await supabase.from('pipeline_jobs').update({ status: 'running', started_at: new Date().toISOString() }).eq('id', jobId);
 
+  const { data: priorPhaseRows } = await supabase
+    .from('pipeline_phases')
+    .select('output')
+    .eq('job_id', jobId)
+    .lt('phase_index', startPhase)
+    .order('phase_index', { ascending: true })
+    .order('agent_index', { ascending: true });
+
+  const priorPhaseOutputs = (priorPhaseRows ?? []).map((row) => row.output);
+
   for (let i = startPhase; i < PIPELINE_PHASES.length; i++) {
     const phase = PIPELINE_PHASES[i];
     await supabase.from('pipeline_jobs').update({ current_phase: i, current_phase_name: phase.name }).eq('id', jobId);
-    const agentOutputs: string[] = [];
     for (let a = 0; a < phase.agents.length; a++) {
-      const output = await callLLM({ systemPrompt: phase.agents[a].systemPrompt, userPrompt: phase.agents[a].buildPrompt(spec, agentOutputs) });
-      agentOutputs.push(output);
+      const output = await callLLM({
+        systemPrompt: phase.agents[a].systemPrompt,
+        userPrompt: phase.agents[a].buildPrompt(spec, priorPhaseOutputs),
+      });
       await supabase.from('pipeline_phases').insert({ job_id: jobId, phase_index: i, phase_name: phase.name, agent_index: a, output, created_at: new Date().toISOString() });
+      priorPhaseOutputs.push(output);
     }
     completedPhases.push(i);
     await supabase.from('pipeline_jobs').update({ completed_phases: completedPhases, current_phase: i }).eq('id', jobId);
