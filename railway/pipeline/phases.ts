@@ -4,7 +4,7 @@ export type Agent = {
 }
 
 export type Phase = {
-  ['name']: string
+  name: string
   agents: Agent[]
 }
 
