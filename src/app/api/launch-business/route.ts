@@ -1,5 +1,5 @@
 /**
- * /api/launch-business — Full 22-Phase Business Builder
+ * /api/launch-business — Full 25-Phase Business Builder
  * 
  * Takes a business idea and runs the ENTIRE pipeline:
  * Phase 1:  Component Forge      — Generate marketplace UI components
@@ -24,6 +24,9 @@
  * Phase 20: Self-Evolution       — Self-improvement plan
  * Phase 21: CEO Orchestrator     — Executive strategy
  * Phase 22: Federation           — Multi-agent swarm mesh
+ * Phase 23: Sovereign Pulse      — Telemetry and observability
+ * Phase 24: Self-Evolution v2    — Recursive system evolution
+ * Phase 25: Neural Link          — Vector memory + elastic scaling
  * 
  * Auth: E2E_TEST_SECRET bearer token (admin bypass)
  */
@@ -400,6 +403,55 @@ async function phase22(): Promise<PhaseResult> {
   }
 }
 
+
+async function phase23(): Promise<PhaseResult> {
+  const name = "Sovereign Pulse";
+  try {
+    const pulse = await import("@/lib/pulse");
+    const exports = Object.keys(pulse);
+    return { phase: 23, name, status: exports.length > 0 ? "pass" : "degraded", elapsed: 0, detail: `Pulse loaded (exports: ${exports.join(", ")})`, data: { exports } };
+  } catch (e) {
+    return { phase: 23, name, status: "fail", elapsed: 0, detail: "Pulse failed", error: String(e) };
+  }
+}
+
+async function phase24(): Promise<PhaseResult> {
+  const name = "Self-Evolution v2";
+  try {
+    const { evolutionEngine } = await import("@/lib/self-evolution");
+    const { result, elapsed } = await timed(() => evolutionEngine.triggerCycle());
+    return { phase: 24, name, status: result.success ? "pass" : "degraded", elapsed, detail: `Evolution cycle executed (${result.patchesApplied} patches applied)`, data: result };
+  } catch (e) {
+    return { phase: 24, name, status: "fail", elapsed: 0, detail: "Self-evolution failed", error: String(e) };
+  }
+}
+
+async function phase25(): Promise<PhaseResult> {
+  const name = "Neural Link";
+  try {
+    const [memory, scaling, edge] = await Promise.all([
+      import("@/lib/memory-store"),
+      import("@/lib/scaling"),
+      import("@/lib/edge-orchestrator"),
+    ]);
+    const scalingMetrics = await scaling.scalingEngine.syncWithPulse();
+    return {
+      phase: 25,
+      name,
+      status: "pass",
+      elapsed: 0,
+      detail: `Memory/scaling/edge loaded. Instances: ${scalingMetrics.instanceCount}, req: ${scalingMetrics.activeRequests}`,
+      data: {
+        memoryExports: Object.keys(memory),
+        scalingExports: Object.keys(scaling),
+        edgeExports: Object.keys(edge),
+        scalingMetrics,
+      },
+    };
+  } catch (e) {
+    return { phase: 25, name, status: "fail", elapsed: 0, detail: "Neural link failed", error: String(e) };
+  }
+}
 // ═══════════════════════════════════════════════════════════════
 // MAIN HANDLER
 // ═══════════════════════════════════════════════════════════════
@@ -422,7 +474,7 @@ export async function POST(req: NextRequest) {
   const idea = body.idea || "AI-powered SaaS marketplace connecting developers with businesses";
   const startTime = Date.now();
 
-  // Run all 22 phases
+  // Run all 25 phases
   const phases: PhaseResult[] = [];
 
   // Phases 1-2: LLM-dependent (run sequentially to avoid rate limits)
@@ -459,8 +511,11 @@ export async function POST(req: NextRequest) {
   // Phase 21: CEO gets ALL prior phase data
   phases.push(await phase21(idea));
 
-  // Phase 22: Federation
+  // Phases 22-25: Federation, Pulse, Evolution, Neural Link
   phases.push(await phase22());
+  phases.push(await phase23());
+  phases.push(await phase24());
+  phases.push(await phase25());
 
   const totalElapsed = Date.now() - startTime;
 
