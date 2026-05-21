@@ -493,7 +493,7 @@ export async function POST(req: NextRequest) {
   const [p7, p8, p9] = await Promise.all([phase7(), phase8(), phase9()]);
   phases.push(p7, p8, p9);
 
-  // Phases 10-22: Agent ecosystem (mix of parallel + sequential)
+  // Phases 10-25: Agent ecosystem (mix of parallel + sequential)
   phases.push(await phase10(idea));
   phases.push(await phase11(idea));
 
