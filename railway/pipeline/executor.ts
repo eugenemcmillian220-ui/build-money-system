@@ -38,16 +38,6 @@ export async function executePipeline({ jobId, userId, spec }: PipelineInput) {
 
   const priorPhaseOutputs = (priorPhaseRows ?? []).map((row) => row.output);
 
-  const { data: priorPhaseRows } = await supabase
-    .from('pipeline_phases')
-    .select('output')
-    .eq('job_id', jobId)
-    .lt('phase_index', startPhase)
-    .order('phase_index', { ascending: true })
-    .order('agent_index', { ascending: true });
-
-  const priorPhaseOutputs = (priorPhaseRows ?? []).map((row) => row.output);
-
   for (let i = startPhase; i < PIPELINE_PHASES.length; i++) {
     const phase = PIPELINE_PHASES[i];
     await supabase.from('pipeline_jobs').update({ current_phase: i, current_phase_name: phase.name }).eq('id', jobId);
