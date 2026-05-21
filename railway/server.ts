@@ -12,10 +12,14 @@ app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 app.post('/pipeline/execute', async (req, res) => {
   const authHeader = req.headers.authorization;
   if (!authHeader || authHeader !== `Bearer ${process.env.RAILWAY_INTERNAL_SECRET}`) {
-    return res.status(401).json({ error: 'Unauthorized' });
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
   }
   const { jobId, userId, spec } = req.body as { jobId?: string; userId?: string; spec?: Record<string, unknown> };
-  if (!jobId || !userId || !spec) return res.status(400).json({ error: 'Missing jobId, userId, or spec' });
+  if (!jobId || !userId || !spec) {
+    res.status(400).json({ error: 'Missing jobId, userId, or spec' });
+    return;
+  }
   res.status(202).json({ message: 'Pipeline started', jobId });
   executePipeline({ jobId, userId, spec }).catch(async (err) => {
     console.error(`Pipeline ${jobId} fatal error:`, err);
