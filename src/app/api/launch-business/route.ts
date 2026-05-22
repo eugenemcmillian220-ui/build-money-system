@@ -403,7 +403,6 @@ async function phase22(): Promise<PhaseResult> {
   }
 }
 
-
 async function phase23(): Promise<PhaseResult> {
   const name = "Sovereign Pulse";
   try {
