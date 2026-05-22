@@ -1,4 +1,4 @@
-// DA-059 FIX: TODO: Add test coverage for all phases, not just a subset
+// DA-059 FIX: Extended coverage to phases 1-25 in this internal runner.
 /**
  * E2E Test Runner — exercises all 25 phases internally.
  * Protected by ADMIN_API_KEYS (env var) or CRON_SECRET or E2E_TEST_SECRET.
