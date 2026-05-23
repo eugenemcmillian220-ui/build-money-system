@@ -5,9 +5,16 @@ import { markFailed } from './pipeline/state.js';
 
 const app = express();
 app.use(express.json());
-app.use(cors({ origin: process.env.VERCEL_APP_URL, methods: ['POST', 'GET'] }));
 
-app.get('/health', (_req, res) => res.json({ status: 'ok' }));
+// Allow requests from Vercel frontend — support both env var names
+const allowedOrigin = process.env.NEXT_PUBLIC_APP_URL
+  || process.env.VERCEL_APP_URL
+  || process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}`
+  || '*';
+
+app.use(cors({ origin: allowedOrigin, methods: ['POST', 'GET'] }));
+
+app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
 app.post('/pipeline/execute', async (req, res) => {
   const authHeader = req.headers.authorization;
@@ -28,4 +35,4 @@ app.post('/pipeline/execute', async (req, res) => {
 });
 
 const PORT = Number(process.env.PORT || 3001);
-app.listen(PORT, () => console.log(`Railway pipeline server running on ${PORT}`));
+app.listen(PORT, () => console.log(`Railway pipeline server running on port ${PORT}`));
