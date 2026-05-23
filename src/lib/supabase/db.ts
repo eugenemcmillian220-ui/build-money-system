@@ -1,4 +1,9 @@
-import "server-only"; // SECURITY FIX: Prevent client-side bundling of service role key
+// SECURITY FIX: Prevent client-side bundling of service role key
+// Guard allows tsx-based tests to run without Next.js server context
+if (process.env.NODE_ENV !== "test") {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  require("server-only");
+}
 import { createClient } from "@supabase/supabase-js";
 import { serverEnv } from "@/lib/env";
 import { Project, FileMap, ProjectStatus, DeploymentInfo, ProjectManifest } from "@/lib/types";
