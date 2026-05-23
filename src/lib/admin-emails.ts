@@ -16,7 +16,7 @@ export const ADMIN_EMAILS: readonly string[] = [
 
 export const ADMIN_FREE_TIER = "admin_free" as const;
 
-/** Practical-unlimited grant for admin accounts (max DECIMAL(12,4) org balance). */
+/** Practical-unlimited admin grant. Must stay <= 99,999,999 due to organizations.credit_balance DECIMAL(12,4). */
 export const ADMIN_CREDIT_BALANCE = 99_999_999;
 
 export function normalizeEmail(email: string | null | undefined): string {

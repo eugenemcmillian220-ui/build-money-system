@@ -4,7 +4,7 @@ DECLARE
   v_admin_email TEXT := 'eugenemcmillian9@gmail.com';
   v_admin_user_id UUID;
   -- organizations.credit_balance is DECIMAL(12,4); max integer portion is 99,999,999
-  v_practical_unlimited NUMERIC(12,4) := 99999999;
+  v_practical_unlimited NUMERIC(12,4) := 99999999.0000;
 BEGIN
   SELECT id INTO v_admin_user_id
   FROM auth.users
