@@ -42,8 +42,11 @@ const serverEnvSchema = z.object({
   HF_API_KEYS: z.string().optional(),
   GITHUB_MODELS_TOKENS: z.string().optional(),
   HUGGINGFACE_TOKEN: z.string().optional(),
-  // Worker secret for inter-stage manifest pipeline
+  // Worker settings for inter-stage manifest pipeline
   WORKER_SHARED_SECRET: z.string().optional(),
+  WORKER_BASE_URL: z.string().url().optional(),
+  WORKER_STAGE_CALLBACK_TIMEOUT_MS: z.string().optional(),
+  RAILWAY_PUBLIC_DOMAIN: z.string().optional(),
 
   // Stripe
   STRIPE_SECRET_KEY: z.string().optional(),

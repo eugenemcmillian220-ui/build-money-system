@@ -1,7 +1,7 @@
 /**
- * /api/launch-business — Full 22-Phase Business Builder
+ * /api/launch-business — Full 25-Phase Business Builder
  * 
- * Takes a business idea and runs the ENTIRE pipeline:
+ * Takes a business idea and runs the ENTIRE pipeline across all 25 phases and 3 modes: Elite, Universal, Nano.
  * Phase 1:  Component Forge      — Generate marketplace UI components
  * Phase 2:  SQL Forge            — Generate database schema
  * Phase 3:  Deployment Engine    — Validate GitHub + Vercel integration
@@ -24,6 +24,9 @@
  * Phase 20: Self-Evolution       — Self-improvement plan
  * Phase 21: CEO Orchestrator     — Executive strategy
  * Phase 22: Federation           — Multi-agent swarm mesh
+ * Phase 23: Sovereign Pulse      — Analytics + health telemetry
+ * Phase 24: Self-Evolution++     — Adaptive optimization loop
+ * Phase 25: Neural Link          — Vector memory + blueprint alignment
  * 
  * Auth: E2E_TEST_SECRET bearer token (admin bypass)
  */
@@ -43,6 +46,8 @@ interface PhaseResult {
   error?: string;
 }
 
+type ManifestMode = "elite" | "universal" | "nano";
+
 interface BusinessResult {
   idea: string;
   businessName: string;
@@ -54,6 +59,7 @@ interface BusinessResult {
     elapsed: number;
   };
   phases: PhaseResult[];
+  modesRun: ManifestMode[];
   artifacts: {
     components: string[];
     schema: string;
@@ -78,32 +84,48 @@ async function phase1(idea: string): Promise<PhaseResult> {
   const name = "Component Forge";
   try {
     const { llmRouter } = await import("@/lib/llm-router");
-    const prompt = `You are building a SaaS platform: "${idea}".
-Generate 3 React components needed for this platform using Next.js 15 + Tailwind CSS.
-Return a JSON object with: { "components": [{ "name": "ComponentName", "code": "full component code" }] }
-Return ONLY valid JSON.`;
+    const normalizedIdea = idea.toLowerCase();
+    const multiFileSignals = ["multi file", "multi-file", "full app", "dashboard", "auth", "routing", "pages", "api", "database", "saas"];
+    const singleFileSignals = ["single file", "single-file", "one file", "one component", "standalone", "widget"];
+    const explicitSingle = singleFileSignals.some((signal) => normalizedIdea.includes(signal));
+    const explicitMulti = multiFileSignals.some((signal) => normalizedIdea.includes(signal));
+    const generationMode: "single-file" | "multi-file" = explicitSingle && !explicitMulti ? "single-file" : "multi-file";
+
+    const prompt = generationMode === "single-file"
+      ? `You are building a SaaS platform idea: "${idea}".
+Generate exactly 1 high-quality React component using Next.js 15 + Tailwind CSS.
+Return ONLY valid JSON in this exact shape:
+{ "mode": "single-file", "components": [{ "name": "ComponentName", "code": "full component code" }] }`
+      : `You are building a SaaS platform idea: "${idea}".
+Generate a multi-file starter for this platform using Next.js 15 + Tailwind CSS.
+Return ONLY valid JSON in this exact shape:
+{ "mode": "multi-file", "files": { "app/page.tsx": "...", "app/layout.tsx": "...", "components/Hero.tsx": "..." }, "components": [{ "name": "ComponentName", "code": "full component code" }] }
+Include at least 3 files.`;
     const { result, elapsed } = await timed(() =>
       llmRouter.executeWithFailover([{ role: "user", content: prompt }])
     );
     const content = result.content;
-    let componentCount = 0;
+    let generatedUnits = 0;
     try {
       const cleaned = content.replace(/```json\n?/g, "").replace(/```\w*\n?/g, "").trim();
       const parsed = JSON.parse(cleaned);
-      componentCount = parsed.components?.length || Object.keys(parsed.files || parsed).length || 0;
+      const componentCount = Array.isArray(parsed.components) ? parsed.components.length : 0;
+      const fileCount = parsed.files && typeof parsed.files === "object" ? Object.keys(parsed.files).length : 0;
+      generatedUnits = generationMode === "single-file" ? componentCount : Math.max(fileCount, componentCount);
     } catch {
       // Count React component patterns in raw output
       const funcComponents = (content.match(/function\s+[A-Z]\w+/g) || []).length;
       const constComponents = (content.match(/const\s+[A-Z]\w+\s*[:=]/g) || []).length;
       const exportComponents = (content.match(/export\s+(default\s+)?function\s+[A-Z]/g) || []).length;
-      componentCount = Math.max(funcComponents, constComponents, exportComponents, content.length > 200 ? 1 : 0);
+      generatedUnits = Math.max(funcComponents, constComponents, exportComponents, content.length > 200 ? 1 : 0);
     }
+    const passThreshold = generationMode === "single-file" ? 1 : 3;
     return {
       phase: 1, name,
-      status: componentCount >= 2 ? "pass" : componentCount > 0 ? "degraded" : "fail",
+      status: generatedUnits >= passThreshold ? "pass" : generatedUnits > 0 ? "degraded" : "fail",
       elapsed,
-      detail: `Generated ${componentCount} components via ${result.provider}/${result.model}`,
-      data: { content: content.slice(0, 2000), provider: result.provider, model: result.model }
+      detail: `${generationMode} generation produced ${generatedUnits} units via ${result.provider}/${result.model}`,
+      data: { mode: generationMode, content: content.slice(0, 3000), provider: result.provider, model: result.model }
     };
   } catch (e) {
     return { phase: 1, name, status: "fail", elapsed: 0, detail: "LLM generation failed", error: String(e) };
@@ -400,6 +422,45 @@ async function phase22(): Promise<PhaseResult> {
   }
 }
 
+
+async function phase23(): Promise<PhaseResult> {
+  const name = "Sovereign Pulse";
+  try {
+    const pulse = await import("@/lib/actions/pulse-actions");
+    return { phase: 23, name, status: "pass", elapsed: 0, detail: "Pulse telemetry loaded", data: { exports: Object.keys(pulse).slice(0, 10) } };
+  } catch (e) {
+    return { phase: 23, name, status: "fail", elapsed: 0, detail: "Pulse failed", error: String(e) };
+  }
+}
+
+async function phase24(): Promise<PhaseResult> {
+  const name = "Self-Evolution++";
+  try {
+    const evo = await import("@/lib/actions/evolution-actions");
+    return { phase: 24, name, status: "pass", elapsed: 0, detail: "Evolution actions loaded", data: { exports: Object.keys(evo).slice(0, 10) } };
+  } catch (e) {
+    return { phase: 24, name, status: "fail", elapsed: 0, detail: "Self-evolution++ failed", error: String(e) };
+  }
+}
+
+async function phase25(): Promise<PhaseResult> {
+  const name = "Neural Link";
+  try {
+    const { FLOWFORGE_BLUEPRINT } = await import("@/lib/flowforge/blueprint");
+    const coversAll = FLOWFORGE_BLUEPRINT.phases_exercised.length === 25;
+    return {
+      phase: 25,
+      name,
+      status: coversAll ? "pass" : "degraded",
+      elapsed: 0,
+      detail: `Blueprint alignment: ${FLOWFORGE_BLUEPRINT.name} (${FLOWFORGE_BLUEPRINT.modes.join(", ")})`,
+      data: { blueprintId: FLOWFORGE_BLUEPRINT.id, phases: FLOWFORGE_BLUEPRINT.phases_exercised.length },
+    };
+  } catch (e) {
+    return { phase: 25, name, status: "fail", elapsed: 0, detail: "Neural Link failed", error: String(e) };
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════
 // MAIN HANDLER
 // ═══════════════════════════════════════════════════════════════
@@ -412,7 +473,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let body: { idea?: string } = {};
+  let body: { idea?: string; modes?: ManifestMode[] } = {};
   try {
     body = await req.json();
   } catch {
@@ -420,9 +481,12 @@ export async function POST(req: NextRequest) {
   }
 
   const idea = body.idea || "AI-powered SaaS marketplace connecting developers with businesses";
+  const modesRun: ManifestMode[] = (Array.isArray(body.modes) && body.modes.length > 0
+    ? body.modes
+    : ["elite", "universal", "nano"]).filter((m): m is ManifestMode => ["elite", "universal", "nano"].includes(m));
   const startTime = Date.now();
 
-  // Run all 22 phases
+  // Run all 25 phases
   const phases: PhaseResult[] = [];
 
   // Phases 1-2: LLM-dependent (run sequentially to avoid rate limits)
@@ -433,15 +497,17 @@ export async function POST(req: NextRequest) {
   const [p3, p4] = await Promise.all([phase3(), phase4()]);
   phases.push(p3, p4);
 
-  // Phases 5-6: Business strategy (sequential — LLM calls)
-  phases.push(await phase5(idea));
-  phases.push(await phase6(idea));
+  // Phases 5-6: Business strategy across requested modes
+  for (const mode of modesRun) {
+    phases.push(await phase5(`${idea} [mode:${mode}]`));
+    phases.push(await phase6(`${idea} [mode:${mode}]`));
+  }
 
   // Phases 7-9: Platform capabilities (parallel)
   const [p7, p8, p9] = await Promise.all([phase7(), phase8(), phase9()]);
   phases.push(p7, p8, p9);
 
-  // Phases 10-22: Agent ecosystem (mix of parallel + sequential)
+  // Phases 10-25: Agent ecosystem (mix of parallel + sequential)
   phases.push(await phase10(idea));
   phases.push(await phase11(idea));
 
@@ -459,8 +525,11 @@ export async function POST(req: NextRequest) {
   // Phase 21: CEO gets ALL prior phase data
   phases.push(await phase21(idea));
 
-  // Phase 22: Federation
+  // Phases 22-25
   phases.push(await phase22());
+
+  const [p23, p24, p25] = await Promise.all([phase23(), phase24(), phase25()]);
+  phases.push(p23, p24, p25);
 
   const totalElapsed = Date.now() - startTime;
 
@@ -490,6 +559,7 @@ export async function POST(req: NextRequest) {
     businessName,
     summary,
     phases,
+    modesRun,
     artifacts,
   };
 

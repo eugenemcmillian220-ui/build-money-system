@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createExecution, executeNode, calculateCreditsUsed } from "@/lib/flowforge/engine";
 import type { Workflow, WorkflowNode, NodeExecutionResult } from "@/lib/flowforge/types";
 import { createAuditEntry } from "@/lib/flowforge/audit";
+import { normalizeFlowForgeMode, resolveFlowForgeTriggerType } from "@/lib/flowforge/mode";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,6 +26,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const normalizedMode = normalizeFlowForgeMode(workflow?.mode);
+
     const wf: Workflow = {
       id: workflow_id || workflow?.id || crypto.randomUUID(),
       org_id: (workflow?.org_id as string) || "default-org",
@@ -32,9 +35,9 @@ export async function POST(request: NextRequest) {
       description: workflow?.description || "",
       status: "active",
       nodes: (workflow?.nodes as WorkflowNode[]) || [],
-      trigger_type: workflow?.trigger_type || "manual",
+      trigger_type: resolveFlowForgeTriggerType(normalizedMode, workflow?.trigger_type),
       trigger_config: workflow?.trigger_config || {},
-      mode: workflow?.mode || "universal",
+      mode: normalizedMode,
       version: workflow?.version || 1,
       is_monetized: workflow?.is_monetized || false,
       price_credits: workflow?.price_credits || 0,

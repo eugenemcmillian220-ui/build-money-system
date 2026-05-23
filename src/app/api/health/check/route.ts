@@ -1,5 +1,5 @@
 export const dynamic = "force-dynamic";
-import { NextResponse } from "next/server";
+import { ok } from "@/lib/api/response";
 import { keyManager } from "@/lib/key-manager";
 
 export const runtime = "nodejs";
@@ -7,7 +7,6 @@ export const runtime = "nodejs";
 export async function GET() {
   const checks = {
     timestamp: new Date().toISOString(),
-    status: "checking",
     checks: {
       environment: checkEnvironment(),
       database: checkDatabase(),
@@ -18,9 +17,12 @@ export async function GET() {
   };
 
   const allPassed = Object.values(checks.checks).every((c) => c.pass);
-  checks.status = allPassed ? "ready" : "issues_found";
-
-  return NextResponse.json(checks);
+  return ok({
+    ...checks,
+    status: allPassed ? "ready" : "issues_found",
+    deprecated: true,
+    replacement: "/api/health",
+  });
 }
 
 function checkEnvironment() {

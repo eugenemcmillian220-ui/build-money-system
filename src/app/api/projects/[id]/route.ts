@@ -2,7 +2,8 @@
 // DA-061 FIX: TODO: Consolidate data source (DB-only or memory-only, not both)
 export const dynamic = "force-dynamic";
 import { requireAuth, isAuthError } from "@/lib/api-auth";
-import { NextRequest, NextResponse } from "next/server";
+import { ok, fail } from "@/lib/api/response";
+import { NextRequest } from "next/server";
 import { loadProjectDB, saveProjectDB, deleteProjectDB, isDatabaseAvailable } from "@/lib/supabase/db";
 import { loadProject, saveProject } from "@/lib/memory";
 import { Project } from "@/lib/types";
@@ -36,19 +37,13 @@ export async function GET(
     }
 
     if (!project) {
-      return NextResponse.json(
-        { error: "Project not found" },
-        { status: 404 }
-      );
+      return fail("PROJECT_NOT_FOUND", "Project not found", 404);
     }
 
-    return NextResponse.json({ project });
+    return ok({ project });
   } catch (error) {
     console.error("Failed to load project:", error);
-    return NextResponse.json(
-      { error: "Failed to load project" },
-      { status: 500 }
-    );
+    return fail("PROJECT_LOAD_FAILED", "Failed to load project", 500);
   }
 }
 
@@ -78,10 +73,7 @@ export async function PUT(
     }
 
     if (!project) {
-      return NextResponse.json(
-        { error: "Project not found" },
-        { status: 404 }
-      );
+      return fail("PROJECT_NOT_FOUND", "Project not found", 404);
     }
 
     // Update fields
@@ -102,13 +94,10 @@ export async function PUT(
       saveProject(updatedProject);
     }
 
-    return NextResponse.json({ project: updatedProject });
+    return ok({ project: updatedProject });
   } catch (error) {
     console.error("Failed to update project:", error);
-    return NextResponse.json(
-      { error: "Failed to update project" },
-      { status: 500 }
-    );
+    return fail("PROJECT_UPDATE_FAILED", "Failed to update project", 500);
   }
 }
 
@@ -130,12 +119,9 @@ export async function DELETE(
       await deleteProjectDB(id);
     }
 
-    return NextResponse.json({ success: true });
+    return ok({ deleted: true });
   } catch (error) {
     console.error("Failed to delete project:", error);
-    return NextResponse.json(
-      { error: "Failed to delete project" },
-      { status: 500 }
-    );
+    return fail("PROJECT_DELETE_FAILED", "Failed to delete project", 500);
   }
 }

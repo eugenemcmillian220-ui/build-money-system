@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { ok, fail } from "@/lib/api/response";
 import { listProjectsDB, saveProjectDB, isDatabaseAvailable } from "@/lib/supabase/db";
 import { getAllProjects, saveProject } from "@/lib/memory";
 import { Project } from "@/lib/types";
@@ -19,10 +20,10 @@ export async function GET(): Promise<Response> {
     } else {
       projects = getAllProjects();
     }
-    return NextResponse.json({ projects });
+    return ok({ projects });
   } catch (error) {
     console.error("Failed to list projects:", error);
-    return NextResponse.json({ error: "Failed to list projects" }, { status: 500 });
+    return fail("PROJECT_LIST_FAILED", "Failed to list projects", 500);
   }
 }
 
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     const { files, description, schema, integrations } = body;
 
     if (!files || typeof files !== "object") {
-      return NextResponse.json({ error: "files object is required" }, { status: 400 });
+      return fail("VALIDATION_ERROR", "files object is required", 400);
     }
 
     const project: Project = {
@@ -53,9 +54,9 @@ export async function POST(request: NextRequest): Promise<Response> {
     } else {
       saveProject(project);
     }
-    return NextResponse.json({ project }, { status: 201 });
+    return ok({ project }, 201);
   } catch (error) {
     console.error("Failed to create project:", error);
-    return NextResponse.json({ error: "Failed to create project" }, { status: 500 });
+    return fail("PROJECT_CREATE_FAILED", "Failed to create project", 500);
   }
 }

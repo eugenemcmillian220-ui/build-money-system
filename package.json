@@ -7,7 +7,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -21,6 +21,8 @@
     "@sentry/nextjs": "^10.51.0",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.105.3",
+    "@vercel/analytics": "^2.0.1",
+
     "@vercel/otel": "^1.10.0",
     "axios": "^1.16.0",
     "highlight.js": "^11.11.1",
