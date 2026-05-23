@@ -6,7 +6,9 @@ const WORKER_SHARED_SECRET = process.env.WORKER_SHARED_SECRET ?? ''
 const DEFAULT_MAX_CONCURRENT_JOBS = 3
 const DEFAULT_IDEMPOTENCY_TTL_MS = 5 * 60 * 1000
 const REQUEST_BODY_LIMIT_BYTES = 1024 * 1024
-const DEFAULT_STAGE_CALLBACK_TIMEOUT_MS = 55 * 1000
+// Keep slightly above the serverless stage budget to avoid aborting right as
+// the callback is flushing its response.
+const DEFAULT_STAGE_CALLBACK_TIMEOUT_MS = 60 * 1000
 
 function readPositiveIntegerEnv(name: string, fallback: number): number {
   const parsed = parseInt(process.env[name] ?? '', 10)
