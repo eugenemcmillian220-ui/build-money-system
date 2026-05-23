@@ -14,7 +14,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - run: npm ci
       - run: npm run typecheck
@@ -27,9 +27,18 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run test:phase5
-      - run: npm run test:phase6
-      - run: npm run test:phase9
+      - name: Run phase 5 tests
+        run: npm run test:phase5
+        env:
+          NODE_ENV: test
+      - name: Run phase 6 tests
+        run: npm run test:phase6
+        env:
+          NODE_ENV: test
+      - name: Run phase 9 tests
+        run: npm run test:phase9
+        env:
+          NODE_ENV: test
