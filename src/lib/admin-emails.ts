@@ -12,13 +12,12 @@
  */
 export const ADMIN_EMAILS: readonly string[] = [
   "eugenemcmillian9@gmail.com",
-  "eugenemcmillian301@gmail.com",
 ] as const;
 
 export const ADMIN_FREE_TIER = "admin_free" as const;
 
-/** Unlimited credit grant for admin accounts (9_999_999). */
-export const ADMIN_CREDIT_BALANCE = 9_999_999;
+/** Practical-unlimited grant for admin accounts (max 32-bit int). */
+export const ADMIN_CREDIT_BALANCE = 2_147_483_647;
 
 export function normalizeEmail(email: string | null | undefined): string {
   return (email ?? "").trim().toLowerCase();

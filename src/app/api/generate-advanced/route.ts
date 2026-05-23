@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 import { requireAuth, isAuthError } from "@/lib/api-auth";
+import { ok, fail } from "@/lib/api/response";
 import { NextRequest } from "next/server";
 import { AppBuildAgent, AgentError } from "@/lib/agent";
 import { z } from "zod";
@@ -26,15 +27,12 @@ export async function POST(request: NextRequest): Promise<Response> {
   try {
     body = await request.json();
   } catch {
-    return Response.json({ error: "Invalid JSON body" }, { status: 400 });
+    return fail("INVALID_JSON", "Invalid JSON body", 400);
   }
 
   const parsed = requestSchema.safeParse(body);
   if (!parsed.success) {
-    return Response.json(
-      { error: "Validation failed", issues: parsed.error.flatten().fieldErrors },
-      { status: 400 },
-    );
+    return fail("VALIDATION_ERROR", "Validation failed", 400, parsed.error.flatten().fieldErrors);
   }
 
   const { prompt, stream, fixPasses } = parsed.data;
@@ -85,13 +83,13 @@ export async function POST(request: NextRequest): Promise<Response> {
     }
 
     const result = await agent.runAdvanced(prompt, { fixPasses });
-    return Response.json(result);
+    return ok(result);
   } catch (error) {
     if (error instanceof AgentError) {
       const status = error.status === 429 ? 429 : 502;
-      return Response.json({ error: error.message }, { status });
+      return fail("AGENT_ERROR", error.message, status);
     }
     console.error("Unexpected generation error:", error);
-    return Response.json({ error: "Generation failed" }, { status: 500 });
+    return fail("GENERATION_FAILED", "Generation failed", 500);
   }
 }
