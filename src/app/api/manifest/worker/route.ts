@@ -50,9 +50,9 @@ const RUNNERS: Record<StageName, (id: string, baseUrl: string) => Promise<void>>
 
 export async function POST(request: NextRequest) {
   const secret = request.headers.get("x-worker-secret");
-  const expected = process.env.WORKER_SHARED_SECRET;
+  const expected = process.env.WORKER_SHARED_SECRET || process.env.RAILWAY_INTERNAL_SECRET;
   if (!expected) {
-    const msg = "[manifest/worker] WORKER_SHARED_SECRET env var is not set. All worker calls will be rejected.";
+    const msg = "[manifest/worker] WORKER_SHARED_SECRET or RAILWAY_INTERNAL_SECRET env var is not set. All worker calls will be rejected.";
     console.error(msg);
     Sentry.captureMessage(msg, "error");
     return NextResponse.json({ error: "Worker misconfigured: missing secret" }, { status: 503 });

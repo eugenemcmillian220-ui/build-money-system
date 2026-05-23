@@ -16,7 +16,7 @@ const MANIFEST_STAGE_MAX_RETRIES = 3;
 const MANIFEST_STAGE_RETRY_BASE_MS = 500;
 
 function getRailwayWorkerBaseUrl(): string | null {
-  const configured = process.env.WORKER_BASE_URL || process.env.RAILWAY_PUBLIC_DOMAIN;
+  const configured = process.env.WORKER_BASE_URL || process.env.RAILWAY_BACKEND_URL || process.env.RAILWAY_PUBLIC_DOMAIN;
   if (!configured) return null;
 
   const trimmed = configured.trim().replace(/\/+$/, "");
@@ -127,9 +127,9 @@ export function triggerStage(
 
   after(async () => {
     try {
-      const workerSecret = process.env.WORKER_SHARED_SECRET;
+      const workerSecret = process.env.WORKER_SHARED_SECRET || process.env.RAILWAY_INTERNAL_SECRET;
       if (!workerSecret) {
-        console.error(`[manifest/chain] WORKER_SHARED_SECRET is not set — stage "${stage}" for job ${jobId} will not run in production!`);
+        console.error(`[manifest/chain] WORKER_SHARED_SECRET or RAILWAY_INTERNAL_SECRET is not set — stage "${stage}" for job ${jobId} will not run in production!`);
         await failManifestation(
           jobId,
           `Pipeline trigger failed at ${stage}: WORKER_SHARED_SECRET is not configured in production.`,

@@ -63,13 +63,13 @@ export async function handleManifestationRequest(
 
   const baseUrl = new URL(request.url).origin;
   // Fire-and-forget: first stage runs in its own serverless invocation.
-  const workerSecret = process.env.WORKER_SHARED_SECRET;
+  const workerSecret = process.env.WORKER_SHARED_SECRET || process.env.RAILWAY_INTERNAL_SECRET;
   const isProd = process.env.NODE_ENV === "production";
 
   if (!workerSecret && isProd) {
     console.error("[manifest/handler] CRITICAL: WORKER_SHARED_SECRET is missing in production.");
     return NextResponse.json(
-      { error: "Pipeline misconfigured: WORKER_SHARED_SECRET not set. Contact support." },
+      { error: "Pipeline misconfigured: WORKER_SHARED_SECRET or RAILWAY_INTERNAL_SECRET not set. Contact support." },
       { status: 503 }
     );
   }
