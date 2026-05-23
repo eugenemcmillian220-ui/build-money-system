@@ -5,7 +5,7 @@
     "buildCommand": "cd railway && npm install && npm run build"
   },
   "deploy": {
-    "startCommand": "sh -c 'cd railway && node dist/server.js'",
+    "startCommand": "cd railway && node dist/server.js",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 5,
     "healthcheckPath": "/health",
