@@ -1,7 +1,11 @@
 {
-  "name": "ai-app-builder",
+  "name": "build-money-system",
   "version": "3.0.0",
   "private": true,
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "NODE_OPTIONS='--max-old-space-size=6144 --no-deprecation' next build",
@@ -13,6 +17,7 @@
     "test:phase6": "tsx tests/phase6.test.ts",
     "test:phase9": "tsx tests/phase9-e2e.test.ts",
     "test:smoke": "npm run test:phase5 && npm run test:phase6"
+
   },
   "dependencies": {
     "@octokit/rest": "^21.1.1",
@@ -23,6 +28,7 @@
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.105.3",
     "@vercel/analytics": "^2.0.1",
+
     "@vercel/otel": "^1.10.0",
     "axios": "^1.16.0",
     "highlight.js": "^11.11.1",
