@@ -30,9 +30,44 @@ const MAX_FIX_ITERATIONS = 1;
 // Agents are now lazy-loaded on demand within each stage to improve cold start times.
 
 type StageState = Record<string, unknown>;
+type FileMap = Record<string, string>;
 
 function mergeState(row: ManifestationRow, patch: StageState): StageState {
   return { ...(row.state ?? {}), ...patch };
+}
+
+function hasNonEmptyFile(files: FileMap, path: string): boolean {
+  const value = files[path];
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function countComponentFiles(files: FileMap): number {
+  return Object.keys(files).filter((p) => p.startsWith("src/components/") && p.endsWith(".tsx")).length;
+}
+
+function enforceViableGeneratedFiles(
+  files: FileMap,
+  fallbackFiles: FileMap,
+): { files: FileMap; usedFallback: boolean; reason?: string } {
+  const hasAppEntrypoint = hasNonEmptyFile(files, "src/app/page.tsx");
+  const hasLayout = hasNonEmptyFile(files, "src/app/layout.tsx");
+  const componentCount = countComponentFiles(files);
+  const totalFiles = Object.keys(files).length;
+
+  // Treat placeholder-only outputs as invalid "fake generation".
+  const appearsTooSmall = totalFiles < 4;
+  const missingCore = !hasAppEntrypoint || !hasLayout;
+  const missingComponents = componentCount === 0;
+
+  if (appearsTooSmall || missingCore || missingComponents) {
+    return {
+      files: { ...fallbackFiles, ...files },
+      usedFallback: true,
+      reason: `shape_check_failed(total=${totalFiles},hasPage=${hasAppEntrypoint},hasLayout=${hasLayout},components=${componentCount})`,
+    };
+  }
+
+  return { files, usedFallback: false };
 }
 
 /**
@@ -404,6 +439,18 @@ export async function runGenerateBuildCodeStage(jobId: string, _baseUrl: string)
       projectDesc = devResult.description || row.prompt;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       genData = devResult as any;
+
+      const fallbackFiles = fallbackFileMap(spec);
+      const viability = enforceViableGeneratedFiles(files, fallbackFiles);
+      if (viability.usedFallback) {
+        files = viability.files;
+        usedFallback = true;
+        await appendLog(
+          jobId,
+          "warn",
+          `Developer output incomplete (${viability.reason}); merged with template fallback to guarantee real app files/components.`,
+        );
+      }
     } catch (devErr) {
       logger.warn("Developer agent failed, using template fallback files", {
         jobId,
