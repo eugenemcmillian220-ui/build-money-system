@@ -1,6 +1,6 @@
 // Legacy providers (Groq/Gemini/OpenAI/OpenRouter) have been fully removed.
 // src/lib/providers.ts
-// Verified against official OpenCode Go docs — May 2026
+// Verified against live API — May 2026
 
 export type ProviderID =
   | "opencode-zen"
@@ -20,14 +20,13 @@ export interface ProviderConfig {
 
 // ── Provider registry ─────────────────────────────────────────
 export const PROVIDERS: Record<ProviderID, ProviderConfig> = {
-  // Primary: OpenCode Go tier ($10/mo)
+  // Primary: OpenCode Go tier
   "opencode-go": {
     id: "opencode-go",
     baseURL: "https://opencode.ai/zen/go/v1",
     apiKeyEnvVar: "OPENCODE_GO_API_KEY",
-    format: "openai",   // → /chat/completions
+    format: "openai",
   },
-
   // Secondary: OpenCode Zen (pay-as-you-go + free models)
   "opencode-zen": {
     id: "opencode-zen",
@@ -35,41 +34,36 @@ export const PROVIDERS: Record<ProviderID, ProviderConfig> = {
     apiKeyEnvVar: "OPENCODE_ZEN_API_KEY",
     format: "openai",
   },
-
-  // Tertiary: GitHub Models (free tier)
+  // Tertiary: GitHub Models — verified live May 2026
   "github-models": {
     id: "github-models",
     baseURL: "https://models.inference.ai.azure.com",
-    apiKeyEnvVar: "GITHUB_MODELS_TOKEN",
+    apiKeyEnvVar: "GITHUB_TOKEN",
     format: "openai",
   },
-
-  // Fallback: Hugging Face (free tier)
+  // Fallback: Hugging Face
   "huggingface": {
     id: "huggingface",
     baseURL: "https://router.huggingface.co/v1",
-    apiKeyEnvVar: "HUGGINGFACE_API_KEY",
+    apiKeyEnvVar: "HF_TOKEN",
     format: "openai",
   },
 };
 
-// ── Go tier model registry ─────────────────────────────────────
-// Source: https://opencode.ai/zen/go — official docs
-// API uses bare model IDs — NO opencode-go/ prefix in API calls
-// (opencode-go/ prefix is TUI config only)
-
+// ── OpenCode Go tier models ────────────────────────────────────
+// Source: https://opencode.ai/zen/go — verified May 2026
+// Use bare model IDs — NO opencode-go/ prefix in API calls
 export const ZEN_GO_OPENAI_MODELS = [
-  "glm-5",
+  "qwen3.5-plus",    // Fast, reliable — primary workhorse
+  "qwen3.6-plus",    // Upgraded Qwen
+  "deepseek-v4-pro", // Best for codegen
+  "kimi-k2.5",       // Long context
+  "kimi-k2.6",       // Latest Kimi
+  "glm-5",           // GLM series
   "glm-5.1",
-  "kimi-k2.5",
-  "kimi-k2.6",
-  "deepseek-v4-pro",
-  // "deepseek-v4-flash" removed — returns HTTP 404 from OpenCode Zen API
-  "mimo-v2.5",
+  "mimo-v2.5",       // MiMo reasoning
   "mimo-v2.5-pro",
-  "qwen3.5-plus",
-  "qwen3.6-plus",
-  "hy3-preview",
+  "hy3-preview",     // Hunyuan
 ] as const;
 
 export const ZEN_GO_ANTHROPIC_MODELS = [
@@ -78,67 +72,62 @@ export const ZEN_GO_ANTHROPIC_MODELS = [
   "minimax-m2.7",
 ] as const;
 
-// ── Free tier models ──────────────────────────────────────────
+// ── OpenCode Zen free models ──────────────────────────────────
 export const ZEN_FREE_MODELS = [
+  "gpt-5-nano",
   "big-pickle",
   "minimax-m2.5-free",
-  "gpt-5-nano",
-  "nemotron-3-super-free",
   "hy3-preview-free",
   "ling-2.6-flash-free",
   "trinity-large-preview-free",
+  "nemotron-3-super-free",
 ] as const;
 
-// ── Fallback model lists ───────────────────────────────────────
+// ── GitHub Models — verified live May 2026 ────────────────────
 export const GITHUB_MODELS = [
-  "gpt-4o-mini",
-  "Llama-3.3-70B-Instruct",
-  "DeepSeek-R1",
+  // OpenAI
+  "gpt-4o",                        // Flagship — best quality
+  "gpt-4o-mini",                   // Fast + cheap
+  // Meta Llama
+  "Meta-Llama-3.1-405B-Instruct",  // Largest open model
+  "Llama-3.3-70B-Instruct",        // Best quality/speed tradeoff
+  "Meta-Llama-3.1-8B-Instruct",    // Ultra fast
+  // Microsoft Phi
+  "Phi-4",                         // Strong reasoning
+  "Phi-4-multimodal-instruct",     // Vision capable
+  // DeepSeek
+  "DeepSeek-R1",                   // Reasoning/thinking model
+  "DeepSeek-V3-0324",              // Latest DeepSeek
+  // Cohere
+  "Cohere-command-a",              // Enterprise-grade
 ] as const;
 
+// ── Hugging Face models ────────────────────────────────────────
 export const HF_MODELS = [
-  "deepseek-ai/DeepSeek-R1",
+  "deepseek-ai/DeepSeek-V3-0324",
   "meta-llama/Llama-3.3-70B-Instruct",
   "Qwen/Qwen2.5-Coder-32B-Instruct",
+  "Qwen/Qwen2.5-72B-Instruct",
+  "mistralai/Mistral-7B-Instruct-v0.3",
 ] as const;
 
 // ── Stage → model assignments ──────────────────────────────────
+// Optimized per-stage: fast models for planning, powerful for codegen
 export const STAGE_MODEL_MAP: Record<string, {
   provider: ProviderID;
   model: string;
 }> = {
-  "plan-outline": {
-    provider: "opencode-go",
-    model: "qwen3.5-plus", // Fast and reliable for high-level structure
-  },
-  "plan-details": {
-    provider: "opencode-go",
-    model: "qwen3.5-plus", // Use for speed to avoid serverless stalls
-  },
-  "detailing-components": {
-    provider: "opencode-go",
-    model: "qwen3.5-plus",
-  },
-  "planSpecDetails": {
-    provider: "opencode-go",
-    model: "qwen3.5-plus",
-  },
-  "codegen": {
-    provider: "opencode-go",
-    model: "deepseek-v4-pro",
-  },
-  "quick": {
-    provider: "opencode-go",
-    model: "qwen3.5-plus",
-  },
-  "outline": {
-    provider: "opencode-go",
-    model: "qwen3.5-plus",
-  },
-  "default": {
-    provider: "opencode-go",
-    model: "qwen3.5-plus",
-  },
+  // Planning stages — fast + smart
+  "plan-outline":         { provider: "opencode-go", model: "qwen3.5-plus" },
+  "plan-details":         { provider: "opencode-go", model: "qwen3.5-plus" },
+  "detailing-components": { provider: "opencode-go", model: "qwen3.5-plus" },
+  "planSpecDetails":      { provider: "opencode-go", model: "qwen3.5-plus" },
+  "outline":              { provider: "opencode-go", model: "qwen3.5-plus" },
+  "quick":                { provider: "opencode-go", model: "qwen3.5-plus" },
+  // Codegen — use deepseek-v4-pro (best for code)
+  "codegen":              { provider: "opencode-go", model: "deepseek-v4-pro" },
+  // Default
+  "default":              { provider: "opencode-go", model: "qwen3.5-plus" },
 };
 
 // ── Helpers ────────────────────────────────────────────────────
@@ -171,4 +160,3 @@ export function extractResponseContent(
   const content = data?.content as Array<{ text?: string }> | undefined;
   return content?.[0]?.text ?? "";
 }
-

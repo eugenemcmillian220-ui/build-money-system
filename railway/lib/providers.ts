@@ -25,4 +25,5 @@ export const PROVIDERS = {
   },
 } as const;
 
+// Models that use Anthropic /messages format (MiniMax via OpenCode Go only)
 export const GO_ANTHROPIC_MODELS = new Set(['minimax-m2.5', 'minimax-m2.7']);

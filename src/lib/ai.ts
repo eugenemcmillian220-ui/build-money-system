@@ -29,39 +29,45 @@ export const ZEN_GO_MODELS = [...ZEN_GO_ALL_MODELS];
 export const ZEN_PAID_MODELS = ZEN_GO_MODELS;
 
 export const STAGE_PREFERRED_MODELS: Record<string, string> = {
-  "plan-outline": "qwen3.5-plus",
-  "plan-details": "qwen3.5-plus",
+  // Planning — fast models
+  "plan-outline":         "qwen3.5-plus",
+  "plan-details":         "qwen3.5-plus",
   "detailing-components": "qwen3.5-plus",
-  "planSpecDetails": "qwen3.5-plus",
-  "codegen": "deepseek-v4-pro",
-  "quick": "qwen3.5-plus",
-  "outline": "qwen3.5-plus",
-  "default": "qwen3.5-plus",
+  "planSpecDetails":      "qwen3.5-plus",
+  "outline":              "qwen3.5-plus",
+  "quick":                "qwen3.5-plus",
+  // Codegen — best code model
+  "codegen":              "deepseek-v4-pro",
+  // Analysis / polish agents — use kimi for long context
+  "polish":               "kimi-k2.5",
+  "analyze":              "kimi-k2.5",
+  // Default
+  "default":              "qwen3.5-plus",
 };
 
 export const GITHUB_FREE_MODELS = [
+  // Verified live — May 2026
+  "gpt-4o",                        // Best quality
+  "gpt-4o-mini",                   // Fast + cheap
+  "Meta-Llama-3.1-405B-Instruct",  // Largest open model
+  "Llama-3.3-70B-Instruct",        // Best quality/speed tradeoff
+  "Meta-Llama-3.1-8B-Instruct",    // Ultra fast
+  "Phi-4",                         // Strong reasoning
+  "Phi-4-multimodal-instruct",
+  "DeepSeek-R1",                   // Reasoning model
+  "DeepSeek-V3-0324",              // Latest DeepSeek
+  "Cohere-command-a",
+  // Legacy aliases kept for compat
   ...GITHUB_MODELS_NEW,
-  "openai/gpt-4.1-mini",
-  "openai/gpt-4.1-nano",
-  "openai/gpt-4o-mini",
-  "meta-llama/Llama-4-Scout-17B-16E-Instruct",
-  "meta-llama/Meta-Llama-3.1-8B-Instruct",
-  "meta-llama/Meta-Llama-3.1-70B-Instruct",
-  "mistralai/Mistral-Small-24B-Instruct-2501",
-  "deepseek/DeepSeek-V3-0324",
-  "microsoft/Phi-4",
-  "Cohere/cohere-command-a",
 ];
 
 export const HF_FREE_MODELS = [
+  // Note: HF free tier credits may be depleted — used as last resort only
   ...HF_MODELS_NEW,
   "deepseek-ai/DeepSeek-V3-0324",
-  "meta-llama/Llama-3.1-8B-Instruct",
+  "meta-llama/Llama-3.3-70B-Instruct",
   "Qwen/Qwen2.5-72B-Instruct",
-  "mistralai/Mistral-Small-24B-Instruct-2501",
-  "microsoft/Phi-3.5-mini-instruct",
-  "NousResearch/Hermes-3-Llama-3.1-8B",
-  "HuggingFaceH4/zephyr-7b-beta",
+  "mistralai/Mistral-7B-Instruct-v0.3",
 ];
 
 export const ALL_FREE_MODELS: Record<ProviderName, string[]> = {
