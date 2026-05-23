@@ -3,7 +3,14 @@ import { after } from "next/server";
 import type { StageName } from "./stages";
 import { withStageTimeout } from "@/lib/pipeline-timeout";
 
-const MANIFEST_STAGE_TIMEOUT_MS = 5_000;
+/**
+ * Timeout when dispatching a stage trigger to the external worker.
+ *
+ * The Railway `/run-manifest` endpoint currently waits for the downstream
+ * `/api/manifest/worker` callback before returning 202, so a tiny timeout here
+ * causes false failures and fallback execution in-app.
+ */
+const MANIFEST_STAGE_TIMEOUT_MS = 65_000;
 const MANIFEST_STAGE_MAX_RETRIES = 3;
 const MANIFEST_STAGE_RETRY_BASE_MS = 500;
 
