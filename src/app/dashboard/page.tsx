@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { AiTerminal } from "@/components/dashboard/AiTerminal";
+import AiTerminal from "@/components/dashboard/AiTerminal";
 import { ProjectList } from "@/components/dashboard/ProjectList";
 import { SystemStatus } from "@/components/dashboard/SystemStatus";
 import { useManifestation } from "@/hooks/use-manifestation";

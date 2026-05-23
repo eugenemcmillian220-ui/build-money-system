@@ -6,6 +6,9 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { z } from "zod";
 import { agentEconomy } from "@/lib/economy";
 import { ADMIN_FREE_TIER } from "@/lib/admin-emails";
+import { requireAuth, isAuthError } from "@/lib/api-auth";
+import { rateLimit } from "@/lib/rate-limit";
+import { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
 // Vercel Hobby hard cap: 60s. We leave 10s headroom for DB writes.
