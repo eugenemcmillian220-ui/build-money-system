@@ -209,6 +209,7 @@ export async function runIntentArchitectStage(jobId: string, _baseUrl: string): 
     const { runArchitectAgent } = await import("@/lib/agents/architect");
     const state = row.state as StageState;
     const protocol = state.protocol as string;
+    const mode = (state.mode as string) || "universal";
     const strategyMarkdown = state.strategyMarkdown as string;
     const builderType = (state.builderType as "automated" | "granular") || "automated";
     if (!strategyMarkdown) throw new Error("Intent-scout stage did not produce strategyMarkdown.");
@@ -221,7 +222,7 @@ export async function runIntentArchitectStage(jobId: string, _baseUrl: string): 
         traced(
           "agent.architect",
           { "agent.role": "Architect", "builder.type": builderType },
-          () => runArchitectAgent(row.prompt, strategyMarkdown, builderType),
+          () => runArchitectAgent(row.prompt, strategyMarkdown, builderType, mode),
         ),
         AGENT_CALL_TIMEOUT_MS,
         "runArchitectAgent",
@@ -248,11 +249,19 @@ export async function runIntentArchitectStage(jobId: string, _baseUrl: string): 
     };
 
     const { PHASE_19_SYSTEM_PROMPT } = await import("@/lib/prompts/phase-19");
+    const apiEndpointsSummary = architecture.apiEndpoints?.length
+      ? `API ENDPOINTS:\n${architecture.apiEndpoints.map((e: { method: string; route: string; purpose: string }) => `- ${e.method} ${e.route}: ${e.purpose}`).join("\n")}`
+      : "";
+    const middlewareSummary = architecture.middlewareRequirements?.length
+      ? `MIDDLEWARE: ${architecture.middlewareRequirements.join(", ")}`
+      : "";
     const finalPrompt = `
 ${PHASE_19_SYSTEM_PROMPT}
 
 BUILD CONTEXT:
 Protocol: ${protocol.toUpperCase()}
+Mode: ${mode.toUpperCase()}
+Builder: ${builderType.toUpperCase()}
 Visual Theme: ${visualTokens.theme} (Primary: ${visualTokens.primaryColor})
 
 STRATEGY:
@@ -262,6 +271,8 @@ ARCHITECTURE PLAN:
 ${architecture.coreLogicPlan}
 FILE STRUCTURE: ${architecture.fileStructure.join(", ")}
 DATABASE REQS: ${architecture.databaseRequirements.join(", ")}
+${apiEndpointsSummary}
+${middlewareSummary}
 
 USER REQUEST: "${row.prompt}"
 `;
@@ -655,9 +666,7 @@ export async function runPolishAnalyzeStage(jobId: string, _baseUrl: string): Pr
     const projectName = state.projectName as string;
     const projectDesc = state.projectDesc as string;
     const protocol = state.protocol as string;
-    const mode = state.mode as string;
-    const isElite = mode === "elite";
-
+    const _mode = state.mode as string;
     const defaultSecurity = {
       score: 0,
       recommendations: ["Security audit skipped due to agent error."],
@@ -665,7 +674,7 @@ export async function runPolishAnalyzeStage(jobId: string, _baseUrl: string): Pr
     };
     const defaultBroker = {
       mergerPotential: [] as { targetProjectId: string; compatibility: number; strategy: string }[],
-      negotiationStrategy: isElite ? "Audit pending (no organization linked)." : "Audit skipped (non-elite mode).",
+      negotiationStrategy: "Audit pending (no organization linked).",
     };
 
     const [docs, security, economy, legal, sentinel, simulation, broker, sculptor, scrutinizer, visionary, diplomatResult, hiveMind, meshCoordinator, pulseMonitor] = await Promise.all([
@@ -693,20 +702,16 @@ export async function runPolishAnalyzeStage(jobId: string, _baseUrl: string): Pr
           manifest: { protocol },
         } as unknown as Project));
       }),
-      isElite
-        ? safeAgent("Sentinel", jobId, undefined, async () => {
-            const { runSentinelAgent } = await import("@/lib/agents/sentinel");
-            return traced("agent.sentinel", { "agent.role": "Sentinel" }, () => runSentinelAgent(files));
-          })
-        : Promise.resolve(undefined),
-      isElite
-        ? safeAgent("Phantom", jobId, undefined, async () => {
-            const { runPhantom } = await import("@/lib/agents/phantom");
-            return traced("agent.phantom", { "agent.role": "Phantom" }, () => runPhantom({ name: projectName, description: projectDesc, files, id: "temp", createdAt: new Date().toISOString() } as Project));
-          })
-        : Promise.resolve(undefined),
+      safeAgent("Sentinel", jobId, undefined, async () => {
+        const { runSentinelAgent } = await import("@/lib/agents/sentinel");
+        return traced("agent.sentinel", { "agent.role": "Sentinel" }, () => runSentinelAgent(files));
+      }),
+      safeAgent("Phantom", jobId, undefined, async () => {
+        const { runPhantom } = await import("@/lib/agents/phantom");
+        return traced("agent.phantom", { "agent.role": "Phantom" }, () => runPhantom({ name: projectName, description: projectDesc, files, id: "temp", createdAt: new Date().toISOString() } as Project));
+      }),
       (async () => {
-        if (isElite && row.org_id) {
+        if (row.org_id) {
           const { data: existingProjects } = await supabaseAdmin
             .from("projects")
             .select("*")
@@ -796,8 +801,6 @@ export async function runPolishLaunchStage(jobId: string, _baseUrl: string): Pro
     const strategyMarkdown = state.strategyMarkdown as string;
     const docs = state.docs as Record<string, unknown>;
     const genData = state.genData as Record<string, unknown>;
-    const isElite = mode === "elite";
-
     const [launch, qaResult] = await Promise.all([
       safeAgent("Herald", jobId, null, async () => {
         const { runHerald } = await import("@/lib/agents/herald");
@@ -810,18 +813,16 @@ export async function runPolishLaunchStage(jobId: string, _baseUrl: string): Pro
           manifest: { strategy: strategyMarkdown, docs, mode, protocol },
         } as unknown as Project));
       }),
-      isElite
-        ? safeAgent("Overseer", jobId, null, async () => {
-            const { runOverseerAgent } = await import("@/lib/agents/overseer");
-            return traced("agent.overseer", { "agent.role": "Overseer" }, () => runOverseerAgent({
-              ...genData,
-              files,
-              id: "temp",
-              createdAt: new Date().toISOString(),
-              manifest: { strategy: strategyMarkdown, docs, mode, protocol },
-            } as unknown as Project));
-          })
-        : Promise.resolve(null)
+      safeAgent("Overseer", jobId, null, async () => {
+        const { runOverseerAgent } = await import("@/lib/agents/overseer");
+        return traced("agent.overseer", { "agent.role": "Overseer" }, () => runOverseerAgent({
+          ...genData,
+          files,
+          id: "temp",
+          createdAt: new Date().toISOString(),
+          manifest: { strategy: strategyMarkdown, docs, mode, protocol },
+        } as unknown as Project));
+      }),
     ]);
 
     await appendLog(jobId, "info", "Launch assets generated.");
@@ -872,8 +873,6 @@ export async function runPolishParallelStage(jobId: string, _baseUrl: string): P
     const mode = state.mode as string;
     const strategyMarkdown = state.strategyMarkdown as string;
     const genData = state.genData as Record<string, unknown>;
-    const isElite = mode === "elite";
-
     const defaultSecurity = {
       score: 0,
       recommendations: ["Security audit skipped due to agent error."],
@@ -881,13 +880,12 @@ export async function runPolishParallelStage(jobId: string, _baseUrl: string): P
     };
     const defaultBroker = {
       mergerPotential: [] as { targetProjectId: string; compatibility: number; strategy: string }[],
-      negotiationStrategy: isElite ? "Audit pending (no organization linked)." : "Audit skipped (non-elite mode).",
+      negotiationStrategy: "Audit pending (no organization linked).",
     };
 
     // Phase 1: Run Chronicler + all 25 independent agents in parallel.
-    // Chronicler is critical for Herald/Overseer, but all others have no deps.
+    // All agents now run for every tier — no elite gating.
     const [docs, security, economy, legal, sentinel, simulation, broker, sculptor, scrutinizer, visionary, diplomatResult, hiveMind, meshCoordinator, pulseMonitor] = await Promise.all([
-      // Chronicler: needed by Herald — runs in parallel with the others
       safeAgent("Chronicler", jobId, null, async () => {
         const { runChroniclerAgent } = await import("@/lib/agents/chronicler");
         return traced("agent.chronicler", { "agent.role": "Chronicler" }, () => runChroniclerAgent(files));
@@ -912,20 +910,16 @@ export async function runPolishParallelStage(jobId: string, _baseUrl: string): P
           manifest: { protocol },
         } as unknown as Project));
       }),
-      isElite
-        ? safeAgent("Sentinel", jobId, undefined, async () => {
-            const { runSentinelAgent } = await import("@/lib/agents/sentinel");
-            return traced("agent.sentinel", { "agent.role": "Sentinel" }, () => runSentinelAgent(files));
-          })
-        : Promise.resolve(undefined),
-      isElite
-        ? safeAgent("Phantom", jobId, undefined, async () => {
-            const { runPhantom } = await import("@/lib/agents/phantom");
-            return traced("agent.phantom", { "agent.role": "Phantom" }, () => runPhantom({ name: projectName, description: projectDesc, files, id: "temp", createdAt: new Date().toISOString() } as Project));
-          })
-        : Promise.resolve(undefined),
+      safeAgent("Sentinel", jobId, undefined, async () => {
+        const { runSentinelAgent } = await import("@/lib/agents/sentinel");
+        return traced("agent.sentinel", { "agent.role": "Sentinel" }, () => runSentinelAgent(files));
+      }),
+      safeAgent("Phantom", jobId, undefined, async () => {
+        const { runPhantom } = await import("@/lib/agents/phantom");
+        return traced("agent.phantom", { "agent.role": "Phantom" }, () => runPhantom({ name: projectName, description: projectDesc, files, id: "temp", createdAt: new Date().toISOString() } as Project));
+      }),
       (async () => {
-        if (isElite && row.org_id) {
+        if (row.org_id) {
           const { data: existingProjects } = await supabaseAdmin
             .from("projects")
             .select("*")
@@ -984,18 +978,16 @@ export async function runPolishParallelStage(jobId: string, _baseUrl: string): P
           manifest: { strategy: strategyMarkdown, docs: docs as Record<string, unknown>, mode, protocol },
         } as unknown as Project));
       }),
-      isElite
-        ? safeAgent("Overseer", jobId, null, async () => {
-            const { runOverseerAgent } = await import("@/lib/agents/overseer");
-            return traced("agent.overseer", { "agent.role": "Overseer" }, () => runOverseerAgent({
-              ...genData,
-              files,
-              id: "temp",
-              createdAt: new Date().toISOString(),
-              manifest: { strategy: strategyMarkdown, docs: docs as Record<string, unknown>, mode, protocol },
-            } as unknown as Project));
-          })
-        : Promise.resolve(null),
+      safeAgent("Overseer", jobId, null, async () => {
+        const { runOverseerAgent } = await import("@/lib/agents/overseer");
+        return traced("agent.overseer", { "agent.role": "Overseer" }, () => runOverseerAgent({
+          ...genData,
+          files,
+          id: "temp",
+          createdAt: new Date().toISOString(),
+          manifest: { strategy: strategyMarkdown, docs: docs as Record<string, unknown>, mode, protocol },
+        } as unknown as Project));
+      }),
     ]);
 
     await appendLog(jobId, "info", "All 25 polish agents complete.");
