@@ -84,32 +84,48 @@ async function phase1(idea: string): Promise<PhaseResult> {
   const name = "Component Forge";
   try {
     const { llmRouter } = await import("@/lib/llm-router");
-    const prompt = `You are building a SaaS platform: "${idea}".
-Generate 3 React components needed for this platform using Next.js 15 + Tailwind CSS.
-Return a JSON object with: { "components": [{ "name": "ComponentName", "code": "full component code" }] }
-Return ONLY valid JSON.`;
+    const normalizedIdea = idea.toLowerCase();
+    const multiFileSignals = ["multi file", "multi-file", "full app", "dashboard", "auth", "routing", "pages", "api", "database", "saas"];
+    const singleFileSignals = ["single file", "single-file", "one file", "one component", "standalone", "widget"];
+    const explicitSingle = singleFileSignals.some((signal) => normalizedIdea.includes(signal));
+    const explicitMulti = multiFileSignals.some((signal) => normalizedIdea.includes(signal));
+    const generationMode: "single-file" | "multi-file" = explicitSingle && !explicitMulti ? "single-file" : "multi-file";
+
+    const prompt = generationMode === "single-file"
+      ? `You are building a SaaS platform idea: "${idea}".
+Generate exactly 1 high-quality React component using Next.js 15 + Tailwind CSS.
+Return ONLY valid JSON in this exact shape:
+{ "mode": "single-file", "components": [{ "name": "ComponentName", "code": "full component code" }] }`
+      : `You are building a SaaS platform idea: "${idea}".
+Generate a multi-file starter for this platform using Next.js 15 + Tailwind CSS.
+Return ONLY valid JSON in this exact shape:
+{ "mode": "multi-file", "files": { "app/page.tsx": "...", "app/layout.tsx": "...", "components/Hero.tsx": "..." }, "components": [{ "name": "ComponentName", "code": "full component code" }] }
+Include at least 3 files.`;
     const { result, elapsed } = await timed(() =>
       llmRouter.executeWithFailover([{ role: "user", content: prompt }])
     );
     const content = result.content;
-    let componentCount = 0;
+    let generatedUnits = 0;
     try {
       const cleaned = content.replace(/```json\n?/g, "").replace(/```\w*\n?/g, "").trim();
       const parsed = JSON.parse(cleaned);
-      componentCount = parsed.components?.length || Object.keys(parsed.files || parsed).length || 0;
+      const componentCount = Array.isArray(parsed.components) ? parsed.components.length : 0;
+      const fileCount = parsed.files && typeof parsed.files === "object" ? Object.keys(parsed.files).length : 0;
+      generatedUnits = generationMode === "single-file" ? componentCount : Math.max(fileCount, componentCount);
     } catch {
       // Count React component patterns in raw output
       const funcComponents = (content.match(/function\s+[A-Z]\w+/g) || []).length;
       const constComponents = (content.match(/const\s+[A-Z]\w+\s*[:=]/g) || []).length;
       const exportComponents = (content.match(/export\s+(default\s+)?function\s+[A-Z]/g) || []).length;
-      componentCount = Math.max(funcComponents, constComponents, exportComponents, content.length > 200 ? 1 : 0);
+      generatedUnits = Math.max(funcComponents, constComponents, exportComponents, content.length > 200 ? 1 : 0);
     }
+    const passThreshold = generationMode === "single-file" ? 1 : 3;
     return {
       phase: 1, name,
-      status: componentCount >= 2 ? "pass" : componentCount > 0 ? "degraded" : "fail",
+      status: generatedUnits >= passThreshold ? "pass" : generatedUnits > 0 ? "degraded" : "fail",
       elapsed,
-      detail: `Generated ${componentCount} components via ${result.provider}/${result.model}`,
-      data: { content: content.slice(0, 2000), provider: result.provider, model: result.model }
+      detail: `${generationMode} generation produced ${generatedUnits} units via ${result.provider}/${result.model}`,
+      data: { mode: generationMode, content: content.slice(0, 3000), provider: result.provider, model: result.model }
     };
   } catch (e) {
     return { phase: 1, name, status: "fail", elapsed: 0, detail: "LLM generation failed", error: String(e) };
