@@ -60,8 +60,15 @@ function enforceViableGeneratedFiles(
   const missingComponents = componentCount === 0;
 
   if (appearsTooSmall || missingCore || missingComponents) {
+    const merged: FileMap = { ...fallbackFiles };
+    for (const [path, content] of Object.entries(files)) {
+      if (typeof content === "string" && content.trim().length > 0) {
+        merged[path] = content;
+      }
+    }
+
     return {
-      files: { ...fallbackFiles, ...files },
+      files: merged,
       usedFallback: true,
       reason: `shape_check_failed(total=${totalFiles},hasPage=${hasAppEntrypoint},hasLayout=${hasLayout},components=${componentCount})`,
     };
