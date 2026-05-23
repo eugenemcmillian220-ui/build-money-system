@@ -22,6 +22,8 @@ CREATE POLICY "service_role_all_credits" ON user_credits
 
 -- Atomic credit deduction function
 -- Returns new balance, raises exception if insufficient
+DROP FUNCTION IF EXISTS deduct_credits(UUID, INTEGER);
+
 CREATE OR REPLACE FUNCTION deduct_credits(p_user_id UUID, p_amount INTEGER)
 RETURNS INTEGER
 LANGUAGE plpgsql

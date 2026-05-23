@@ -123,6 +123,8 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- ═══════════════════════════════════════════════════════════════
 -- 5. deduct_credits — atomically deduct credits from an org by user
 -- ═══════════════════════════════════════════════════════════════
+DROP FUNCTION IF EXISTS deduct_credits(UUID, INTEGER);
+
 CREATE OR REPLACE FUNCTION deduct_credits(
   p_user_id UUID,
   p_amount INT
