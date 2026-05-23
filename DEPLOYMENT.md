@@ -141,3 +141,8 @@ All other environment variables are optional and enable specific features.
 - Rotate API keys regularly
 - Use separate keys for development and production
 - Enable IP restrictions where possible
+
+### Railway Pipeline Worker (required on Vercel)
+# RAILWAY_BACKEND_URL=https://build-money-system-production.up.railway.app
+# RAILWAY_INTERNAL_SECRET=<same value as WORKER_SHARED_SECRET on Railway>
+# Note: both must be set on Vercel for pipeline/start to work
