@@ -2,6 +2,7 @@ import "server-only";
 import { after } from "next/server";
 import type { StageName } from "./stages";
 import { withStageTimeout } from "@/lib/pipeline-timeout";
+import { failManifestation } from "./store";
 
 /**
  * Timeout when dispatching a stage trigger to the external worker.
@@ -129,6 +130,10 @@ export function triggerStage(
       const workerSecret = process.env.WORKER_SHARED_SECRET;
       if (!workerSecret) {
         console.error(`[manifest/chain] WORKER_SHARED_SECRET is not set — stage "${stage}" for job ${jobId} will not run in production!`);
+        await failManifestation(
+          jobId,
+          `Pipeline trigger failed at ${stage}: WORKER_SHARED_SECRET is not configured in production.`,
+        );
         return;
       }
 
@@ -160,14 +165,18 @@ export function triggerStage(
         console.info(`[manifest/chain] attempting fallback direct call for stage ${stage} (job ${jobId})`);
         await runStageDirectly(stage, jobId, baseUrl);
       }
-    } catch (err) {
-      console.error(`[manifest/chain] trigger ${stage} failed for job ${jobId}:`, err);
-      try {
-        console.info(`[manifest/chain] fetch error, attempting fallback direct call for stage ${stage} (job ${jobId})`);
-        await runStageDirectly(stage, jobId, baseUrl);
-      } catch (fallbackErr) {
-        console.error(`[manifest/chain] fallback also failed for stage ${stage} (job ${jobId}):`, fallbackErr);
+      } catch (err) {
+        console.error(`[manifest/chain] trigger ${stage} failed for job ${jobId}:`, err);
+        try {
+          console.info(`[manifest/chain] fetch error, attempting fallback direct call for stage ${stage} (job ${jobId})`);
+          await runStageDirectly(stage, jobId, baseUrl);
+        } catch (fallbackErr) {
+          console.error(`[manifest/chain] fallback also failed for stage ${stage} (job ${jobId}):`, fallbackErr);
+          await failManifestation(
+            jobId,
+            `Pipeline trigger failed at ${stage}: ${((fallbackErr as Error)?.message || (err as Error)?.message || "unknown error")}`,
+          );
+        }
       }
-    }
   });
 }
