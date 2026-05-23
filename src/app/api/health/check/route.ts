@@ -20,6 +20,7 @@ export async function GET() {
   return ok({
     ...checks,
     status: allPassed ? "ready" : "issues_found",
+
     deprecated: true,
     replacement: "/api/health",
   });
