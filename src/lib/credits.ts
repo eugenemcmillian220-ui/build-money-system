@@ -54,16 +54,10 @@ export async function refundCredits(
   amount: number
 ): Promise<void> {
   const supabase = getServiceClient()
-  await supabase
-    .from('user_credits')
-    .update({
-      balance: supabase.rpc('increment_credits', {
-        p_user_id: userId,
-        p_amount: amount,
-      }),
-      updated_at: new Date().toISOString(),
-    })
-    .eq('user_id', userId)
+  await supabase.rpc('increment_credits', {
+    p_user_id: userId,
+    p_amount: amount,
+  })
 }
 
 /**
