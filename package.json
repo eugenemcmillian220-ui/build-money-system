@@ -8,10 +8,16 @@
   },
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build",
+    "build": "NODE_OPTIONS='--max-old-space-size=6144 --no-deprecation' next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "fresh:restart": "npx tsx scripts/fresh-restart.ts",
+    "test:phase5": "tsx tests/phase5.test.ts",
+    "test:phase6": "tsx tests/phase6.test.ts",
+    "test:phase9": "tsx tests/phase9-e2e.test.ts",
+    "test:smoke": "npm run test:phase5 && npm run test:phase6"
+
   },
   "dependencies": {
     "@octokit/rest": "^21.1.1",

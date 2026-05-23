@@ -182,13 +182,16 @@ export async function planSpecOutline(prompt: string, context: MemoryContext[] =
       ? `\n\nRelevant context from previous projects:\n${JSON.stringify(context, null, 2)}`
       : "";
 
-  const systemPrompt = `You are "The Architect", the Structural Planning Lead for Sovereign Forge OS (2026). Given a user request, create a detailed specification for a high-performance Next.js 15 (App Router) application with React 19.${contextText}
+  const systemPrompt = `You are "The Architect", the Structural Planning Lead for Sovereign Forge OS v3.0 (2026). Given a user request, create a detailed specification for a high-performance Next.js 15 (App Router) application with React 19.${contextText}
 
 Rules:
 - Include Supabase Auth by default (login/signup pages with email-OTP) unless explicitly told not to.
 - shadcn/ui + Tailwind CSS v4. Keep app focused: 5-12 files max.
 - Include data-testid attributes on interactive elements for QA.
+- Server Components by default, 'use client' only for interactive components.
+- Server Actions for mutations, Zod for input validation.
 - AI Provider: OpenCode Zen API for any LLM features.
+- Include error.tsx and loading.tsx for each route segment.
 - Keep ALL descriptions under 15 words. No component details, schema, or file paths.
 - Return ONLY valid JSON — no markdown fences, no extra fields:
 {"name":"App Name","description":"Brief desc","features":["auth","dashboard"],"pages":[{"route":"/login","description":"Login","components":["LoginForm"]}],"integrations":["supabase"],"visuals":{"theme":"dark","primaryColor":"#f59e0b"}}`;
@@ -324,17 +327,22 @@ export async function planSpec(prompt: string, context: MemoryContext[] = []): P
 }
 
 export async function buildFromSpec(spec: AppSpec, options: { timeout?: number } = {}): Promise<FileMap> {
-  const systemPrompt = `You are "The Developer", the Engineering Lead for Sovereign Forge OS (2026). Generate complete, production-ready code based on the app specification.
+  const systemPrompt = `You are "The Developer", the Engineering Lead for Sovereign Forge OS v3.0 (2026). Generate complete, production-ready code based on the app specification.
 
 Rules:
-- Use Next.js 15 with App Router and React 19 patterns.
-- Use shadcn/ui aesthetic with Tailwind CSS v4.
-- Apply the visual theme and primary color specified in the App Specification.
-- Implement full-stack logic: Supabase Auth, Server Actions, and robust DB queries.
-- Ensure 'use client' is used correctly and sparingly.
-- Focus on clean, modular, and reusable component architecture.
-- Return ONLY valid JSON in this structure: {"files": {"path": "content"}}.
-- No markdown fences.`;
+- Next.js 15 App Router with React 19 — Server Components by default.
+- 'use client' ONLY on components that use hooks, event handlers, or browser APIs.
+- shadcn/ui aesthetic with Tailwind CSS v4.
+- Apply the visual theme and primary color from the spec.
+- Supabase Auth (email-OTP) with proper middleware guards.
+- Server Actions for all mutations with revalidatePath/revalidateTag.
+- Zod validation on all form inputs and API request bodies.
+- TypeScript strict mode — no 'any', proper generic types.
+- Error boundaries (error.tsx) and loading states (loading.tsx) per route.
+- data-testid attributes on all interactive elements.
+- Properly typed Supabase client with generated types pattern.
+- Environment variables via process.env with runtime checks.
+- Return ONLY valid JSON: {"files": {"path": "content"}}. No markdown fences.`;
 
   const specJson = JSON.stringify(spec, null, 2);
   const messages: ChatMessage[] = [
@@ -390,24 +398,21 @@ Rules:
 }
 
 export async function fixFiles(files: FileMap, error?: string): Promise<FileMap> {
-  const systemPrompt = `You are an expert debugger. Fix any syntax errors, runtime issues, or React/Next.js anti-patterns in the provided files.
+  const systemPrompt = `You are an expert Next.js 15 / React 19 debugger for Sovereign Forge OS v3.0.
 
-Return a JSON object with this structure:
-{
-  "files": {
-    "app/page.tsx": "fixed code here",
-    "components/Hero.tsx": "fixed code here"
-  }
-}
+Return a JSON object: {"files": {"path": "fixed code"}}
 
-Rules:
-- Fix TypeScript errors
-- Fix React hooks usage (rules of hooks)
-- Fix Next.js App Router patterns
-- Ensure Tailwind classes are valid
-- Add 'use client' to any component that uses React hooks but is missing it
-- Return ONLY valid JSON, no markdown fences
-- Preserve the original file structure`;
+Fix rules (priority order):
+1. TypeScript strict errors — resolve type mismatches, add missing types, remove 'any'
+2. 'use client' — add ONLY to files using hooks/event handlers/browser APIs
+3. Server Component violations — no hooks in Server Components, no async Client Components
+4. Server Actions — must be in separate files or inline with 'use server', proper revalidation
+5. Import resolution — ensure all imports reference existing files in the project
+6. React hooks rules — no conditional hooks, proper dependency arrays
+7. Next.js App Router patterns — proper page/layout/error/loading exports
+8. Supabase — use createServerClient in Server Components, createBrowserClient in Client
+9. Tailwind v4 — valid utility classes only
+10. Return ONLY valid JSON, no markdown fences. Preserve file structure.`;
 
   const filesList = Object.entries(files)
     .map(([path, content]) => `File: ${path}\n\`\`\`tsx\n${content}\n\`\`\``)
@@ -428,17 +433,19 @@ Rules:
 export async function testFiles(files: FileMap): Promise<{ success: boolean; errors?: string[] }> {
   const errors: string[] = [];
 
+  const allPaths = new Set(Object.keys(files));
+
   for (const [path, content] of Object.entries(files)) {
     if (path.includes("..")) {
       errors.push(`Invalid path: ${path} - path traversal detected`);
     }
 
-    if (!/\.(tsx|ts|css|json|md|sql)$/.test(path)) {
+    if (!/\.(tsx|ts|css|json|md|sql|js|jsx)$/.test(path)) {
       errors.push(`Warning: ${path} has unusual extension`);
     }
 
-    if (path.endsWith(".tsx")) {
-      if (/useState|useEffect|useCallback|useMemo|useContext|useReducer|useLayoutEffect/.test(content)) {
+    if (path.endsWith(".tsx") || path.endsWith(".ts")) {
+      if (/useState|useEffect|useCallback|useMemo|useContext|useReducer|useLayoutEffect|useRef|useId/.test(content)) {
         if (!content.includes('"use client"') && !content.includes("'use client'")) {
           errors.push(`${path}: Uses React hooks but missing 'use client' directive`);
         }
@@ -448,21 +455,44 @@ export async function testFiles(files: FileMap): Promise<{ success: boolean; err
         errors.push(`${path}: Page file missing default export`);
       }
 
+      if (path.includes("/layout.") && !content.includes("export default")) {
+        errors.push(`${path}: Layout file missing default export`);
+      }
+
+      if (path.includes("/error.")) {
+        if (!content.includes('"use client"') && !content.includes("'use client'")) {
+          errors.push(`${path}: Error boundary must be a Client Component ('use client')`);
+        }
+      }
+
       if (content.includes("any") && !content.includes("eslint-disable")) {
         errors.push(`${path}: Use of 'any' type detected without explicit ESLint override`);
       }
 
+      const localImports = content.match(/from\s+["']\.\.?\/.+?["']/g) || [];
+      for (const imp of localImports) {
+        const importPath = imp.replace(/from\s+["']/, "").replace(/["']$/, "");
+        const resolvedBase = path.includes("/") ? path.substring(0, path.lastIndexOf("/")) : "";
+        const resolved = resolvedBase ? `${resolvedBase}/${importPath}` : importPath;
+        const normalized = resolved.replace(/\.\.\//g, "").replace(/\.\//g, "");
+        const candidates = [normalized, `${normalized}.ts`, `${normalized}.tsx`, `${normalized}/index.ts`, `${normalized}/index.tsx`];
+        if (!candidates.some(c => allPaths.has(c))) {
+          logger.warn(`${path}: import '${importPath}' may not resolve within generated files`);
+        }
+      }
+
       if (content.includes("console.log") || content.includes("console.error")) {
-        // Warning instead of error for production readiness
         logger.warn(`${path}: contains console logs which should be replaced with a logger in production`);
       }
     }
 
-    const openTags = (content.match(/<[a-zA-Z][a-zA-Z0-9]*[^/>]*>/g) || []).length;
-    const closeTags = (content.match(/<\/[a-zA-Z][a-zA-Z0-9]*>/g) || []).length;
-    const selfClosing = (content.match(/<[a-zA-Z][a-zA-Z0-9]*[^>]*\/>/g) || []).length;
-    if (openTags > closeTags + selfClosing) {
-      errors.push(`${path}: Possible unclosed JSX tags`);
+    if (path.endsWith(".tsx")) {
+      const openTags = (content.match(/<[a-zA-Z][a-zA-Z0-9]*[^/>]*>/g) || []).length;
+      const closeTags = (content.match(/<\/[a-zA-Z][a-zA-Z0-9]*>/g) || []).length;
+      const selfClosing = (content.match(/<[a-zA-Z][a-zA-Z0-9]*[^>]*\/>/g) || []).length;
+      if (openTags > closeTags + selfClosing) {
+        errors.push(`${path}: Possible unclosed JSX tags`);
+      }
     }
   }
 

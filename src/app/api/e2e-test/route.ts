@@ -1,11 +1,11 @@
-// DA-059 FIX: TODO: Add test coverage for all phases, not just a subset
+// DA-059 FIX: Extended coverage to phases 1-25 in this internal runner.
 /**
- * E2E Test Runner — exercises all 22 phases internally.
+ * E2E Test Runner — exercises all 25 phases internally.
  * Protected by ADMIN_API_KEYS (env var) or CRON_SECRET or E2E_TEST_SECRET.
  *
  * POST /api/e2e-test
  * Headers: x-api-key: <admin key> OR Authorization: Bearer <admin key>
- * Body: { "phases": [1..22] } (optional, defaults to all)
+ * Body: { "phases": [1..25] } (optional, defaults to all)
  */
 
 export const dynamic = "force-dynamic";
@@ -281,11 +281,49 @@ async function phase22(): Promise<PhaseResult> {
   }
 }
 
+
+async function phase23(): Promise<PhaseResult> {
+  const name = "Sovereign Pulse";
+  try {
+    const pulse = await import("@/lib/pulse");
+    return { phase: 23, name, status: Object.keys(pulse).length > 0 ? "pass" : "degraded", elapsed: 0, detail: `Pulse loaded (exports: ${Object.keys(pulse).join(", ")})` };
+  } catch (e) {
+    return { phase: 23, name, status: "fail", elapsed: 0, detail: "Pulse import failed", error: String(e) };
+  }
+}
+
+async function phase24(): Promise<PhaseResult> {
+  const name = "Self-Evolution v2";
+  try {
+    const { evolutionEngine } = await import("@/lib/self-evolution");
+    const { result, elapsed } = await timed(() => evolutionEngine.triggerCycle());
+    return { phase: 24, name, status: result.success ? "pass" : "degraded", elapsed, detail: `Evolution cycle completed (${result.patchesApplied} patches applied)` };
+  } catch (e) {
+    return { phase: 24, name, status: "fail", elapsed: 0, detail: "Self-evolution import failed", error: String(e) };
+  }
+}
+
+async function phase25(): Promise<PhaseResult> {
+  const name = "Neural Link";
+  try {
+    const [memory, scaling, edge] = await Promise.all([
+      import("@/lib/memory-store"),
+      import("@/lib/scaling"),
+      import("@/lib/edge-orchestrator"),
+    ]);
+    const metrics = await scaling.scalingEngine.syncWithPulse();
+    const loaded = Object.keys(memory).length > 0 && Object.keys(edge).length > 0;
+    return { phase: 25, name, status: loaded ? "pass" : "degraded", elapsed: 0, detail: `Neural infra loaded. instances=${metrics.instanceCount}, req=${metrics.activeRequests}` };
+  } catch (e) {
+    return { phase: 25, name, status: "fail", elapsed: 0, detail: "Neural link import failed", error: String(e) };
+  }
+}
+
 const PHASE_RUNNERS = [
   phase1, phase2, phase3, phase4, phase5, phase6,
   phase7, phase8, phase9, phase10, phase11, phase12,
   phase13, phase14, phase15, phase16, phase17, phase18,
-  phase19, phase20, phase21, phase22,
+  phase19, phase20, phase21, phase22, phase23, phase24, phase25,
 ];
 
 export async function POST(req: NextRequest) {
