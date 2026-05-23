@@ -8,6 +8,6 @@ export const maxDuration = 30;
 export async function POST(request: NextRequest) {
   return handleManifestationRequest(request, {
     maxDuration,
-    includeStatusUrl: false,
+    includeStatusUrl: true,
   });
 }

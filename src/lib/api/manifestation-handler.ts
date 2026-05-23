@@ -67,10 +67,11 @@ export async function handleManifestationRequest(
   const isProd = process.env.NODE_ENV === "production";
 
   if (!workerSecret && isProd) {
-    const errorMsg = "[manifest/handler] CRITICAL: WORKER_SHARED_SECRET is missing in production. Manifestation will fail to progress.";
-    console.error(errorMsg);
-    // We still call triggerStage, but it will log its own error. 
-    // The debug endpoint will now also show this.
+    console.error("[manifest/handler] CRITICAL: WORKER_SHARED_SECRET is missing in production.");
+    return NextResponse.json(
+      { error: "Pipeline misconfigured: WORKER_SHARED_SECRET not set. Contact support." },
+      { status: 503 }
+    );
   }
 
   console.info(`[manifest/handler] Initiating manifestation pipeline for job ${row.id} at ${baseUrl}`);

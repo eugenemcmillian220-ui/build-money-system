@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import { AiTerminal } from "./AiTerminal";
+import AiTerminal from "./AiTerminal";
 import { LiveCodePanel } from "./LiveCodePanel";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { ManifestOptions } from "@/lib/types";

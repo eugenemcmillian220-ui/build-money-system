@@ -31,17 +31,29 @@ class KeyManager {
   private entries: Map<ProviderName, KeyEntry | null> = new Map();
 
   constructor() {
-    this.entries.set("opencode-go", this.readKey("OPENCODE_GO_API_KEY"));
-    this.entries.set("opencode-zen", this.readKey("OPENCODE_ZEN_API_KEY"));
-    this.entries.set("github-models", this.readKey("GITHUB_MODELS_TOKEN"));
-    this.entries.set("huggingface", this.readKey("HUGGINGFACE_API_KEY"));
+    // Multi-alias resolution: first non-empty env var wins.
+    // Supports comma-separated key pools — first key in the list is used.
+    this.entries.set("opencode-go",    this.readFirstKey(["OPENCODE_GO_API_KEY", "OPENCODE_GO_API_KEYS"]));
+    this.entries.set("opencode-zen",   this.readFirstKey(["OPENCODE_ZEN_API_KEY", "OPENCODE_ZEN_API_KEYS"]));
+    this.entries.set("github-models",  this.readFirstKey(["GITHUB_MODELS_TOKEN", "GITHUB_MODELS_TOKENS", "GITHUB_TOKEN", "GITHUB_ACCESS_TOKEN"]));
+    this.entries.set("huggingface",    this.readFirstKey(["HUGGINGFACE_API_KEY", "HF_TOKEN", "HUGGINGFACE_TOKEN", "HF_API_KEY", "HF_API_KEYS"]));
   }
 
   private readKey(envVar: string): KeyEntry | null {
     const raw = process.env[envVar];
     if (!raw || !raw.trim()) return null;
-    const key = raw.trim();
+    // Support comma-separated key pools — use the first key
+    const key = raw.trim().split(",")[0].trim();
+    if (!key) return null;
     return { key, errorCount: 0, cooldownUntil: 0 };
+  }
+
+  private readFirstKey(envVars: string[]): KeyEntry | null {
+    for (const envVar of envVars) {
+      const entry = this.readKey(envVar);
+      if (entry) return entry;
+    }
+    return null;
   }
 
   isConfigured(provider: ProviderName): boolean {
@@ -91,13 +103,13 @@ class KeyManager {
   }
 
   resetKey(provider: ProviderName): void {
-    const envMap: Record<ProviderName, string> = {
-      "opencode-go": "OPENCODE_GO_API_KEY",
-      "opencode-zen": "OPENCODE_ZEN_API_KEY",
-      "github-models": "GITHUB_MODELS_TOKEN",
-      "huggingface": "HUGGINGFACE_API_KEY",
+    const envAliases: Record<ProviderName, string[]> = {
+      "opencode-go":   ["OPENCODE_GO_API_KEY", "OPENCODE_GO_API_KEYS"],
+      "opencode-zen":  ["OPENCODE_ZEN_API_KEY", "OPENCODE_ZEN_API_KEYS"],
+      "github-models": ["GITHUB_MODELS_TOKEN", "GITHUB_MODELS_TOKENS", "GITHUB_TOKEN", "GITHUB_ACCESS_TOKEN"],
+      "huggingface":   ["HUGGINGFACE_API_KEY", "HF_TOKEN", "HUGGINGFACE_TOKEN", "HF_API_KEY", "HF_API_KEYS"],
     };
-    this.entries.set(provider, this.readKey(envMap[provider]));
+    this.entries.set(provider, this.readFirstKey(envAliases[provider]));
   }
 
   status(): Record<ProviderName, { configured: boolean; onCooldown: boolean; cooldownRemainingMs: number }> {
