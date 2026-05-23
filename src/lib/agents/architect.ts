@@ -119,7 +119,7 @@ export async function runArchitectAgent(
         { role: "user", content: `Intent: ${prompt}\nStrategy: ${strategy}` }
       ],
       architectResultSchema,
-      { temperature: 0.2, maxTokens, timeout: 25000 }
+      { temperature: 0.2, maxTokens, timeout: 35000 }
     );
   } catch (err) {
     console.error("Architect parse failed, falling back to defaults.", err);

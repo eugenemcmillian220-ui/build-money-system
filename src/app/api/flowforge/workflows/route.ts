@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { normalizeFlowForgeMode, resolveFlowForgeTriggerType } from "@/lib/flowforge/mode";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -7,6 +8,8 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { name, nodes, trigger_type, mode, description } = body;
+    const normalizedMode = normalizeFlowForgeMode(mode);
+    const normalizedTriggerType = resolveFlowForgeTriggerType(normalizedMode, trigger_type);
 
     if (!name) {
       return NextResponse.json({ error: "Workflow name is required" }, { status: 400 });
@@ -17,8 +20,8 @@ export async function POST(request: NextRequest) {
       name,
       description: description || `${name} workflow`,
       nodes: nodes || [],
-      trigger_type: trigger_type || "manual",
-      mode: mode || "universal",
+      trigger_type: normalizedTriggerType,
+      mode: normalizedMode,
       status: "draft",
       version: 1,
       is_monetized: false,

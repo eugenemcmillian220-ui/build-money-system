@@ -19,17 +19,17 @@ NEXT_PUBLIC_SITE_URL=https://your-app.vercel.app
 ### LLM/LLM Configuration (Required for Phases 1-6)
 ```bash
 # OpenRouter (Primary LLM Provider)
-OPENROUTER_API_KEY=sk-or-v1-your-key-here
+OPENCODE_GO_API_KEY=sk-or-v1-your-key-here
 OPENROUTER_MODEL=meta-llama/llama-3.3-70b-instruct:free
 
 # Optional: Additional LLM Providers for Free Rotation
-GEMINI_API_KEY=your-gemini-key-here
-GROQ_API_KEY=your-groq-key-here
+GITHUB_MODELS_TOKEN=your-gemini-key-here
+OPENCODE_ZEN_API_KEY=your-groq-key-here
 DEEPSEEK_API_KEY=your-deepseek-key-here
 CEREBRAS_API_KEY=your-cerebras-key-here
 
 # OpenAI (for embeddings, optional)
-OPENAI_API_KEY=sk-proj-your-key-here
+HUGGINGFACE_API_KEY=sk-proj-your-key-here
 ```
 
 ## Phase-Specific Requirements
@@ -130,7 +130,7 @@ vercel --prod
 For core functionality (Phases 1-3), only these are required:
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `OPENROUTER_API_KEY`
+- `OPENCODE_GO_API_KEY`
 
 All other environment variables are optional and enable specific features.
 

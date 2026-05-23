@@ -8,14 +8,14 @@ Edit `.env.local` and add your API keys:
 
 ```bash
 # Recommended: Use multiple keys for rotation
-GROQ_API_KEYS=gsk_key1,gsk_key2,gsk_key3
-GEMINI_API_KEYS=AIza-key1,AIza-key2,AIza-key3
-OPENAI_API_KEYS=sk-proj-key1,sk-proj-key2,sk-proj-key3
-OPENROUTER_API_KEYS=sk-or-v1-key1,sk-or-v1-key2,sk-or-v1-key3
+OPENCODE_ZEN_API_KEYS=gsk_key1,gsk_key2,gsk_key3
+GITHUB_MODELS_TOKENS=AIza-key1,AIza-key2,AIza-key3
+HUGGINGFACE_API_KEYS=sk-proj-key1,sk-proj-key2,sk-proj-key3
+OPENCODE_GO_API_KEYS=sk-or-v1-key1,sk-or-v1-key2,sk-or-v1-key3
 
 # Optional: Add more providers
-DEEPSEEK_API_KEYS=deepseek-key1,deepseek-key2
-CEREBRAS_API_KEYS=cerebras-key1,cerebras-key2
+# # DEEPSEEK_API_KEY (legacy)S removed from current stack
+# # CEREBRAS_API_KEY (legacy)S removed from current stack
 CLOUDFLARE_API_KEYS=cf-key1,cf-key2
 CLOUDFLARE_ACCOUNT_ID=your-account-id
 ```
@@ -24,21 +24,21 @@ CLOUDFLARE_ACCOUNT_ID=your-account-id
 
 **Single Key (No Rotation)**
 ```bash
-GROQ_API_KEY=gsk_abc123
+OPENCODE_ZEN_API_KEY=gsk_abc123
 ```
 
 **Multiple Keys (With Rotation)**
 ```bash
 # Comma-separated
-GROQ_API_KEYS=gsk_key1,gsk_key2,gsk_key3
+OPENCODE_ZEN_API_KEYS=gsk_key1,gsk_key2,gsk_key3
 
 # Newline-separated (better for many keys)
-OPENAI_API_KEYS=sk-proj-key1
+HUGGINGFACE_API_KEYS=sk-proj-key1
 sk-proj-key2
 sk-proj-key3
 
 # Mixed
-GEMINI_API_KEYS=AIza-key1,AIza-key2
+GITHUB_MODELS_TOKENS=AIza-key1,AIza-key2
 AIza-key3,AIza-key4
 ```
 
@@ -78,20 +78,20 @@ Expected output:
 
 ```typescript
 // After 3 errors, key enters 60s cooldown
-keyManager.reportError("groq", "key1");
-keyManager.reportError("groq", "key1");
-keyManager.reportError("groq", "key1");
+keyManager.reportError("opencode_zen", "key1");
+keyManager.reportError("opencode_zen", "key1");
+keyManager.reportError("opencode_zen", "key1");
 // → key1 is skipped for 60 seconds
 
 // Success resets error count
-keyManager.reportSuccess("groq", "key1");
+keyManager.reportSuccess("opencode_zen", "key1");
 // → key1 is fully usable again
 ```
 
 ### Provider Priority
 
 ```
-Groq → Gemini → OpenRouter → OpenAI → Cerebras → DeepSeek → Cloudflare
+OpenCode Go → OpenCode Zen → GitHub Models → Hugging Face
 ```
 
 Providers without keys are automatically skipped.
@@ -104,10 +104,10 @@ Providers without keys are automatically skipped.
 import { keyManager } from "@/lib/key-manager";
 
 // Get next available key
-const key = keyManager.getKey("groq");
+const key = keyManager.getKey("opencode_zen");
 
 // Check if configured
-const isConfigured = keyManager.isConfigured("groq");
+const isConfigured = keyManager.isConfigured("opencode_zen");
 ```
 
 ### 2. With LLM Router
@@ -130,12 +130,12 @@ const { url, headers, body, apiKey } = llmRouter.getFetchParams(req);
 try {
   const response = await fetch(url, { headers, body });
   if (!response.ok) {
-    keyManager.reportError("groq", apiKey);
+    keyManager.reportError("opencode_zen", apiKey);
     throw new Error("API error");
   }
-  keyManager.reportSuccess("groq", apiKey);
+  keyManager.reportSuccess("opencode_zen", apiKey);
 } catch (error) {
-  keyManager.reportError("groq", apiKey);
+  keyManager.reportError("opencode_zen", apiKey);
   throw error;
 }
 ```
@@ -146,12 +146,12 @@ try {
 
 | Provider | Single Key | Multi-Key |
 |----------|-----------|-----------|
-| Groq | `GROQ_API_KEY` | `GROQ_API_KEYS` |
-| Gemini | `GEMINI_API_KEY` | `GEMINI_API_KEYS` |
-| OpenAI | `OPENAI_API_KEY` | `OPENAI_API_KEYS` |
-| OpenRouter | `OPENROUTER_API_KEY` | `OPENROUTER_API_KEYS` |
-| DeepSeek | `DEEPSEEK_API_KEY` | `DEEPSEEK_API_KEYS` |
-| Cerebras | `CEREBRAS_API_KEY` | `CEREBRAS_API_KEYS` |
+| OpenCode Zen | `OPENCODE_ZEN_API_KEY` | `OPENCODE_ZEN_API_KEYS` |
+| GitHub Models | `GITHUB_MODELS_TOKEN` | `GITHUB_MODELS_TOKENS` |
+| Hugging Face | `HUGGINGFACE_API_KEY` | `HUGGINGFACE_API_KEYS` |
+| OpenCode Go | `OPENCODE_GO_API_KEY` | `OPENCODE_GO_API_KEYS` |
+| DeepSeek | `# DEEPSEEK_API_KEY (legacy)` | `# DEEPSEEK_API_KEY (legacy)S` |
+| Cerebras | `# CEREBRAS_API_KEY (legacy)` | `# CEREBRAS_API_KEY (legacy)S` |
 | Cloudflare | `CLOUDFLARE_API_KEY` | `CLOUDFLARE_API_KEYS` |
 
 ### Priority Order
@@ -166,10 +166,10 @@ try {
 
 ```bash
 # Use 3-5 keys per provider
-GROQ_API_KEYS=gsk_key1,gsk_key2,gsk_key3,gsk_key4,gsk_key5
+OPENCODE_ZEN_API_KEYS=gsk_key1,gsk_key2,gsk_key3,gsk_key4,gsk_key5
 
 # Use different accounts/projects
-OPENAI_API_KEYS=sk-proj-account1-key,sk-proj-account2-key
+HUGGINGFACE_API_KEYS=sk-proj-account1-key,sk-proj-account2-key
 
 # Monitor and adjust
 # Check error rates and add keys as needed
@@ -179,10 +179,10 @@ OPENAI_API_KEYS=sk-proj-account1-key,sk-proj-account2-key
 
 ```bash
 # Don't use only 1 key (no rotation, no failover)
-GROQ_API_KEY=gsk_single_key
+OPENCODE_ZEN_API_KEY=gsk_single_key
 
 # Don't mix provider keys
-GROQ_API_KEYS=gsk_key,sk-or-v1-key  # Wrong!
+OPENCODE_ZEN_API_KEYS=gsk_key,sk-or-v1-key  # Wrong!
 
 # Don't commit keys to git
 # .env files should be in .gitignore
@@ -197,10 +197,10 @@ GROQ_API_KEYS=gsk_key,sk-or-v1-key  # Wrong!
 **Solution**: Use plural environment variable
 ```bash
 # ❌ Wrong
-GROQ_API_KEY=gsk_key
+OPENCODE_ZEN_API_KEY=gsk_key
 
 # ✅ Correct
-GROQ_API_KEYS=gsk_key1,gsk_key2,gsk_key3
+OPENCODE_ZEN_API_KEYS=gsk_key1,gsk_key2,gsk_key3
 ```
 
 ### All Keys Returning Null?
@@ -209,8 +209,8 @@ GROQ_API_KEYS=gsk_key1,gsk_key2,gsk_key3
 
 **Solution**: Check environment variables
 ```bash
-echo $GROQ_API_KEYS
-echo $GROQ_API_KEY
+echo $OPENCODE_ZEN_API_KEYS
+echo $OPENCODE_ZEN_API_KEY
 # Ensure at least one is set
 ```
 
@@ -229,8 +229,8 @@ echo $GROQ_API_KEY
 
 **Solution**: Verify configuration
 ```typescript
-keyManager.isConfigured("groq");  // Should return true
-const key = keyManager.getKey("groq");  // Should return a key
+keyManager.isConfigured("opencode_zen");  // Should return true
+const key = keyManager.getKey("opencode_zen");  // Should return a key
 ```
 
 ## Performance Tips
@@ -251,7 +251,7 @@ const key = keyManager.getKey("groq");  // Should return a key
 
 ```typescript
 // Check all providers
-const providers = ["groq", "gemini", "openai", "openrouter"];
+const providers = ["opencode_zen", "github_models", "huggingface", "opencode_go"];
 providers.forEach(p => {
   const configured = keyManager.isConfigured(p as any);
   const key = keyManager.getKey(p as any);
@@ -287,10 +287,10 @@ llmRouter.getFetchParams(req)         // Get fetch params
 
 ```bash
 # .env.local
-GROQ_API_KEYS=gsk_abc123,gsk_def456,gsk_ghi789
-GEMINI_API_KEYS=AIza-key1,AIza-key2,AIza-key3
-OPENAI_API_KEYS=sk-proj-key1,sk-proj-key2,sk-proj-key3
-OPENROUTER_API_KEYS=sk-or-v1-key1,sk-or-v1-key2
+OPENCODE_ZEN_API_KEYS=gsk_abc123,gsk_def456,gsk_ghi789
+GITHUB_MODELS_TOKENS=AIza-key1,AIza-key2,AIza-key3
+HUGGINGFACE_API_KEYS=sk-proj-key1,sk-proj-key2,sk-proj-key3
+OPENCODE_GO_API_KEYS=sk-or-v1-key1,sk-or-v1-key2
 ```
 
 ## Need More Help?

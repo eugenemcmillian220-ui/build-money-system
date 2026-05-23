@@ -167,7 +167,7 @@ export default function DashboardPage() {
                 <span className="px-3 py-1 bg-brand-500 text-black text-[10px] font-black uppercase tracking-widest rounded-full transform -rotate-2">25 Phases Live</span>
                 {org?.billing_tier === ADMIN_FREE_TIER && (
                   <span className="px-3 py-1 bg-gradient-to-r from-brand-500 to-accent text-black text-[10px] font-black uppercase tracking-widest rounded-full">
-                    Admin · Free
+                    Admin · All Tiers
                   </span>
                 )}
               </div>
@@ -182,7 +182,7 @@ export default function DashboardPage() {
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Sovereign Tier</p>
                   <p className="text-sm font-black uppercase tracking-tighter text-brand-400">
-                    {org.billing_tier === ADMIN_FREE_TIER ? "Admin (Free, Unlimited)" : (org.billing_tier || "Elite")}
+                    {org.billing_tier === ADMIN_FREE_TIER ? "Admin (All Tiers, Unlimited)" : (org.billing_tier || "Elite")}
                   </p>
                 </div>
               </div>

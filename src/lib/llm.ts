@@ -1,3 +1,4 @@
+// Legacy providers (Groq/Gemini/OpenAI/OpenRouter) have been fully removed.
 import { FileMap, AppSpec, AgentConfig, defaultAgentConfig, ChatMessage } from "./types";
 import { MemoryContext } from "./memory-store";
 import { aiComplete, aiEmbed, aiStream, STAGE_PREFERRED_MODELS } from "./ai";
@@ -213,7 +214,7 @@ Rules:
         model: STAGE_PREFERRED_MODELS["plan-outline"] || "deepseek-v4-flash",
         temperature: 0.3,
         maxTokens: 2048,
-        timeout: 10000,
+        timeout: 55_000,
       }, { cache: false });
 
       const parsed = robustParseJson<AppSpecOutline>(content);
@@ -279,8 +280,7 @@ Rules: shadcn/ui, Tailwind v4, RLS, 5-12 files. Return ONLY JSON:
         model: preferredModel,
         temperature: 0.2,
         maxTokens: 4096,
-        // Aggressive timeout for serverless: 9s per attempt
-        timeout: 9000,
+        timeout: 55_000,
       }, { cache: false });
 
       const parsed = robustParseJson<AppSpecDetails>(content);
@@ -360,13 +360,16 @@ Rules:
         attempt,
         maxRetries: MAX_BUILD_RETRIES,
         specName: spec.name,
-        featureCount: spec.features.length,
+        featureCount: spec.features?.length ?? 0,
       });
-      const content = await callLLM(messages, {
+      let content = "";
+      for await (const chunk of streamLLM(messages, {
         temperature: attempt === 1 ? 0.7 : 0.5,
         maxTokens: 8192,
-        timeout: options.timeout ?? 25_000,
-      });
+        timeout: options.timeout ?? 55_000,
+      })) {
+        content += chunk;
+      }
       const parsed = parseMultiFileJson(content);
       logger.info("buildFromSpec succeeded", {
         attempt,
@@ -422,7 +425,7 @@ Fix rules (priority order):
     { role: "user", content: `Current Files:\n${filesList}${errorContext}\n\nReturn fixed files:` },
   ];
 
-  const content = await callLLM(messages, { temperature: 0.2, maxTokens: 8192, timeout: 25000 });
+  const content = await callLLM(messages, { temperature: 0.2, maxTokens: 8192, timeout: 55_000 });
   const parsed = parseMultiFileJson(content);
   return parsed.files;
 }
@@ -528,7 +531,7 @@ Rules:
     },
   ];
 
-  const content = await callLLM(messages, { temperature: 0.1, maxTokens: 8192, timeout: 25000 });
+  const content = await callLLM(messages, { temperature: 0.1, maxTokens: 8192, timeout: 55_000 });
   const parsed = parseMultiFileJson(content);
 
   return { ...allFiles, ...parsed.files };

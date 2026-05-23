@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 import { requireAuth, isAuthError } from "@/lib/api-auth";
-import { NextRequest, NextResponse } from "next/server";
+import { ok, fail } from "@/lib/api/response";
+import { NextRequest } from "next/server";
 import { fullStackGenerator } from "@/lib/fullstack-generator";
 import { z } from "zod";
 
@@ -31,10 +32,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     const parsed = fullStackConfigSchema.safeParse(body);
 
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: "Validation failed", issues: parsed.error.flatten().fieldErrors },
-        { status: 400 }
-      );
+      return fail("VALIDATION_ERROR", "Validation failed", 400, parsed.error.flatten().fieldErrors);
     }
 
     const config = parsed.data;
@@ -42,19 +40,10 @@ export async function POST(request: NextRequest): Promise<Response> {
     // Generate full-stack application
     const result = await fullStackGenerator.generate(config);
 
-    return NextResponse.json({
-      success: true,
-      data: result,
-    });
+    return ok(result);
   } catch (error) {
     console.error("Full-stack generation error:", error);
-    return NextResponse.json(
-      {
-        error: "Full-stack generation failed",
-        details: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 }
-    );
+    return fail("FULLSTACK_GENERATION_FAILED", "Full-stack generation failed", 500, error instanceof Error ? error.message : "Unknown error");
   }
 }
 
@@ -63,9 +52,7 @@ export async function POST(request: NextRequest): Promise<Response> {
  * Get information about available full-stack features
  */
 export async function GET(): Promise<Response> {
-  return NextResponse.json({
-    success: true,
-    data: {
+  return ok({
       availableDatabases: ["postgresql", "mongodb", "sqlite"],
       availableFeatures: [
         "User authentication",
@@ -91,6 +78,5 @@ export async function GET(): Promise<Response> {
         ci_cd: true,
         docker: true,
       },
-    },
   });
 }

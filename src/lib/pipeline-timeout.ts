@@ -34,7 +34,7 @@ export class StageRetryExhaustedError extends Error {
 export interface StageTimeoutOptions {
   /** Stage name for logging. */
   stage: string;
-  /** Hard timeout in ms (default 240_000 — leaves 60s headroom in Vercel Hobby's 300s limit). */
+  /** Hard timeout in ms (default 55_000 — aligned with Vercel Hobby 60s serverless cap). */
   budgetMs?: number;
   /** Max retry attempts (default 0 — no retries). */
   maxRetries?: number;
@@ -44,8 +44,8 @@ export interface StageTimeoutOptions {
   onAttempt?: (attempt: number, error?: Error) => void;
 }
 
-/** 240s — aligned with Vercel Hobby's 300s hard cap (60s headroom for DB writes). */
-const DEFAULT_BUDGET_MS = 240_000;
+/** 55s — aligned with Vercel Hobby 60s serverless function cap (5s headroom). */
+const DEFAULT_BUDGET_MS = 55_000;
 const DEFAULT_RETRY_BASE_MS = 2_000;
 
 /**

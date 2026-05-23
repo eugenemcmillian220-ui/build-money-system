@@ -2,21 +2,22 @@
  * Centralized list of privileged admin emails.
  *
  * Accounts that match this list get:
- *   1. Free admin access — `admin_free` billing tier, elite-equivalent gating.
+ *   1. Free admin access — `admin_free` billing tier, full access to ALL
+ *      tiers and features (basic, elite, lifetime, on-prem).
  *   2. Email-OTP (6-digit code) based auth — password auth disabled, a fresh
  *      verification code is required for every sign-up AND every sign-in.
+ *   3. Unlimited credits and zero billing — all credit checks bypassed.
  *
  * Keep this list short; each entry grants full unrestricted platform access.
  */
 export const ADMIN_EMAILS: readonly string[] = [
   "eugenemcmillian9@gmail.com",
-  "eugenemcmillian301@gmail.com",
 ] as const;
 
 export const ADMIN_FREE_TIER = "admin_free" as const;
 
-/** Unlimited credit grant for admin accounts (9_999_999). */
-export const ADMIN_CREDIT_BALANCE = 9_999_999;
+/** Practical-unlimited grant for admin accounts (max 32-bit int). */
+export const ADMIN_CREDIT_BALANCE = 2_147_483_647;
 
 export function normalizeEmail(email: string | null | undefined): string {
   return (email ?? "").trim().toLowerCase();
@@ -38,10 +39,18 @@ export const ELITE_EQUIVALENT_TIERS: readonly string[] = [
   "elite_pro",
   "elite_enterprise",
   "pro",
+  "basic_mini",
+  "basic_starter",
+  "basic_pro",
+  "basic_premium",
+  "lifetime_starter",
+  "lifetime_pro",
+  "onprem_perpetual",
   ADMIN_FREE_TIER,
 ] as const;
 
 export function isEliteTier(tier: string | null | undefined): boolean {
   if (!tier) return false;
+  if (tier === ADMIN_FREE_TIER) return true;
   return ELITE_EQUIVALENT_TIERS.includes(tier);
 }

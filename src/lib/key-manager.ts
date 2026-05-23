@@ -1,10 +1,15 @@
+// Legacy providers (Groq/Gemini/OpenAI/OpenRouter) have been fully removed.
 /**
  * key-manager.ts
- * Multi-key rotation pool for approved providers only:
- *   - opencode-go   (Go subscription: $10/mo, endpoint: /zen/go/v1/...)
- *   - opencode-zen  (Zen pay-as-you-go, endpoint: /zen/v1/...)
- *   - github-models (Free tier via GitHub PAT)
- *   - huggingface   (Free tier via HF token)
+ * Single-key manager for approved providers:
+ *   - opencode-go   (Go subscription: paid primary)
+ *   - opencode-zen  (Zen pay-as-you-go: fallback 1)
+ *   - github-models (Free tier via GitHub PAT: fallback 2)
+ *   - huggingface   (Free tier via HF token: fallback 3)
+ *
+ * NOTE: Multi-key pool rotation has been removed.
+ * One key per provider. If a key hits errors it enters cooldown,
+ * then automatically recovers after COOLDOWN_MS.
  */
 
 export type ProviderName =
@@ -19,47 +24,28 @@ interface KeyEntry {
   cooldownUntil: number; // epoch ms
 }
 
-interface KeyPool {
-  keys: KeyEntry[];
-  cursor: number;
-}
-
 const COOLDOWN_MS = 60_000; // 60 seconds
 const ERROR_THRESHOLD = 3;
 
 class KeyManager {
-  private pools: Map<ProviderName, KeyPool> = new Map();
+  private entries: Map<ProviderName, KeyEntry | null> = new Map();
 
   constructor() {
-    this.initPool("opencode-go",    this.readKeys("OPENCODE_GO_API_KEYS", "OPENCODE_GO_API_KEY"));
-    this.initPool("opencode-zen",   this.readKeys("OPENCODE_ZEN_API_KEYS", "OPENCODE_ZEN_API_KEY"));
-    this.initPool("github-models",  this.readKeys("GITHUB_TOKEN", "GITHUB_MODELS_TOKEN"));
-    this.initPool("huggingface",    this.readKeys("HF_TOKEN", "HUGGINGFACE_TOKEN"));
+    this.entries.set("opencode-go", this.readKey("OPENCODE_GO_API_KEY"));
+    this.entries.set("opencode-zen", this.readKey("OPENCODE_ZEN_API_KEY"));
+    this.entries.set("github-models", this.readKey("GITHUB_MODELS_TOKEN"));
+    this.entries.set("huggingface", this.readKey("HUGGINGFACE_API_KEY"));
   }
 
-  private readKeys(...envVars: string[]): string[] {
-    for (const envVar of envVars) {
-      const raw = process.env[envVar];
-      if (raw && raw.trim()) {
-        return raw
-          .split(/[,\n]+/)
-          .map((k) => k.trim())
-          .filter(Boolean);
-      }
-    }
-    return [];
-  }
-
-  private initPool(provider: ProviderName, keys: string[]) {
-    this.pools.set(provider, {
-      keys: keys.map((key) => ({ key, errorCount: 0, cooldownUntil: 0 })),
-      cursor: 0,
-    });
+  private readKey(envVar: string): KeyEntry | null {
+    const raw = process.env[envVar];
+    if (!raw || !raw.trim()) return null;
+    const key = raw.trim();
+    return { key, errorCount: 0, cooldownUntil: 0 };
   }
 
   isConfigured(provider: ProviderName): boolean {
-    const pool = this.pools.get(provider);
-    return !!pool && pool.keys.length > 0;
+    return this.entries.get(provider) !== null && this.entries.get(provider) !== undefined;
   }
 
   isAnyConfigured(): boolean {
@@ -68,68 +54,53 @@ class KeyManager {
   }
 
   getKey(provider: ProviderName): string | null {
-    const pool = this.pools.get(provider);
-    if (!pool || pool.keys.length === 0) return null;
+    const entry = this.entries.get(provider);
+    if (!entry) return null;
 
     const now = Date.now();
-    const total = pool.keys.length;
 
-    for (let i = 0; i < total; i++) {
-      const idx = (pool.cursor + i) % total;
-      const entry = pool.keys[idx];
-      if (entry.cooldownUntil <= now) {
-        pool.cursor = (idx + 1) % total;
-        return entry.key;
-      }
+    // Key is on cooldown
+    if (entry.cooldownUntil > now) {
+      console.warn(
+        `[key-manager] ${provider} key is on cooldown for ${Math.round((entry.cooldownUntil - now) / 1000)}s more`
+      );
+      // Still return the key as last resort — caller decides whether to use it
+      return entry.key;
     }
 
-    // All keys on cooldown — return least-recently-cooled key as last resort
-    const fallback = pool.keys.reduce((a, b) =>
-      a.cooldownUntil < b.cooldownUntil ? a : b
-    );
-    return fallback.key;
+    return entry.key;
   }
 
-  reportError(provider: ProviderName, key: string): void {
-    const pool = this.pools.get(provider);
-    if (!pool) return;
-    const entry = pool.keys.find((e) => e.key === key);
+  reportError(provider: ProviderName, _key?: string): void {
+    const entry = this.entries.get(provider);
     if (!entry) return;
     entry.errorCount++;
     if (entry.errorCount >= ERROR_THRESHOLD) {
       entry.cooldownUntil = Date.now() + COOLDOWN_MS;
       console.warn(
-        `[key-manager] ${provider} key ...${key.slice(-6)} entered ${COOLDOWN_MS / 1000}s cooldown`
+        `[key-manager] ${provider} entered ${COOLDOWN_MS / 1000}s cooldown after ${entry.errorCount} errors`
       );
     }
   }
 
-  reportSuccess(provider: ProviderName, key: string): void {
-    const pool = this.pools.get(provider);
-    if (!pool) return;
-    const entry = pool.keys.find((e) => e.key === key);
+  reportSuccess(provider: ProviderName, _key?: string): void {
+    const entry = this.entries.get(provider);
     if (!entry) return;
     entry.errorCount = 0;
     entry.cooldownUntil = 0;
   }
 
-  resetPool(provider: ProviderName): void {
-    const keys = (() => {
-      switch (provider) {
-        case "opencode-go":
-          return this.readKeys("OPENCODE_GO_API_KEYS", "OPENCODE_GO_API_KEY");
-        case "opencode-zen":
-          return this.readKeys("OPENCODE_ZEN_API_KEYS", "OPENCODE_ZEN_API_KEY");
-        case "github-models":
-          return this.readKeys("GITHUB_TOKEN", "GITHUB_MODELS_TOKEN");
-        case "huggingface":
-          return this.readKeys("HF_TOKEN", "HUGGINGFACE_TOKEN");
-      }
-    })();
-    this.initPool(provider, keys);
+  resetKey(provider: ProviderName): void {
+    const envMap: Record<ProviderName, string> = {
+      "opencode-go": "OPENCODE_GO_API_KEY",
+      "opencode-zen": "OPENCODE_ZEN_API_KEY",
+      "github-models": "GITHUB_MODELS_TOKEN",
+      "huggingface": "HUGGINGFACE_API_KEY",
+    };
+    this.entries.set(provider, this.readKey(envMap[provider]));
   }
 
-  status(): Record<ProviderName, { configured: boolean; keyCount: number; available: number }> {
+  status(): Record<ProviderName, { configured: boolean; onCooldown: boolean; cooldownRemainingMs: number }> {
     const now = Date.now();
     const providers: ProviderName[] = [
       "opencode-go",
@@ -139,18 +110,18 @@ class KeyManager {
     ];
     return Object.fromEntries(
       providers.map((p) => {
-        const pool = this.pools.get(p);
-        const keys = pool?.keys ?? [];
+        const entry = this.entries.get(p);
+        const cooldownRemaining = entry ? Math.max(0, entry.cooldownUntil - now) : 0;
         return [
           p,
           {
-            configured: keys.length > 0,
-            keyCount: keys.length,
-            available: keys.filter((e) => e.cooldownUntil <= now).length,
+            configured: !!entry,
+            onCooldown: cooldownRemaining > 0,
+            cooldownRemainingMs: cooldownRemaining,
           },
         ];
       })
-    ) as Record<ProviderName, { configured: boolean; keyCount: number; available: number }>;
+    ) as Record<ProviderName, { configured: boolean; onCooldown: boolean; cooldownRemainingMs: number }>;
   }
 }
 

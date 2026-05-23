@@ -1,3 +1,4 @@
+// Legacy providers (Groq/Gemini/OpenAI/OpenRouter) have been fully removed.
 // src/lib/providers.ts
 // Verified against official OpenCode Go docs — May 2026
 

@@ -1,14 +1,16 @@
-
 "use client";
 
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Terminal as TerminalIcon, Send, Loader2, Sparkles, Command, Shield, Zap } from "lucide-react";
+import { ManifestOptions } from "@/lib/types";
+
 // DA-044 FIX: Command allowlist for terminal
-const KNOWN_COMMANDS = new Set([
+const KNOWN_COMMANDS = [
   'help', 'status', 'balance', 'generate', 'deploy', 'agents', 'ls', 'clear',
   'deals', 'negotiate', 'scout', 'manifest', 'test', 'restart', 'config',
   'history', 'export', 'version',
 ]);
 function sanitizeCommand(cmd: string): string {
-  // Strip shell metacharacters for safety
   return cmd.replace(/[;&|`$(){}\[\]<>!]/g, '');
 }
 function isKnownCommand(cmd: string): boolean {
@@ -23,74 +25,12 @@ const TERMINAL_HISTORY_KEY = "sovereign_terminal_history";
 const COMMAND_HISTORY_KEY = "sovereign_command_history";
 import { Terminal as TerminalIcon, Send, Loader2, ChevronDown, Zap, Shield, Cpu } from "lucide-react";
 import { ManifestOptions } from "@/lib/types";
-
-interface AiTerminalProps {
-  onManifest: (
-    prompt: string,
-    options: ManifestOptions,
-    onLog: (level: "info" | "error", text: string) => void,
-  ) => Promise<void>;
-  orgId?: string;
-}
-
-async function repairOrganization(): Promise<{ success: boolean; error?: string }> {
-  try {
-    const res = await fetch("/api/health/check");
-    if (!res.ok) return { success: false, error: "Health check failed" };
-    return { success: true };
-  } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
-  }
-}
-
-const DEFAULT_HISTORY: { type: "input" | "output" | "error" | "system"; text: string }[] = [
-  { type: "system", text: "╔══════════════════════════════════════════════════════════════╗" },
-  { type: "system", text: "║  Sovereign Forge OS v3.1.0 — All 25 Phases · 25 Agents      ║" },
-  { type: "system", text: "║  All tiers unlocked · Automated Builder for all modes        ║" },
-  { type: "system", text: "╚══════════════════════════════════════════════════════════════╝" },
-  { type: "output", text: "Type 'help' for commands, or describe what you want to build." },
-];
-
-function loadPersistedHistory(): { type: "input" | "output" | "error" | "system"; text: string }[] {
-  try {
-    const saved = sessionStorage.getItem(TERMINAL_HISTORY_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    }
-  } catch { /* ignore */ }
-  return DEFAULT_HISTORY;
-}
-
-function loadCommandHistory(): string[] {
-  try {
-    const saved = sessionStorage.getItem(COMMAND_HISTORY_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed)) return parsed;
-    }
-  } catch { /* ignore */ }
-  return [];
-}
-
-const MODE_LABELS: Record<string, { label: string; icon: typeof Zap; color: string }> = {
-  elite: { label: "Elite", icon: Shield, color: "text-purple-400" },
-  universal: { label: "Universal", icon: Zap, color: "text-brand-400" },
-  nano: { label: "Nano", icon: Cpu, color: "text-emerald-400" },
-};
-
-export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
-  const [input, setInput] = useState("");
-  const [history, setHistory] = useState<{ type: "input" | "output" | "error" | "system"; text: string }[]>(DEFAULT_HISTORY);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [activeStage, setActiveStage] = useState<string | null>(null);
-  const [stageProgress, setStageProgress] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const initializedRef = useRef(false);
 
-  const [mode, setMode] = useState<"elite" | "universal" | "nano">("universal");
-  const [protocol, setProtocol] = useState("Sovereign-Forge-v1");
+  const [mode] = useState<"elite" | "universal" | "nano">("universal");
+  const [protocol] = useState("Sovereign-Forge-v1");
   const [builderType, setBuilderType] = useState<"automated" | "granular">("automated");
   const [showModeSelector, setShowModeSelector] = useState(false);
 
@@ -104,7 +44,24 @@ export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
 
   const allCommands = useMemo(() => Array.from(KNOWN_COMMANDS).sort(), []);
 
-  // Restore persisted terminal history on mount
+  // Fetch credits
+  useEffect(() => {
+    async function fetchCredits() {
+      try {
+        const res = await fetch("/api/health");
+        const data = await res.json();
+        // In a real app, we'd have a specific credits endpoint
+        setCredits(data.credits || "∞");
+      } catch {
+        setCredits("ERR");
+      }
+    }
+    fetchCredits();
+    const interval = setInterval(fetchCredits, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Initialize and load persisted data
   useEffect(() => {
     if (initializedRef.current) return;
     initializedRef.current = true;
@@ -125,21 +82,30 @@ export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
       } catch (e) {
         console.error("Prefill error:", e);
       }
-    }
+    } catch {}
+
+    // Load command history for Up/Down arrows
+    try {
+      const savedCmds = localStorage.getItem(COMMAND_HISTORY_KEY);
+      if (savedCmds) {
+        const parsed = JSON.parse(savedCmds);
+        if (Array.isArray(parsed)) setCommandHistory(parsed);
+      }
+    } catch {}
   }, []);
 
-  // Persist history to sessionStorage whenever it changes
-  useEffect(() => {
-    try {
-      const toSave = history.slice(-200);
-      sessionStorage.setItem(TERMINAL_HISTORY_KEY, JSON.stringify(toSave));
-    } catch { /* storage full or unavailable */ }
-  }, [history]);
-
+  // Auto-scroll to bottom
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
+  }, [history, isProcessing]);
+
+  // Persist logs
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(TERMINAL_HISTORY_KEY, JSON.stringify(history.slice(-100)));
+    } catch {}
   }, [history]);
 
   // Autocomplete logic
@@ -232,7 +198,6 @@ export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
 
     const rawInput = input.trim();
     const cmd = sanitizeCommand(rawInput);
-    const knownCmd = isKnownCommand(cmd);
     setInput("");
     setSuggestions([]);
     addLine("input", cmd);
@@ -324,71 +289,7 @@ export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
       return;
     }
 
-    if (cmd.toLowerCase() === "deals") {
-      if (!orgId) {
-        addLine("error", "Error: Organization context required for VC scouting.");
-        return;
-      }
-      setIsProcessing(true);
-      addLine("output", "Principal VC Agent initiating organization audit...");
-      try {
-        const res = await fetch(`/api/vc/propose?orgId=${orgId}`);
-        const data = await res.json();
-        if (data.proposals?.length) {
-          addLine("output", `Found ${data.proposals.length} high-potential investment opportunities!`);
-          data.proposals.forEach((p: { projectId: string; score: number; suggestedCredits: number; equityShare: number }) => {
-            addLine("output", `  - Project: ${p.projectId.slice(0, 8)}... | Score: ${p.score}/100 | Ask: ${p.suggestedCredits} CR | RevShare: ${(p.equityShare * 100).toFixed(1)}%`);
-          });
-        } else {
-          addLine("output", "No new investment opportunities identified in this cycle.");
-        }
-      } catch (err) {
-        addLine("error", `VC Scouting failed: ${(err as Error).message}`);
-      } finally {
-        setIsProcessing(false);
-      }
-      return;
-    }
-
-    if (cmd.toLowerCase() === "negotiate") {
-      setIsProcessing(true);
-      addLine("output", "Chief Diplomat Agent auditing vendor relations...");
-      try {
-        const res = await fetch("/api/diplomat");
-        const data = await res.json();
-        addLine("output", `Audit Complete: ${data.vendorsChecked} vendors checked, ${data.incidentsFound} incidents found.`);
-        if (data.incidentsFound > 0) {
-          addLine("output", "Diplomat has initiated automated negotiations for all at-risk accounts.");
-        }
-      } catch (err) {
-        addLine("error", `Diplomat Audit failed: ${(err as Error).message}`);
-      } finally {
-        setIsProcessing(false);
-      }
-      return;
-    }
-
-    if (cmd.toLowerCase() === "scout") {
-      setIsProcessing(true);
-      addLine("output", "R&D Agent scouting emerging 2026 tech trends...");
-      try {
-        const res = await fetch("/api/rd/scout");
-        const data = await res.json();
-        if (data.trends?.length) {
-          addLine("output", "Top Emerging Technologies Identified:");
-          data.trends.forEach((t: { name: string; category: string; velocity: number; source: string }) => {
-            addLine("output", `  - ${t.name} (${t.category}) | Velocity: ${t.velocity} stars/wk | Source: ${t.source}`);
-          });
-        }
-      } catch (err) {
-        addLine("error", `R&D Scouting failed: ${(err as Error).message}`);
-      } finally {
-        setIsProcessing(false);
-      }
-      return;
-    }
-
-    if (cmd.toLowerCase() === "clear") {
+    if (baseCmd === "clear") {
       setHistory(DEFAULT_HISTORY);
       setActiveStage(null);
       setStageProgress(0);
@@ -396,8 +297,7 @@ export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
       return;
     }
 
-    // Route unrecognized input (plain English) to manifestation
-    if (cmd.toLowerCase().startsWith("manifest") || !knownCmd) {
+    if (baseCmd === "status") {
       setIsProcessing(true);
       setActiveStage("intent-classify");
       setStageProgress(5);
@@ -464,7 +364,7 @@ export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
         addLine("output", `  AI Swarm: ${data.checks?.agents ? "25/25 ACTIVE" : "DEGRADED"}`);
         addLine("system", "└──────────────────────────────────────────────────────────┘");
       } catch (err) {
-        addLine("error", `Health Audit failed: ${(err as Error).message}`);
+        addLine("error", `Audit Failed: ${(err as Error).message}`);
       } finally {
         setIsProcessing(false);
       }
@@ -493,26 +393,20 @@ export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
       return;
     }
 
-    if (cmd.toLowerCase() === "restart") {
-      setIsProcessing(true);
-      addLine("output", "Executing Sovereign Fresh Restart (Phase 21)...");
-      try {
-        const repair = await repairOrganization();
-        if (repair.success) {
-          addLine("output", "Successfully re-anchored workspace and repaired RLS links.");
-          addLine("output", "Platform integrity restored. Please refresh the page.");
-        } else {
-          addLine("error", `Restart failed: ${repair.error}`);
-        }
-      } catch (err) {
-        addLine("error", `Critical failure during restart: ${(err as Error).message}`);
-      } finally {
-        setIsProcessing(false);
-      }
-      return;
+    addLine("output", `Neural Link Active: Synthesizing intent via ${builderType.toUpperCase()} mode...`);
+    
+    try {
+      await onManifest(
+        manifestPrompt,
+        { mode, protocol, builderType },
+        (level, text) => addLine(level === "error" ? "error" : "output", text),
+      );
+      addLine("output", "Manifestation Protocol Completed Successfully.");
+    } catch (err) {
+      addLine("error", `Neural Fault: ${(err as Error).message}`);
+    } finally {
+      setIsProcessing(false);
     }
-
-    addLine("error", `Unknown command: ${cmd.split(" ")[0]}. Type 'help' for commands or describe what you want to build.`);
   };
 
   const currentModeInfo = MODE_LABELS[mode];
@@ -612,6 +506,7 @@ export function AiTerminal({ onManifest, orgId }: AiTerminalProps) {
             <span className="whitespace-pre-wrap">{line.text}</span>
           </div>
         ))}
+        
         {isProcessing && (
           <div className="flex items-center gap-2 text-amber-400 italic">
             <Loader2 size={14} className="animate-spin" />

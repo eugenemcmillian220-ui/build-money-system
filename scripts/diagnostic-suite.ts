@@ -69,9 +69,10 @@ async function runDiagnostics() {
 
   // 4. LLM PROVIDERS CHECK
   const providers = [
-    { name: "OpenRouter", env: "OPENROUTER_API_KEY", url: "https://openrouter.ai/api/v1/models" },
-    { name: "Groq", env: "GROQ_API_KEY", url: "https://api.groq.com/openai/v1/models" },
-    { name: "OpenAI", env: "OPENAI_API_KEY", url: "https://api.openai.com/v1/models" }
+    { name: "OpenCode Go", env: "OPENCODE_GO_API_KEY", url: "https://api.opencode.ai/v1/models" },
+    { name: "OpenCode Zen", env: "OPENCODE_ZEN_API_KEY", url: "https://api.opencode.ai/v1/models" },
+    { name: "GitHub Models", env: "GITHUB_MODELS_TOKEN", url: "https://models.inference.ai.azure.com/models" },
+    { name: "Hugging Face", env: "HUGGINGFACE_API_KEY", url: "https://router.huggingface.co/v1/models" }
   ];
 
   for (const p of providers) {
