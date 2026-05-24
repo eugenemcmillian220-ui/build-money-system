@@ -3,7 +3,7 @@ export const PROVIDERS = {
     baseUrl:
       process.env.OPENCODE_GO_BASE_URL ??
       process.env.OPENCODE_GO_API_URL ??
-      'https://opencode.ai/zen/go/v1',
+      'https://go.opencode.ai/v1',
   },
   opencodeZen: {
     baseUrl:
