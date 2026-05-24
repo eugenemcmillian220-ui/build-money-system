@@ -5,7 +5,7 @@ import { refundCredits } from '../lib/credits.js';
 
 interface PipelineInput { jobId: string; userId: string; spec: Record<string, unknown> }
 
-const PHASE_TIMEOUT_MS = 55_000;
+const PHASE_TIMEOUT_MS = 120_000;
 const PIPELINE_COST_CREDITS = 10;
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {

@@ -68,7 +68,7 @@ const STAGE_MODEL_MAP: Record<string, string> = {
 
 // ── Provider chain ────────────────────────────────────────────
 type Provider = 'opencodeGo' | 'opencodeZen' | 'github' | 'huggingface';
-const CHAIN: Provider[] = ['opencodeGo', 'opencodeZen', 'github', 'huggingface'];
+const CHAIN: Provider[] = ['github', 'opencodeGo', 'opencodeZen', 'huggingface'];
 
 function getKeyEnv(provider: Provider): string {
   switch (provider) {
