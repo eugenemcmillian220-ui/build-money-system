@@ -347,3 +347,14 @@ MIT License.
 ---
 
 **Sovereign Forge OS v3.0.0** · *From Idea To Revenue. Autonomously.*
+
+### GitHub Actions cron fallback for Hobby plan
+
+Vercel Hobby only allows one cron run per day. To keep `/api/cron/pipeline-cleanup` on a 30-minute schedule, use `.github/workflows/pipeline-cleanup-cron.yml`.
+
+Required repository secrets:
+
+- `CRON_PIPELINE_CLEANUP_URL` (example: `https://<your-domain>/api/cron/pipeline-cleanup`)
+- `CRON_SECRET` (must match the app's `CRON_SECRET` env var)
+
+The workflow runs every 30 minutes and can also be run manually from the Actions tab.
