@@ -19,10 +19,6 @@
     {
       "path": "/api/cron/federation-sync",
       "schedule": "0 12 * * *"
-    },
-    {
-      "path": "/api/cron/pipeline-cleanup",
-      "schedule": "*/30 * * * *"
     }
   ]
 }
