@@ -1,0 +1,36 @@
+# .gitleaks.toml
+title = "Sovereign Forge OS"
+
+[extend]
+  useDefault = true
+
+[[rules]]
+  description = "Supabase Service Role Key"
+  id = "supabase-service-role"
+  regex = '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+'''
+  tags = ["supabase", "jwt"]
+
+[[rules]]
+  description = "Stripe Secret Key"
+  id = "stripe-secret"
+  regex = '''sk_(live|test)_[A-Za-z0-9]{24,}'''
+  tags = ["stripe"]
+
+[[rules]]
+  description = "Stripe Webhook Secret"
+  id = "stripe-webhook"
+  regex = '''whsec_[A-Za-z0-9]{32,}'''
+  tags = ["stripe"]
+
+[allowlist]
+  description = "Allowlisted files and patterns"
+  paths = [
+    '''.env.example''',
+    '''tests/.*''',
+    '''supabase/seed.sql''',
+  ]
+  regexes = [
+    '''placeholder''',
+    '''your-[a-z-]+''',
+    '''00000000-0000-0000-0000-[0-9a-f]+''',
+  ]

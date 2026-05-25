@@ -163,7 +163,7 @@ export default function FlowForgeLanding() {
       {/* Phase Badges */}
       <section className="max-w-5xl mx-auto px-6 py-8">
         <div className="mb-6">
-          <PipelineProgress currentPhase={25} totalPhases={25} />
+          <PipelineProgress jobId="placeholder" initialStatus="complete" initialPhase={24} totalPhases={25} />
         </div>
         <p className="text-center text-xs text-gray-500 uppercase tracking-widest mb-4">
           Exercising All 25 Sovereign Phases

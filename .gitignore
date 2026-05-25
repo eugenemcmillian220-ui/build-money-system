@@ -44,3 +44,5 @@ next-env.d.ts
 _archive/
 .env.runtime
 .env.test
+railway/node_modules/
+.next/
