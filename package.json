@@ -16,7 +16,10 @@
     "test:phase5": "tsx tests/phase5.test.ts",
     "test:phase6": "tsx tests/phase6.test.ts",
     "test:phase9": "tsx tests/phase9-e2e.test.ts",
-    "test:smoke": "npm run test:phase5 && npm run test:phase6"
+    "test:smoke": "npm run test:phase5 && npm run test:phase6",
+    "test:unit": "vitest run src/__tests__/unit",
+    "test:e2e": "playwright test e2e/",
+    "test:all": "pnpm test:unit && pnpm test:e2e"
   },
   "dependencies": {
     "@octokit/rest": "^21.1.1",
@@ -56,6 +59,8 @@
     "pg": "^8.20.0",
     "tailwindcss": "^4.2.4",
     "tsx": "^4.19.3",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.2",
+    "vitest": "^2.0.0",
+    "@vitest/coverage-v8": "^2.0.0"
   }
 }
