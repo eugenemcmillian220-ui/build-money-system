@@ -1,5 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { ok, fail } from '@/lib/api/response'
+import { ERROR_CODES } from '@/lib/error-codes'
+import { pipelineStartSchema } from '@/lib/schemas'
 import { checkAndDeductCredits, refundCredits } from '@/lib/credits'
 import { createClient as createSvcClient } from '@supabase/supabase-js'
 
@@ -17,22 +20,23 @@ function svc() {
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!user) return fail(ERROR_CODES.UNAUTHORIZED, 'Unauthorized', 401)
 
   const body = await req.json().catch(() => null)
-  if (!body?.spec) return NextResponse.json({ error: 'Missing spec' }, { status: 400 })
-  const { spec } = body
+  const parsed = pipelineStartSchema.safeParse({ projectId: crypto.randomUUID(), spec: body?.spec })
+  if (!parsed.success) return fail(ERROR_CODES.VALIDATION_FAILED, 'Invalid pipeline start payload', 400, parsed.error.flatten())
+  const { spec } = parsed.data
 
   const railwayUrl = process.env.RAILWAY_BACKEND_URL
   const railwaySecret = process.env.RAILWAY_INTERNAL_SECRET || process.env.WORKER_SHARED_SECRET
   if (!railwayUrl || !railwaySecret) {
     console.error('[pipeline/start] RAILWAY_BACKEND_URL or secret not set')
-    return NextResponse.json({ error: 'Pipeline service not configured' }, { status: 503 })
+    return fail(ERROR_CODES.INTERNAL_ERROR, 'Pipeline service not configured', 503)
   }
 
   const creditResult = await checkAndDeductCredits(user.id, PIPELINE_COST_CREDITS)
   if (!creditResult.success) {
-    return NextResponse.json({ error: creditResult.error ?? 'Insufficient credits', remainingCredits: 0 }, { status: 402 })
+    return fail(ERROR_CODES.FORBIDDEN, creditResult.error ?? 'Insufficient credits', 402, { remainingCredits: 0 })
   }
 
   const { data: job, error: jobError } = await supabase.from('pipeline_jobs').insert({
@@ -43,7 +47,7 @@ export async function POST(req: NextRequest) {
   if (jobError || !job) {
     await refundCredits(user.id, PIPELINE_COST_CREDITS).catch((e) =>
       console.error('[pipeline/start] refund after job create failure:', e))
-    return NextResponse.json({ error: 'Failed to create job' }, { status: 500 })
+    return fail(ERROR_CODES.INTERNAL_ERROR, 'Failed to create job', 500)
   }
 
   try {
@@ -68,8 +72,8 @@ export async function POST(req: NextRequest) {
       .eq('id', job.id)
     await refundCredits(user.id, PIPELINE_COST_CREDITS).catch((e) =>
       console.error('[pipeline/start] refund after handoff failure:', e))
-    return NextResponse.json({ error: 'Pipeline service unavailable. Credits refunded.', jobId: job.id }, { status: 503 })
+    return fail(ERROR_CODES.INTERNAL_ERROR, 'Pipeline service unavailable. Credits refunded.', 503, { jobId: job.id })
   }
 
-  return NextResponse.json({ jobId: job.id, remainingCredits: creditResult.remainingCredits }, { status: 202 })
+  return ok({ jobId: job.id, remainingCredits: creditResult.remainingCredits }, 202)
 }
