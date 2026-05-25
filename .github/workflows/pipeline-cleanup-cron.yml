@@ -20,10 +20,9 @@ jobs:
           fi
 
           http_code=$(curl -sS -o response.json -w "%{http_code}" \
-            --request POST \
+            --request GET \
             --url "$CRON_URL" \
-            --header "Authorization: Bearer $CRON_SECRET" \
-            --header "Content-Type: application/json")
+            --header "Authorization: Bearer $CRON_SECRET")
 
           echo "HTTP status: $http_code"
           cat response.json
