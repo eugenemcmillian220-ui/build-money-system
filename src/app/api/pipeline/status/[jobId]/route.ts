@@ -1,5 +1,7 @@
-import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+
+import { createClient } from '@/lib/supabase/server'
+import { ok, fail } from '@/lib/api/response'
+import { ERROR_CODES } from '@/lib/error-codes';
 
 export const maxDuration = 10;
 export const dynamic = 'force-dynamic';
@@ -8,7 +10,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ jobId: str
   const { jobId } = await params;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!user) return fail(ERROR_CODES.UNAUTHORIZED, 'Unauthorized', 401);
 
   const { data: job } = await supabase.from('pipeline_jobs')
     .select('id, status, current_phase, current_phase_name, completed_phases, error')
@@ -16,6 +18,6 @@ export async function GET(_: Request, { params }: { params: Promise<{ jobId: str
     .eq('user_id', user.id)
     .single();
 
-  if (!job) return NextResponse.json({ error: 'Job not found' }, { status: 404 });
-  return NextResponse.json(job);
+  if (!job) return fail(ERROR_CODES.NOT_FOUND, 'Job not found', 404)
+  return ok(job)
 }

@@ -2,6 +2,7 @@ import { createServiceClient } from '../lib/supabase.js';
 import { PIPELINE_PHASES } from './phases.js';
 import { callLLM } from '../lib/llm-router.js';
 import { refundCredits } from '../lib/credits.js';
+import { prepareExpansionPhase } from './expansion/integration.js';
 
 interface PipelineInput { jobId: string; userId: string; spec: Record<string, unknown> }
 
@@ -44,13 +45,17 @@ export async function executePipeline({ jobId, userId, spec }: PipelineInput) {
   try {
     for (let i = startPhase; i < PIPELINE_PHASES.length; i++) {
       const phase = PIPELINE_PHASES[i];
+      const runtime = prepareExpansionPhase(jobId, completedPhases, i);
       await supabase.from('pipeline_jobs')
         .update({ current_phase: i, current_phase_name: phase.name, updated_at: new Date().toISOString() })
         .eq('id', jobId);
 
       for (let a = 0; a < phase.agents.length; a++) {
         const output = await withTimeout(
-          callLLM({ systemPrompt: phase.agents[a].systemPrompt, userPrompt: phase.agents[a].buildPrompt(spec, priorPhaseOutputs) }),
+          callLLM({
+            systemPrompt: `${phase.agents[a].systemPrompt}\n\n[correlation_id=${runtime.correlationId}] [idempotency_key=${runtime.idempotencyKey}]`,
+            userPrompt: phase.agents[a].buildPrompt(spec, priorPhaseOutputs),
+          }),
           PHASE_TIMEOUT_MS, phase.name + '[' + a + ']'
         );
         if (!output || output.trim().length < 10) {

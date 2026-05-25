@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { PipelineProgress } from "@/components/dashboard/PipelineProgress";
 import Link from "next/link";
 import {
   Zap,
@@ -161,6 +162,9 @@ export default function FlowForgeLanding() {
 
       {/* Phase Badges */}
       <section className="max-w-5xl mx-auto px-6 py-8">
+        <div className="mb-6">
+          <PipelineProgress currentPhase={25} totalPhases={25} />
+        </div>
         <p className="text-center text-xs text-gray-500 uppercase tracking-widest mb-4">
           Exercising All 25 Sovereign Phases
         </p>
