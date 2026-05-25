@@ -15,11 +15,6 @@ function sanitizeCommand(cmd: string): string {
   return cmd.replace(/[;&|`$(){}\[\]<>!]/g, "");
 }
 
-function isKnownCommand(cmd: string): boolean {
-  const base = cmd.trim().split(/\s+/)[0].toLowerCase();
-  return KNOWN_COMMANDS.has(base);
-}
-
 // ─── Persistence keys ────────────────────────────────────────────────────────
 const TERMINAL_HISTORY_KEY = "sovereign_terminal_history";
 const COMMAND_HISTORY_KEY  = "sovereign_command_history";
