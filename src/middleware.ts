@@ -17,7 +17,7 @@ const SECURITY_HEADERS: Record<string, string> = {
     "style-src 'self' 'unsafe-inline'; " +
     "img-src 'self' data: blob: https:; " +
     "font-src 'self' data:; " +
-    "connect-src 'self' https://*.supabase.co https://*.sentry.io https://api.stripe.com https://opencode.ai; " +
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.sentry.io https://api.stripe.com https://opencode.ai https://*.up.railway.app https://*.vercel.app; " +
     "frame-src 'self' https://js.stripe.com; " +
     "object-src 'none'; " +
     "base-uri 'self';",
@@ -135,7 +135,7 @@ export async function middleware(request: NextRequest) {
   // Redirect logged-in users away from auth pages
   if ((pathname === "/login" || pathname === "/signup") && user) {
     const url = request.nextUrl.clone();
-    url.pathname = "/app";
+    url.pathname = "/dashboard";
     const redirectResponse = NextResponse.redirect(url);
     applySecurityHeaders(redirectResponse);
     return redirectResponse;
