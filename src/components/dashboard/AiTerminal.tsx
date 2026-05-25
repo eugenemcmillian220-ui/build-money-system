@@ -424,6 +424,10 @@ export default function AiTerminal({ onManifest }: AiTerminalProps) {
       .replace(/--target\s+\S+/gi, "")
       .trim();
 
+    if (targetMatch) {
+      setDeployTarget(finalTarget);
+    }
+
     addLine("system", "┌─ Manifestation Initiated ─────────────────────────────────┐");
     addLine("output", `  Mode: ${finalMode.toUpperCase()} | Protocol: ${finalProto}`);
     addLine("output", `  Builder: ${finalBuilder === "automated" ? "Automated Builder" : "Granular Architect"}`);
