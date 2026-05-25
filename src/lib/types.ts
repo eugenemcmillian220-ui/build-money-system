@@ -87,6 +87,10 @@ export interface ManifestOptions extends Record<string, unknown> {
   theme?: string;
   primaryColor?: string;
   builderType?: "automated" | "granular";
+  deployTarget?: "vercel" | "railway";
+  databaseProvider?: "supabase";
+  phaseDirectives?: string;
+  appDirectives?: string;
 }
 
 export interface ProjectStatus {
