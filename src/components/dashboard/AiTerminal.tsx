@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Terminal as TerminalIcon, Send, Loader2, ChevronDown, Zap, Shield, Cpu } from "lucide-react";
+import { Terminal as TerminalIcon, Send, Loader2, ChevronDown, Zap, Shield, Cpu, Cloud, Database } from "lucide-react";
 import { ManifestOptions } from "@/lib/types";
 
 // ─── Command allowlist (Set for O(1) lookup) ────────────────────────────────
@@ -86,6 +86,9 @@ export default function AiTerminal({ onManifest }: AiTerminalProps) {
   const [mode, setMode]         = useState<"elite" | "universal" | "nano">("universal");
   const [protocol]              = useState("Sovereign-Forge-v1");
   const [builderType, setBuilderType] = useState<"automated" | "granular">("automated");
+  const [deployTarget, setDeployTarget] = useState<"vercel" | "railway">("vercel");
+  const [phaseDirectives, setPhaseDirectives] = useState("");
+  const [appDirectives, setAppDirectives] = useState("");
   const [showModeSelector, setShowModeSelector] = useState(false);
 
   const [commandHistory, setCommandHistory]   = useState<string[]>([]);
@@ -245,6 +248,8 @@ export default function AiTerminal({ onManifest }: AiTerminalProps) {
       addLine("system", "┌─ Build Configuration ────────────────────────────────────┐");
       addLine("output", `  Mode:      ${mode.toUpperCase()} (${mode === "elite" ? "full production stack" : mode === "nano" ? "minimal MVP" : "standard app"})`);
       addLine("output", `  Builder:   ${builderType === "automated" ? "Automated Builder" : "Granular Architect"}`);
+      addLine("output", `  Runtime:   ${deployTarget === "vercel" ? "Vercel UI/API + Railway workers" : "Railway deployment"}`);
+      addLine("output", "  Data/Auth: Supabase");
       addLine("output", `  Protocol:  ${protocol}`);
       addLine("output", `  Agents:    25/25 online (all tiers unlocked)`);
       addLine("output", `  Phases:    25/25 active`);
@@ -404,21 +409,25 @@ export default function AiTerminal({ onManifest }: AiTerminalProps) {
     }
 
     const modeMatch    = manifestPrompt.match(/--mode\s+(elite|universal|nano)/i);
+    const targetMatch  = manifestPrompt.match(/--target\s+(vercel|railway)/i);
     const protoMatch   = manifestPrompt.match(/--proto\s+(\S+)/i);
     const builderMatch = manifestPrompt.match(/--builder\s+(automated|granular)/i);
 
     const finalMode    = modeMatch    ? (modeMatch[1].toLowerCase() as "elite" | "universal" | "nano") : mode;
+    const finalTarget  = targetMatch  ? (targetMatch[1].toLowerCase() as "vercel" | "railway") : deployTarget;
     const finalProto   = protoMatch   ? protoMatch[1] : protocol;
     const finalBuilder = builderMatch ? (builderMatch[1].toLowerCase() as "automated" | "granular") : builderType;
     const cleanPrompt  = manifestPrompt
       .replace(/--mode\s+\S+/gi, "")
       .replace(/--proto\s+\S+/gi, "")
       .replace(/--builder\s+\S+/gi, "")
+      .replace(/--target\s+\S+/gi, "")
       .trim();
 
     addLine("system", "┌─ Manifestation Initiated ─────────────────────────────────┐");
     addLine("output", `  Mode: ${finalMode.toUpperCase()} | Protocol: ${finalProto}`);
     addLine("output", `  Builder: ${finalBuilder === "automated" ? "Automated Builder" : "Granular Architect"}`);
+    addLine("output", `  Target: ${finalTarget.toUpperCase()} | Data/Auth: SUPABASE`);
     addLine("output", `  Agents: 25/25 active | All phases unlocked`);
     addLine("system", "└──────────────────────────────────────────────────────────┘");
     addLine("output", "Decoding intent...");
@@ -426,7 +435,15 @@ export default function AiTerminal({ onManifest }: AiTerminalProps) {
     try {
       await onManifest(
         cleanPrompt,
-        { mode: finalMode, protocol: finalProto, builderType: finalBuilder },
+        {
+          mode: finalMode,
+          protocol: finalProto,
+          builderType: finalBuilder,
+          deployTarget: finalTarget,
+          databaseProvider: "supabase",
+          phaseDirectives: phaseDirectives.trim() || undefined,
+          appDirectives: appDirectives.trim() || undefined,
+        },
         (level, text) => addLine(level === "error" ? "error" : "output", text),
       );
       setStageProgress(100);
@@ -548,6 +565,18 @@ export default function AiTerminal({ onManifest }: AiTerminalProps) {
           </div>
         </div>
       )}
+
+      <div className="px-4 py-2 border-t border-white/10 bg-black/20 space-y-2">
+        <div className="grid grid-cols-2 gap-2">
+          <button type="button" onClick={() => setDeployTarget("vercel")} className={`text-[9px] font-black uppercase tracking-widest rounded-md px-2 py-1.5 border flex items-center justify-center gap-1 ${deployTarget === "vercel" ? "border-blue-400/50 bg-blue-500/10 text-blue-300" : "border-white/10 bg-white/5 text-white/50"}`}><Cloud size={10} />Vercel</button>
+          <button type="button" onClick={() => setDeployTarget("railway")} className={`text-[9px] font-black uppercase tracking-widest rounded-md px-2 py-1.5 border flex items-center justify-center gap-1 ${deployTarget === "railway" ? "border-purple-400/50 bg-purple-500/10 text-purple-300" : "border-white/10 bg-white/5 text-white/50"}`}><Cloud size={10} />Railway</button>
+        </div>
+        <div className="rounded-md border border-white/10 bg-white/5 p-2">
+          <p className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-1 flex items-center gap-1"><Database size={10} />Supabase editor directives</p>
+          <textarea value={phaseDirectives} onChange={(e) => setPhaseDirectives(e.target.value)} placeholder="Phase editor: stage rules, retries, approvals..." className="w-full h-14 mb-2 rounded-md bg-black/40 border border-white/10 px-2 py-1 text-[10px] text-white/80" />
+          <textarea value={appDirectives} onChange={(e) => setAppDirectives(e.target.value)} placeholder="App editor: UI/auth/data behavior..." className="w-full h-14 rounded-md bg-black/40 border border-white/10 px-2 py-1 text-[10px] text-white/80" />
+        </div>
+      </div>
 
       {/* Input */}
       <form onSubmit={handleCommand} className="p-4 border-t border-white/10 bg-white/5 flex gap-2">
