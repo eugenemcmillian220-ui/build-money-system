@@ -64,19 +64,33 @@ export async function refundCredits(
   userId: string,
   amount: number,
   description = 'Pipeline refund',
+  jobId?: string,
 ): Promise<void> {
   const supabase = createServiceClient();
 
-  await supabase.rpc('add_credits_atomic', {
+  // FIX: add_credits_atomic returns the new balance — capture it for the audit log.
+  // The original code hardcoded balance_after: 0, producing a broken audit trail
+  // that made every refund look like it zeroed out the user's balance.
+  const { data: newBalanceData, error } = await supabase.rpc('add_credits_atomic', {
     p_user_id: userId,
     p_amount: amount,
   });
 
+  if (error) {
+    console.error('[credits] refundCredits RPC error:', error.message);
+    // Non-fatal: log and continue so the refund attempt is still recorded
+  }
+
+  const newBalance = typeof newBalanceData === 'number' ? newBalanceData : null;
+
+  // Log transaction (non-blocking)
   Promise.resolve(supabase.from('credit_transactions').insert({
     user_id: userId,
     amount,
-    balance_after: 0,
+    // Use actual post-refund balance; fall back to null if RPC didn't return it
+    balance_after: newBalance,
     description,
+    job_id: jobId ?? null,
   })).then(() => {}).catch(console.error);
 }
 
